@@ -1,0 +1,6 @@
+<svg className="goals-filebox-svg" viewBox="0 0 1590 877" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+  {/* full background fill — no gap */}
+  <path d="M1.5 1.5H1567.66L1485.55 854.71H1.5V1.5Z" fill="#322656" fillOpacity="0.2" stroke="#916FF1" strokeWidth="3"/>
+  {/* internal margin line */}
+  <line x1="0" y1="45" x2="1560" y2="45" stroke="#916FF1" strokeWidth="3"/>
+</svg>
