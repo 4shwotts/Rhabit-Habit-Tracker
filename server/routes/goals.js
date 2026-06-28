@@ -1,9 +1,8 @@
 const express = require('express')
 const router = express.Router()
 const db = require('../db/database')
-const { getUnlockedTaskLevel, generateTasks } = require('../middleware/checkDailyReset')
+const { getMaxTaskLevel, getMinTaskLevel, generateTasks } = require('../middleware/checkDailyReset')
 
-// returns all goals with their tasks nested by level
 router.get('/', (req, res) => {
   const goals = db.prepare('SELECT * FROM goals ORDER BY created_at ASC').all()
   const result = goals.map(goal => {
@@ -44,8 +43,6 @@ router.patch('/:id/xp', (req, res) => {
   res.json({ success: true })
 })
 
-// when starring a new goal, save the current goal's tasks as a snapshot first
-// so switching back restores exactly where you left off
 router.patch('/:id/star', (req, res) => {
   const id = parseInt(req.params.id)
   const today = new Date().toISOString().split('T')[0]
@@ -72,10 +69,10 @@ router.patch('/:id/star', (req, res) => {
   db.prepare('UPDATE user SET active_goal_id = ? WHERE id = 1').run(id)
 
   const goal = db.prepare('SELECT * FROM goals WHERE id = ?').get(id)
-  const unlockedLevel = getUnlockedTaskLevel(goal.level)
+  const minLevel = getMinTaskLevel(goal.level)
+  const maxLevel = getMaxTaskLevel(goal.level)
   const state = db.prepare('SELECT * FROM daily_state WHERE id = 1').get()
 
-  // only swap tasks if the session hasn't started yet
   if (!state?.started) {
     const snapshot = db.prepare(
       'SELECT * FROM goal_daily_snapshot WHERE goal_id = ? AND date = ?'
@@ -89,11 +86,11 @@ router.patch('/:id/star', (req, res) => {
       )
       snapshot.forEach(t => insert.run(t.goal_task_id, t.title, t.level, t.checked, t.refreshed))
     } else {
-      const tasks = generateTasks(id, unlockedLevel)
+      const tasks = generateTasks(goal.id, minLevel, maxLevel)
       const insert = db.prepare(
         'INSERT INTO daily_tasks (goal_task_id, title, level, checked, refreshed) VALUES (?, ?, ?, 0, 0)'
       )
-      tasks.forEach(task => insert.run(task.id, task.title, task.level))
+      tasks.forEach(task => insert.run(task.id, task.title, task.level, task.level))
     }
 
     db.prepare('UPDATE daily_state SET last_reset = ?, goal_id = ?, started = 0, confirmed = 0, window_start = NULL WHERE id = 1')
@@ -114,7 +111,6 @@ router.delete('/:id', (req, res) => {
   res.json({ success: true })
 })
 
-// replaces all tasks for a given level — easier than diffing individual rows
 router.post('/:id/tasks', (req, res) => {
   const { level, tasks } = req.body
   const goalId = req.params.id

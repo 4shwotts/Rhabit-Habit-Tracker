@@ -79,7 +79,8 @@ function GoalsPage() {
 
   // progress bar shows how far through the 10 levels the goal has come
   const progressPercent = (goal) => {
-    return Math.round((goal.level - 1) / 9 * 100)
+  const cappedLevel = Math.min(goal.level, 10)
+  return Math.round((cappedLevel - 1) / 9 * 100)
   }
 
   async function addGoal() {
@@ -334,7 +335,7 @@ function GoalsPage() {
                             </clipPath>
                           </defs>
                           <path d="M0 34H388.77L404 0H7.91055L0 34Z" fill="#1B142C"/>
-                          <rect x="4" y="4" width={`${progressPercent(goal) * 3.88}`} height="26" fill="#916FF1" clipPath={`url(#pg-${goal.id})`}/>
+                          <rect x="0" y="0" width={`${progressPercent(goal) === 100 ? 404 : progressPercent(goal) * 3.96}`} height="34" fill="#916FF1" clipPath={`url(#pg-${goal.id})`}/>
                           <path d="M0 34H388.77L404 0H7.91055L0 34Z" fill="none" stroke="#916FF133" strokeWidth="1.5"/>
                         </svg>
                       </div>

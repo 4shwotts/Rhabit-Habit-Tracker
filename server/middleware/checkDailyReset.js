@@ -8,10 +8,16 @@ function getWindowSeconds(level) {
   return 1 * 60 * 60
 }
 
-// every 5 levels unlocks the next tier of tasks
-function getUnlockedTaskLevel(userLevel) {
-  const tier = Math.floor((userLevel - 1) / 5)
-  return Math.min(tier + 1, 10)
+// each level up unlocks the matching task tier — level 3 unlocks level 3 tasks, and so on
+function getMaxTaskLevel(userLevel) {
+  return Math.min(userLevel, 10)
+}
+
+// as the user levels up, easier tasks are phased out to keep difficulty appropriate
+function getMinTaskLevel(userLevel) {
+  if (userLevel <= 3) return 1
+  if (userLevel === 10) return 10
+  return userLevel - 2
 }
 
 // using Intl here because JS Date is unreliable across timezones
@@ -32,15 +38,15 @@ function getTodayInTimezone(timezone) {
 
 // always guarantee one task from the highest unlocked tier so progression feels meaningful,
 // then fill the rest randomly from the full unlocked pool
-function generateTasks(goalId, unlockedLevel) {
+function generateTasks(goalId, minLevel, maxLevel) {
   const pool = db.prepare(`
     SELECT * FROM goal_tasks
-    WHERE goal_id = ? AND title != '' AND level <= ?
-  `).all(goalId, unlockedLevel)
+    WHERE goal_id = ? AND title != '' AND level >= ? AND level <= ?
+  `).all(goalId, minLevel, maxLevel)
 
   if (pool.length === 0) return []
 
-  const highestTier = pool.filter(t => t.level === unlockedLevel)
+  const highestTier = pool.filter(t => t.level === maxLevel)
   let selected = []
 
   if (highestTier.length > 0) {
@@ -62,7 +68,6 @@ function checkDailyReset(req, res, next) {
   const state = db.prepare('SELECT * FROM daily_state WHERE id = 1').get()
   if (!state) return next()
 
-  // don't reset if the user has paused progression
   if (user.pause_progression) return next()
 
   const today = getTodayInTimezone(user.timezone)
@@ -73,8 +78,9 @@ function checkDailyReset(req, res, next) {
     db.prepare('DELETE FROM daily_tasks').run()
 
     if (goal) {
-      const unlockedLevel = getUnlockedTaskLevel(goal.level)
-      const tasks = generateTasks(goal.id, unlockedLevel)
+      const minLevel = getMinTaskLevel(goal.level)
+      const maxLevel = getMaxTaskLevel(goal.level)
+      const tasks = generateTasks(goal.id, minLevel, maxLevel)
 
       const insert = db.prepare(
         'INSERT INTO daily_tasks (goal_task_id, title, level, checked, refreshed) VALUES (?, ?, ?, 0, 0)'
@@ -107,4 +113,4 @@ function checkDailyReset(req, res, next) {
   next()
 }
 
-module.exports = { checkDailyReset, getWindowSeconds, getTodayInTimezone, getUnlockedTaskLevel, generateTasks }
+module.exports = { checkDailyReset, getWindowSeconds, getTodayInTimezone, getMaxTaskLevel, getMinTaskLevel, generateTasks }

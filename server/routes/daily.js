@@ -2,7 +2,7 @@ const express = require('express')
 const router = express.Router()
 const db = require('../db/database')
 const { getRandomPenaltyTask } = require('../data/penaltyTasks')
-const { getWindowSeconds, getUnlockedTaskLevel } = require('../middleware/checkDailyReset')
+const { getWindowSeconds, getMaxTaskLevel, getMinTaskLevel } = require('../middleware/checkDailyReset')
 
 router.get('/', (req, res) => {
   const state = db.prepare('SELECT * FROM daily_state WHERE id = 1').get()
@@ -13,7 +13,8 @@ router.get('/', (req, res) => {
     ? db.prepare('SELECT * FROM goals WHERE id = ?').get(user.active_goal_id)
     : null
 
-  const windowSeconds = getWindowSeconds(goal?.level || 1)
+  const taskLevel = tasks.length > 0 ? Math.max(...tasks.map(t => t.level)) : 1
+  const windowSeconds = getWindowSeconds(taskLevel)
   res.json({ state, tasks, penalty, windowSeconds })
 })
 
@@ -39,10 +40,12 @@ router.post('/confirm', (req, res) => {
 
   const state = db.prepare('SELECT * FROM daily_state WHERE id = 1').get()
   const goal = db.prepare('SELECT * FROM goals WHERE id = ?').get(user.active_goal_id)
-  const windowSeconds = getWindowSeconds(goal.level)
+  const confirmTasks = db.prepare('SELECT * FROM daily_tasks').all()
+  const taskLevel = confirmTasks.length > 0 ? Math.max(...confirmTasks.map(t => t.level)) : 1
+  const windowSeconds = getWindowSeconds(taskLevel)
   const elapsed = (new Date() - new Date(state.window_start)) / 1000
   const remaining = windowSeconds - elapsed
-  const XP_PER_TASK = 15
+  const XP_PER_TASK = 5
 
   if (remaining > 600) {
     return res.status(403).json({
@@ -51,8 +54,7 @@ router.post('/confirm', (req, res) => {
     })
   }
 
-  const tasks = db.prepare('SELECT * FROM daily_tasks').all()
-  const checkedCount = tasks.filter(t => t.checked).length
+  const checkedCount = confirmTasks.filter(t => t.checked).length
   let newXp = goal.xp + checkedCount * XP_PER_TASK
   let newLevel = goal.level
 
@@ -106,7 +108,7 @@ router.post('/penalty/fail', (req, res) => {
   if (!user?.active_goal_id) return res.status(400).json({ error: 'No active goal' })
 
   const goal = db.prepare('SELECT * FROM goals WHERE id = ?').get(user.active_goal_id)
-  const PENALTY_XP = 45
+  const PENALTY_XP = 15
   let newXp = goal.xp - PENALTY_XP
   let newLevel = goal.level
 
@@ -129,7 +131,7 @@ router.post('/penalty/auto-fail', (req, res) => {
   if (!user?.active_goal_id) return res.status(400).json({ error: 'No active goal' })
 
   const goal = db.prepare('SELECT * FROM goals WHERE id = ?').get(user.active_goal_id)
-  const PENALTY_XP = 45
+  const PENALTY_XP = 15
   let newXp = goal.xp - PENALTY_XP
   let newLevel = goal.level
 
@@ -172,17 +174,17 @@ router.post('/tasks/:id/refresh', (req, res) => {
       .run(newXp, newLevel, goal.id)
   }
 
-  // only pull from tasks the user has actually unlocked
-  const unlockedLevel = getUnlockedTaskLevel(goal.level)
+  // pull from the user's current unlocked task range
+  const minLevel = getMinTaskLevel(goal.level)
+  const maxLevel = getMaxTaskLevel(goal.level)
   const currentTasks = db.prepare('SELECT * FROM daily_tasks').all()
   const currentTitles = currentTasks.map(t => t.title)
 
   const pool = db.prepare(`
     SELECT * FROM goal_tasks
-    WHERE goal_id = ? AND title != '' AND level <= ?
-  `).all(goal.id, unlockedLevel)
+    WHERE goal_id = ? AND title != '' AND level >= ? AND level <= ?
+  `).all(goal.id, minLevel, maxLevel)
 
-  // prefer tasks not already on the board
   const available = pool.filter(t => !currentTitles.includes(t.title))
   const source = available.length > 0 ? available : pool
   const newTask = source[Math.floor(Math.random() * source.length)]

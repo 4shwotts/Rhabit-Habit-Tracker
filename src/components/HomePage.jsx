@@ -15,7 +15,7 @@ import {
   failPenalty, confirmPenalty, autoFailPenalty, updateSettings
 } from '../api'
 
-const XP_PER_TASK = 15
+const XP_PER_TASK = 5
 const REFRESH_COST = 5
 
 function formatTime(seconds) {
@@ -98,7 +98,15 @@ function HomePage() {
 
   // tick the clock every second
   useEffect(() => {
-    clockRef.current = setInterval(() => setCurrentTime(new Date()), 1000)
+    let lastDate = new Date().toDateString()
+    clockRef.current = setInterval(() => {
+      const now = new Date()
+      setCurrentTime(now)
+      if (now.toDateString() !== lastDate) {
+        lastDate = now.toDateString()
+        window.location.reload()
+      }
+    }, 1000)
     return () => clearInterval(clockRef.current)
   }, [])
 

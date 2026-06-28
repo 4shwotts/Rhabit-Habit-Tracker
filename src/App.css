@@ -359,21 +359,34 @@ body {
 .task-edit-input {
   background: transparent;
   border: none;
-  border-bottom: 1px solid rgba(145, 111, 241, 0.3);
+  border-bottom: none;
   color: #FFFFFF;
   font-family: 'Alumni Sans', sans-serif;
   font-size: 22px;
   font-weight: 500;
   line-height: 26px;
   outline: none;
+  box-shadow: none;
   width: 100%;
   padding: 0;
   cursor: default;
+  caret-color: #916FF1;
+}
+
+.task-edit-input:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0px 1000px transparent inset;
+  box-shadow: 0 0 0px 1000px transparent inset;
+}
+
+.task-edit-input:focus {
+  outline: none;
+  border: none;
+  box-shadow: none;
+  -webkit-appearance: none;
 }
 
 .task-edit-input:not([readonly]) {
   cursor: text;
-  border-bottom: 1px solid #916FF1;
 }
 
 .task-edit-input::placeholder {
@@ -1629,7 +1642,7 @@ body {
   max-height: 100%;
   background: #40355D;
   border: 2px solid #534773;
-  border-radius: 8px;
+  border-radius: 6px;
   transition: top 0.05s, height 0.05s;
 }
 

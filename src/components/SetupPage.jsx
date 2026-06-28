@@ -46,13 +46,11 @@ function SetupPage() {
   const startIndex = currentTaskPage * TASKS_PER_PAGE
   const visibleTasks = levelTasks.slice(startIndex, startIndex + TASKS_PER_PAGE)
 
-  // pad to always show 3 rows even if fewer tasks exist
   const paddedTasks = [
     ...visibleTasks,
     ...Array(Math.max(0, TASKS_PER_PAGE - visibleTasks.length)).fill(null)
   ]
 
-  // start button stays disabled until username, goal name and 3+ tasks per level are filled
   function canConfirm() {
     if (!username.trim() || !goalName.trim()) return false
     for (let l = 1; l <= 10; l++) {
@@ -100,7 +98,6 @@ function SetupPage() {
     setError(null)
 
     try {
-      // grab timezone from the browser so daily resets happen at the right time
       const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
 
       await createUser(username.trim(), timezone)
@@ -147,6 +144,7 @@ function SetupPage() {
               value={username}
               onChange={e => setUsername(e.target.value)}
               maxLength={20}
+              style={{ textAlign: username.length > 15 ? 'left' : 'center' }}
             />
           </div>
           <div className="setup-field">
@@ -157,6 +155,7 @@ function SetupPage() {
               value={goalName}
               onChange={e => setGoalName(e.target.value)}
               maxLength={28}
+              style={{ textAlign: goalName.length > 15 ? 'left' : 'center' }}
             />
           </div>
         </div>
@@ -212,7 +211,7 @@ function SetupPage() {
                         className="task-edit-input"
                         type="text"
                         value={task.title}
-                        placeholder="Click to Edit"
+                        placeholder="Task Empty - Edit to add content"
                         readOnly={editingIndex !== index}
                         onChange={e => updateTask(index, e.target.value)}
                         maxLength={40}
