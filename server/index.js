@@ -24,6 +24,19 @@ app.use('/api/daily', dailyRoutes)
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }))
 
+// demo reset endpoint — restores the database to the original seed state
+app.post('/api/reset-demo', (req, res) => {
+  const dbPath = path.join(__dirname, 'db', 'rhabit.db')
+  const seedPath = path.join(__dirname, 'db', 'rhabit_seed.db')
+  if (fs.existsSync(seedPath)) {
+    fs.copyFileSync(seedPath, dbPath)
+    console.log('Demo reset triggered by user')
+    res.json({ success: true })
+  } else {
+    res.status(500).json({ error: 'Seed database not found' })
+  }
+})
+
 // resets the live database back to the seed state at midnight every day
 function scheduleMidnightReset() {
   const now = new Date()
