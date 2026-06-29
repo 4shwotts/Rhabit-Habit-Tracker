@@ -414,9 +414,16 @@ function HomePage() {
   }
 
   async function handleResetDemo() {
-    setResettingDemo(true)
-    await resetDemo()
-    window.location.href = '/'
+  setResettingDemo(true)
+  try {
+    await Promise.race([
+      resetDemo(),
+      new Promise(resolve => setTimeout(resolve, 5000))
+    ])
+  } catch (err) {
+    console.error('Reset error:', err)
+  }
+  window.location.href = '/'
   }
 
   const canConfirm = confirmUnlock === 0 && !confirmed
