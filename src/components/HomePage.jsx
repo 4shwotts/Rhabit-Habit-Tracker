@@ -12,7 +12,7 @@ import PenaltyModal from './PenaltyModal'
 import {
   getUser, getGoals, getDaily, startDaily, checkTask,
   confirmDaily, refreshTask, triggerPenalty,
-  failPenalty, confirmPenalty, autoFailPenalty, updateSettings
+  failPenalty, confirmPenalty, autoFailPenalty, updateSettings, resetDemo
 } from '../api'
 
 const XP_PER_TASK = 5
@@ -25,7 +25,6 @@ function formatTime(seconds) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-// used for the level up notification — tells the user what their new window is
 function getWindowLabel(level) {
   if (level <= 3) return '3 hours'
   if (level <= 6) return '2 hours'
@@ -33,7 +32,6 @@ function getWindowLabel(level) {
   return '1 hour'
 }
 
-// using Intl here because JS Date midnight calculation breaks across timezones
 function getSecondsUntilMidnight(timezone) {
   try {
     const now = new Date()
@@ -74,6 +72,7 @@ function HomePage() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [penaltyTriggeredByTimer, setPenaltyTriggeredByTimer] = useState(false)
   const [autoLaunchPenalty, setAutoLaunchPenalty] = useState(false)
+  const [resettingDemo, setResettingDemo] = useState(false)
 
   const [settings, setSettings] = useState({
     timerVisible: true,
@@ -96,7 +95,6 @@ function HomePage() {
   const confirmRef = useRef(null)
   const clockRef = useRef(null)
 
-  // tick the clock every second and auto-reload at midnight
   useEffect(() => {
     let lastDate = new Date().toDateString()
     clockRef.current = setInterval(() => {
@@ -122,7 +120,6 @@ function HomePage() {
     }
   }
 
-  // shows a failure/outcome message for 10s then transitions to the end state
   function showEndState(message, username) {
     setEndMessage(message.replace('[username]', username || ''))
     setTimeout(() => {
@@ -172,7 +169,6 @@ function HomePage() {
           return
         }
 
-        // if a penalty was already active when the page reloaded, jump straight back into it
         if (penalty?.active) {
           setPenaltyTriggeredByTimer(true)
           setDissolvingIndices([0, 1, 2])
@@ -181,10 +177,8 @@ function HomePage() {
           return
         }
 
-        // check if there's enough time left in the day to actually complete the window
         if (!state?.started && !userData.pause_progression) {
           const penaltyDuration = 3600
-          const confirmOffset = 600
 
           if (secondsUntilMidnight < ws) {
             if (secondsUntilMidnight >= penaltyDuration) {
@@ -213,7 +207,6 @@ function HomePage() {
           }
         }
 
-        // calculate remaining time from the stored window_start timestamp
         if (state?.started && state?.window_start) {
           const elapsed = Math.floor((Date.now() - new Date(state.window_start)) / 1000)
           const remaining = Math.max(0, ws - elapsed)
@@ -238,7 +231,6 @@ function HomePage() {
     load()
   }, [navigate])
 
-  // smooth XP bar animation — eases toward the target value
   useEffect(() => {
     const diff = xp - xpAnim
     if (Math.abs(diff) < 0.5) { setXpAnim(xp); return }
@@ -246,8 +238,6 @@ function HomePage() {
     return () => clearTimeout(t)
   }, [xp, xpAnim])
 
-  // main countdown — triggers penalty if timer hits zero without all tasks checked
-  // timeLeft === null in deps ensures the interval restarts after navigation
   useEffect(() => {
     if (!dailyState?.started || confirmed || timeLeft === null || timeLeft <= 0) return
     if (timerRef.current) clearInterval(timerRef.current)
@@ -266,7 +256,6 @@ function HomePage() {
     return () => clearInterval(timerRef.current)
   }, [dailyState?.started, confirmed, timeLeft === null])
 
-  // separate countdown for the confirm button unlock
   useEffect(() => {
     if (!dailyState?.started || confirmed || confirmUnlock === null) return
     if (confirmRef.current) clearInterval(confirmRef.current)
@@ -424,6 +413,12 @@ function HomePage() {
     })
   }
 
+  async function handleResetDemo() {
+    setResettingDemo(true)
+    await resetDemo()
+    window.location.href = '/'
+  }
+
   const canConfirm = confirmUnlock === 0 && !confirmed
   const xpPercent = Math.min(xpAnim, 100) / 100
   const started = !!dailyState?.started
@@ -522,6 +517,27 @@ function HomePage() {
 
         <div className="home-clock">
           {formatClock(currentTime, user?.timezone || 'UTC')}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
+          <button
+            onClick={handleResetDemo}
+            disabled={resettingDemo}
+            style={{
+              background: 'rgba(145, 111, 241, 0.15)',
+              border: '1px solid rgba(145, 111, 241, 0.4)',
+              borderRadius: '20px',
+              color: 'rgba(193, 170, 255, 0.7)',
+              fontFamily: 'Alumni Sans, sans-serif',
+              fontSize: '16px',
+              padding: '4px 16px',
+              cursor: resettingDemo ? 'not-allowed' : 'pointer',
+              opacity: resettingDemo ? 0.5 : 1,
+              letterSpacing: '0.3px'
+            }}
+          >
+            {resettingDemo ? 'Resetting...' : 'Reset Demo'}
+          </button>
         </div>
 
         <div className="home-task-list">
