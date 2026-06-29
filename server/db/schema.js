@@ -1,7 +1,17 @@
 const Database = require('better-sqlite3')
 const path = require('path')
+const fs = require('fs')
 
-const db = new Database(path.join(__dirname, 'rhabit.db'))
+const dbPath = path.join(__dirname, 'rhabit.db')
+const seedPath = path.join(__dirname, 'rhabit_seed.db')
+
+// on first run (no live db yet), copy the seed database so demo data is ready
+if (!fs.existsSync(dbPath) && fs.existsSync(seedPath)) {
+  fs.copyFileSync(seedPath, dbPath)
+  console.log('Copied seed database to rhabit.db')
+}
+
+const db = new Database(dbPath)
 
 function initDB() {
   db.exec(`
