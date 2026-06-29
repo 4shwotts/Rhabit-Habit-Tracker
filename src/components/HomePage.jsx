@@ -211,7 +211,7 @@ function HomePage() {
           const elapsed = Math.floor((Date.now() - new Date(state.window_start)) / 1000)
           const remaining = Math.max(0, ws - elapsed)
           setTimeLeft(remaining)
-          const confirmUnlockAt = ws - 600
+          const confirmUnlockAt = ws - 60
           const confirmRemaining = Math.max(0, confirmUnlockAt - elapsed)
           setConfirmUnlock(confirmRemaining)
         } else {

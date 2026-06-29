@@ -1,14 +1,14 @@
 const db = require('../db/database')
 
-// window shrinks as you level up to keep things challenging
+// demo mode — shortened windows so visitors can test the full flow quickly
 function getWindowSeconds(level) {
-  if (level <= 3) return 3 * 60 * 60
-  if (level <= 6) return 2 * 60 * 60
-  if (level <= 9) return Math.floor(1.5 * 60 * 60)
-  return 1 * 60 * 60
+  if (level <= 3) return 5 * 60
+  if (level <= 6) return 4 * 60
+  if (level <= 9) return 3 * 60
+  return 2 * 60
 }
 
-// each level up unlocks the matching task tier — level 3 unlocks level 3 tasks, and so on
+// each level up unlocks the matching task tier 
 function getMaxTaskLevel(userLevel) {
   return Math.min(userLevel, 10)
 }

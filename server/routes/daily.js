@@ -32,8 +32,7 @@ router.patch('/tasks/:id/check', (req, res) => {
   res.json({ success: true })
 })
 
-// confirm is only available in the last 10 minutes of the window so the user
-// actually has to sit with the timer for most of it
+// confirm unlocks 1 minute before the window ends in demo mode
 router.post('/confirm', (req, res) => {
   const user = db.prepare('SELECT * FROM user WHERE id = 1').get()
   if (!user?.active_goal_id) return res.status(400).json({ error: 'No active goal' })
@@ -47,10 +46,11 @@ router.post('/confirm', (req, res) => {
   const remaining = windowSeconds - elapsed
   const XP_PER_TASK = 5
 
-  if (remaining > 600) {
+  // demo mode — confirm unlocks 1 minute before end
+  if (remaining > 60) {
     return res.status(403).json({
       error: 'Confirm not yet unlocked',
-      unlocks_in: Math.ceil(remaining - 600)
+      unlocks_in: Math.ceil(remaining - 60)
     })
   }
 
@@ -80,15 +80,13 @@ router.post('/penalty/trigger', (req, res) => {
   res.json({ success: true, task })
 })
 
-// unlock threshold varies by difficulty — hard tasks give more time before you can confirm
+// confirm unlocks 1 minute before end for all penalty tasks in demo mode
 router.post('/penalty/confirm', (req, res) => {
   const penalty = db.prepare('SELECT * FROM penalty_state WHERE id = 1').get()
   if (!penalty?.active) return res.status(400).json({ error: 'No active penalty' })
 
   const elapsed = (new Date() - new Date(penalty.started_at)) / 1000
-  const unlockThreshold = penalty.task_difficulty === 'hard'
-    ? penalty.task_timer_seconds - 3600
-    : penalty.task_timer_seconds - 600
+  const unlockThreshold = penalty.task_timer_seconds - 60
 
   if (elapsed < unlockThreshold) {
     return res.status(403).json({
@@ -174,7 +172,6 @@ router.post('/tasks/:id/refresh', (req, res) => {
       .run(newXp, newLevel, goal.id)
   }
 
-  // pull from the user's current unlocked task range
   const minLevel = getMinTaskLevel(goal.level)
   const maxLevel = getMaxTaskLevel(goal.level)
   const currentTasks = db.prepare('SELECT * FROM daily_tasks').all()
