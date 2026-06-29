@@ -96,7 +96,7 @@ function HomePage() {
   const confirmRef = useRef(null)
   const clockRef = useRef(null)
 
-  // tick the clock every second
+  // tick the clock every second and auto-reload at midnight
   useEffect(() => {
     let lastDate = new Date().toDateString()
     clockRef.current = setInterval(() => {
@@ -182,7 +182,6 @@ function HomePage() {
         }
 
         // check if there's enough time left in the day to actually complete the window
-        // if not, automatically trigger the penalty system instead of letting them start
         if (!state?.started && !userData.pause_progression) {
           const penaltyDuration = 3600
           const confirmOffset = 600
@@ -200,7 +199,6 @@ function HomePage() {
               setLoading(false)
               return
             } else {
-              // not even enough time for a penalty task — just deduct and move on
               const result = await autoFailPenalty()
               if (activeGoal) {
                 setXp(result.xp)
@@ -215,7 +213,7 @@ function HomePage() {
           }
         }
 
-        // normal flow — calculate remaining time from the stored window_start timestamp
+        // calculate remaining time from the stored window_start timestamp
         if (state?.started && state?.window_start) {
           const elapsed = Math.floor((Date.now() - new Date(state.window_start)) / 1000)
           const remaining = Math.max(0, ws - elapsed)
@@ -229,7 +227,6 @@ function HomePage() {
         }
 
         setChecked(tasks.map(t => !!t.checked))
-        // restore which refresh buttons should be hidden after a page reload
         setRefreshedIndices(tasks.map((t, i) => t.refreshed ? i : null).filter(i => i !== null))
 
       } catch (err) {
@@ -250,8 +247,9 @@ function HomePage() {
   }, [xp, xpAnim])
 
   // main countdown — triggers penalty if timer hits zero without all tasks checked
+  // timeLeft === null in deps ensures the interval restarts after navigation
   useEffect(() => {
-    if (!dailyState?.started || confirmed || !timeLeft) return
+    if (!dailyState?.started || confirmed || timeLeft === null || timeLeft <= 0) return
     if (timerRef.current) clearInterval(timerRef.current)
 
     timerRef.current = setInterval(() => {
@@ -266,7 +264,7 @@ function HomePage() {
     }, 1000)
 
     return () => clearInterval(timerRef.current)
-  }, [dailyState?.started, confirmed])
+  }, [dailyState?.started, confirmed, timeLeft === null])
 
   // separate countdown for the confirm button unlock
   useEffect(() => {
@@ -320,7 +318,6 @@ function HomePage() {
       clearInterval(timerRef.current)
       clearInterval(confirmRef.current)
 
-      // skip XP animation if penalty was involved — no reward messaging for that
       if (!penaltyTriggeredByTimer) {
         setXpEarnedText(`+${checkedCount * XP_PER_TASK}XP`)
         setTimeout(() => {
@@ -331,12 +328,10 @@ function HomePage() {
         setShowTasksDone(true)
       }
 
-      // stagger the card dissolve
       setDissolvingIndices([0])
       setTimeout(() => setDissolvingIndices([0, 1]), 200)
       setTimeout(() => setDissolvingIndices([0, 1, 2]), 400)
 
-      // only show level up notification if the window tier actually changed
       if (result.level !== level && oldWindowLabel !== newWindowLabel) {
         setTimeout(() => {
           setLevelUpMsg(`SYSTEM UPDATE — Your daily window is now ${newWindowLabel}`)
@@ -373,7 +368,6 @@ function HomePage() {
       setLevel(result.level)
       setShowPenalty(false)
 
-      // different message depending on whether the penalty was auto-triggered or mid-session
       if (autoLaunchPenalty) {
         showEndState(
           `You ran out of time in the day to complete your tasks. We gave you a second chance but you still FAILED us, we shall take away what you worked hard for, [username]`,
@@ -431,7 +425,7 @@ function HomePage() {
   }
 
   const canConfirm = confirmUnlock === 0 && !confirmed
-  const xpPercent = (xpAnim / 100) * 100
+  const xpPercent = Math.min(xpAnim, 100) / 100
   const started = !!dailyState?.started
 
   if (loading) return (
@@ -508,7 +502,7 @@ function HomePage() {
                   </filter>
                 </defs>
                 <path d="M0 34H388.77L404 0H7.91055L0 34Z" fill="#4F4276" filter="url(#inner-shadow)" />
-                <rect x="0" y="3" width={`${xpPercent * 3.88}`} height="28" fill="#916FF1" clipPath="url(#xp-clip)" />
+                <rect x="0" y="0" width={`${xpPercent * 404}`} height="34" fill="#916FF1" clipPath="url(#xp-clip)" />
                 <path d="M0 34H388.77L404 0H7.91055L0 34Z" fill="none" stroke="#07070A" strokeWidth="0" strokeLinejoin="round" />
               </svg>
               <span className="home-xp-text">{xp}/100XP</span>
