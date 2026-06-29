@@ -269,7 +269,7 @@ function HomePage() {
     }, 1000)
 
     return () => clearInterval(confirmRef.current)
-  }, [dailyState?.started, confirmed])
+  }, [dailyState?.started, confirmed, confirmUnlock === null])
 
   async function handleStart() {
     if (settings.pauseProgression) return
