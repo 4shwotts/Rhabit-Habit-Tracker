@@ -160,3 +160,12 @@ export async function autoFailPenalty() {
   })
   return res.json()
 }
+
+// resets the demo database back to the seed state
+export async function resetDemo() {
+  const res = await fetch(`${BASE}/reset-demo`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+  return res.json()
+}
