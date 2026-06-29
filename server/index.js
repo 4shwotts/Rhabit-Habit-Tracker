@@ -8,7 +8,7 @@ require('./db/database')
 const app = express()
 
 // only allow requests from the local frontend
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174'] }))
+app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:5174', 'https://rhabit-habit-tracker.vercel.app'] }))
 app.use(express.json())
 
 const userRoutes = require('./routes/user')
