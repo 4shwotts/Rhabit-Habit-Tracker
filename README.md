@@ -56,6 +56,8 @@ The demo is designed so you can experience the full loop — setup, tasks, penal
 ---
 
 ## Project Structure
+
+```
 Rhabit/
 ├── src/
 │   ├── components/
@@ -82,6 +84,7 @@ Rhabit/
 │   └── index.js
 ├── start.bat
 └── README.md
+```
 
 ---
 
