@@ -2,8 +2,6 @@
 
 A gamified daily habit tracker with inspiration from isekai game menu, including a penalty system similar to Solo Levelling. Built as a portfolio project demonstrating full-stack development with React, Node.js, Express and SQLite.
 
-![Rhabit Homepage](./screenshots/homepage.png)
-
 ## Overview
 
 Rhabit turns your daily habits into a progression system. Complete tasks within a daily time window to earn XP and level up. Miss your tasks and face a penalty challenge. The further you progress, the harder your tasks become and the shorter your window gets.
