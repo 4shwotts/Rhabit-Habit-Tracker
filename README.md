@@ -20,7 +20,7 @@ Rhabit turns your daily habits into a progression system. Complete tasks within 
 | Penalty timer (easy) | ~2 minutes | 1 hour |
 | Penalty timer (hard) | ~4 minutes | 2 hours |
 | XP per task | 5 XP | 5 XP |
-| XP to level up | 30 XP | 100 XP |
+| XP to level up | 100 XP | 100 XP |
 | Penalty deduction | 15 XP | 15 XP |
 
 The demo is designed so you can experience the full loop — setup, tasks, penalty, level up — within a few minutes without committing to a real daily routine.
