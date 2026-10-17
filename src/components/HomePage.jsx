@@ -12,7 +12,7 @@ import PenaltyModal from './PenaltyModal'
 import {
   getUser, getGoals, getDaily, startDaily, checkTask,
   confirmDaily, refreshTask, triggerPenalty,
-  failPenalty, confirmPenalty, autoFailPenalty, updateSettings, resetDemo
+  failPenalty, confirmPenalty, autoFailPenalty, updateSettings
 } from '../api'
 
 const XP_PER_TASK = 5
@@ -72,7 +72,6 @@ function HomePage() {
   const [currentTime, setCurrentTime] = useState(new Date())
   const [penaltyTriggeredByTimer, setPenaltyTriggeredByTimer] = useState(false)
   const [autoLaunchPenalty, setAutoLaunchPenalty] = useState(false)
-  const [resettingDemo, setResettingDemo] = useState(false)
 
   const [settings, setSettings] = useState({
     timerVisible: true,
@@ -132,7 +131,8 @@ function HomePage() {
     async function load() {
       try {
         const [userData, dailyData] = await Promise.all([getUser(), getDaily()])
-        if (!userData) { navigate('/setup'); return }
+        // no user means the session has expired — AuthContext redirects to login
+        if (!userData) return
 
         setUser(userData)
         setSettings({
@@ -413,19 +413,6 @@ function HomePage() {
     })
   }
 
-  async function handleResetDemo() {
-  setResettingDemo(true)
-  try {
-    await Promise.race([
-      resetDemo(),
-      new Promise(resolve => setTimeout(resolve, 5000))
-    ])
-  } catch (err) {
-    console.error('Reset error:', err)
-  }
-  window.location.href = '/'
-  }
-
   const canConfirm = confirmUnlock === 0 && !confirmed
   const xpPercent = Math.min(xpAnim, 100) / 100
   const started = !!dailyState?.started
@@ -524,27 +511,6 @@ function HomePage() {
 
         <div className="home-clock">
           {formatClock(currentTime, user?.timezone || 'UTC')}
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '6px' }}>
-          <button
-            onClick={handleResetDemo}
-            disabled={resettingDemo}
-            style={{
-              background: 'rgba(145, 111, 241, 0.15)',
-              border: '1px solid rgba(145, 111, 241, 0.4)',
-              borderRadius: '20px',
-              color: 'rgba(193, 170, 255, 0.7)',
-              fontFamily: 'Alumni Sans, sans-serif',
-              fontSize: '16px',
-              padding: '4px 16px',
-              cursor: resettingDemo ? 'not-allowed' : 'pointer',
-              opacity: resettingDemo ? 0.5 : 1,
-              letterSpacing: '0.3px'
-            }}
-          >
-            {resettingDemo ? 'Resetting...' : 'Reset Demo'}
-          </button>
         </div>
 
         <div className="home-task-list">

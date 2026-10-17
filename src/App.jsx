@@ -1,23 +1,19 @@
 import './App.css'
-import { useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import SetupPage from './components/SetupPage'
 import HomePage from './components/HomePage'
 import GoalsPage from './components/GoalsPage'
-import { getUser } from './api'
+import LoginPage from './components/auth/LoginPage'
+import SignupPage from './components/auth/SignupPage'
+import VerifyPendingPage from './components/auth/VerifyPendingPage'
+import VerifyEmailPage from './components/auth/VerifyEmailPage'
+import ForgotPasswordPage from './components/auth/ForgotPasswordPage'
+import ResetPasswordPage from './components/auth/ResetPasswordPage'
+import { AuthProvider, useAuth, stageOf, pathForStage } from './auth/AuthContext'
+import RequireStage from './auth/RequireStage'
 
-function App() {
-  const [checking, setChecking] = useState(true)
-  const [hasUser, setHasUser] = useState(false)
-
-  useEffect(() => {
-    getUser().then(user => {
-      setHasUser(!!user)
-      setChecking(false)
-    })
-  }, [])
-
-  if (checking) return (
+function BootScreen() {
+  return (
     <div style={{
       width: '100vw',
       height: '100vh',
@@ -34,15 +30,44 @@ function App() {
       BOOTING SYSTEM...
     </div>
   )
+}
+
+function AppRoutes() {
+  const { user, checking } = useAuth()
+
+  // wait for the session check so guards don't flash the login page
+  if (checking) return <BootScreen />
 
   return (
+    <Routes>
+      <Route path="/" element={<Navigate to={pathForStage(stageOf(user))} replace />} />
+
+      {/* logged-out only */}
+      <Route path="/login" element={<RequireStage stage="guest"><LoginPage /></RequireStage>} />
+      <Route path="/signup" element={<RequireStage stage="guest"><SignupPage /></RequireStage>} />
+
+      {/* reachable from emailed links whatever the session state */}
+      <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+      {/* logged in */}
+      <Route path="/verify-pending" element={<RequireStage stage="unverified"><VerifyPendingPage /></RequireStage>} />
+      <Route path="/setup" element={<RequireStage stage="setup"><SetupPage /></RequireStage>} />
+      <Route path="/home" element={<RequireStage stage="app"><HomePage /></RequireStage>} />
+      <Route path="/goals" element={<RequireStage stage="app"><GoalsPage /></RequireStage>} />
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function App() {
+  return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={hasUser ? <Navigate to="/home" /> : <Navigate to="/setup" />} />
-        <Route path="/setup" element={!hasUser ? <SetupPage /> : <Navigate to="/home" />} />
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/goals" element={<GoalsPage />} />
-      </Routes>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
     </BrowserRouter>
   )
 }

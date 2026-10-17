@@ -1845,3 +1845,203 @@ body {
   border-color: #C1AAFF;
   box-shadow: 0 0 8px rgba(145,111,241,0.7);
 }
+/* ---- AUTH PAGES (login, sign up, verification, password reset) ---- */
+/* reuses the setup page frame, inputs and colours so accounts feel like part of the HUD */
+.auth-page {
+  overflow-y: auto;
+}
+
+.auth-content {
+  position: relative;
+  z-index: 11; /* above the corner frames so links stay clickable on small screens */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  width: min(520px, 92vw);
+}
+
+.auth-title {
+  font-family: 'Alumni Sans', sans-serif;
+  font-size: clamp(40px, 6vw, 64px);
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: #C1AAFF;
+  text-align: center;
+  text-shadow: 0 0 18px rgba(145, 111, 241, 0.45);
+}
+
+.auth-subtitle {
+  max-width: 480px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.auth-field,
+.auth-label,
+.auth-input {
+  width: min(340px, 86vw);
+}
+
+.auth-input {
+  font-size: 22px;
+  text-align: center;
+}
+
+.auth-hint {
+  font-family: 'Alumni Sans', sans-serif;
+  font-size: 18px;
+  color: var(--text-secondary);
+  margin-top: -4px;
+}
+
+.auth-error,
+.auth-message {
+  font-family: 'Alumni Sans', sans-serif;
+  font-size: 20px;
+  text-align: center;
+  max-width: 420px;
+  padding: 8px 20px;
+  border-radius: 37px;
+}
+
+.auth-error {
+  color: #FF8A8A;
+  border: 2px solid rgba(255, 107, 107, 0.55);
+  background: rgba(255, 107, 107, 0.08);
+}
+
+.auth-message {
+  color: #C1AAFF;
+  border: 2px solid rgba(145, 111, 241, 0.55);
+  background: rgba(145, 111, 241, 0.12);
+}
+
+/* same pill as .start-btn, minus the hover text swap */
+.auth-btn {
+  font-family: 'Alumni Sans', sans-serif;
+  font-size: 38px;
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.10);
+  border: 3px solid #916FF1;
+  border-radius: 37px;
+  min-width: 220px;
+  height: 64px;
+  padding: 0 28px;
+  margin-top: 6px;
+  cursor: pointer;
+  backdrop-filter: blur(12px);
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.auth-btn:hover:not(:disabled),
+.auth-btn:focus-visible {
+  background: rgba(145, 111, 241, 0.3);
+  border-color: #B89FF5;
+  outline: none;
+}
+
+.auth-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.auth-links {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.auth-link {
+  font-family: 'Alumni Sans', sans-serif;
+  font-size: 20px;
+  font-style: italic;
+  color: #C1AAFF;
+  text-decoration: none;
+  letter-spacing: 0.2px;
+}
+
+.auth-link:hover,
+.auth-link:focus-visible {
+  color: #FFFFFF;
+  text-decoration: underline;
+  outline: none;
+}
+
+.auth-link-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ---- ACCOUNT SECTION IN SETTINGS ---- */
+.settings-account {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+}
+
+.settings-account-btn {
+  font-family: 'Alumni Sans', sans-serif;
+  font-size: 22px;
+  font-style: italic;
+  color: #FFFFFF;
+  background: rgba(76, 66, 106, 0.20);
+  border: 2px solid #916FF1;
+  border-radius: 37px;
+  padding: 6px 22px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.settings-account-btn:hover:not(:disabled) {
+  background: rgba(145, 111, 241, 0.3);
+  border-color: #B89FF5;
+}
+
+.settings-account-btn.danger {
+  border-color: rgba(255, 107, 107, 0.7);
+  color: #FFB3B3;
+}
+
+.settings-account-btn.danger:hover:not(:disabled) {
+  background: rgba(255, 107, 107, 0.18);
+  border-color: #FF8A8A;
+}
+
+.settings-account-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.settings-delete-confirm {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.settings-delete-warning {
+  font-family: 'Alumni Sans', sans-serif;
+  font-size: 20px;
+  color: #FFB3B3;
+  text-align: center;
+}

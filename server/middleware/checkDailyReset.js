@@ -1,116 +1,48 @@
-const db = require('../db/database')
+const { query, withTransaction } = require('../db')
+const { getTodayInTimezone, rollDailyTasks } = require('../lib/game')
 
-// demo mode — shortened windows so visitors can test the full flow quickly
-function getWindowSeconds(level) {
-  if (level <= 3) return 5 * 60
-  if (level <= 6) return 4 * 60
-  if (level <= 9) return 3 * 60
-  return 2 * 60
-}
+// Runs before every game route (after requireAuth) — checks whether the logged-in
+// user's day has rolled over in their timezone and, if so, rolls new tasks and
+// clears yesterday's daily/penalty state. Only touches req.user's rows.
+async function checkDailyReset(req, res, next) {
+  const user = req.user
+  if (!user || user.pause_progression) return next()
 
-// each level up unlocks the matching task tier 
-function getMaxTaskLevel(userLevel) {
-  return Math.min(userLevel, 10)
-}
-
-// as the user levels up, easier tasks are phased out to keep difficulty appropriate
-function getMinTaskLevel(userLevel) {
-  if (userLevel <= 3) return 1
-  if (userLevel === 10) return 10
-  return userLevel - 2
-}
-
-// using Intl here because JS Date is unreliable across timezones
-function getTodayInTimezone(timezone) {
-  try {
-    const now = new Date()
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    })
-    return formatter.format(now)
-  } catch {
-    return new Date().toISOString().split('T')[0]
-  }
-}
-
-// always guarantee one task from the highest unlocked tier so progression feels meaningful,
-// then fill the rest randomly from the full unlocked pool
-function generateTasks(goalId, minLevel, maxLevel) {
-  const pool = db.prepare(`
-    SELECT * FROM goal_tasks
-    WHERE goal_id = ? AND title != '' AND level >= ? AND level <= ?
-  `).all(goalId, minLevel, maxLevel)
-
-  if (pool.length === 0) return []
-
-  const highestTier = pool.filter(t => t.level === maxLevel)
-  let selected = []
-
-  if (highestTier.length > 0) {
-    const pick = highestTier[Math.floor(Math.random() * highestTier.length)]
-    selected.push(pick)
-  }
-
-  const rest = pool.filter(t => !selected.find(s => s.id === t.id))
-  selected = [...selected, ...rest.sort(() => Math.random() - 0.5)].slice(0, 3)
-
-  return selected
-}
-
-// runs on every API request — checks if the date has rolled over and resets if so
-function checkDailyReset(req, res, next) {
-  const user = db.prepare('SELECT * FROM user WHERE id = 1').get()
-  if (!user) return next()
-
-  const state = db.prepare('SELECT * FROM daily_state WHERE id = 1').get()
+  const { rows } = await query('SELECT last_reset FROM daily_state WHERE user_id = $1', [user.id])
+  const state = rows[0]
   if (!state) return next()
 
-  if (user.pause_progression) return next()
-
   const today = getTodayInTimezone(user.timezone)
+  if (state.last_reset === today) return next()
 
-  if (state.last_reset !== today) {
-    const goal = db.prepare('SELECT * FROM goals WHERE id = ?').get(user.active_goal_id)
+  await withTransaction(async client => {
+    // re-check inside the transaction so two simultaneous requests don't both reset
+    const { rows: fresh } = await client.query(
+      'SELECT last_reset FROM daily_state WHERE user_id = $1', [user.id]
+    )
+    if (fresh[0]?.last_reset === today) return
 
-    db.prepare('DELETE FROM daily_tasks').run()
+    const { rows: goals } = await client.query(
+      'SELECT * FROM goals WHERE id = $1 AND user_id = $2', [user.active_goal_id, user.id]
+    )
+    await rollDailyTasks(client, user.id, goals[0])
 
-    if (goal) {
-      const minLevel = getMinTaskLevel(goal.level)
-      const maxLevel = getMaxTaskLevel(goal.level)
-      const tasks = generateTasks(goal.id, minLevel, maxLevel)
-
-      const insert = db.prepare(
-        'INSERT INTO daily_tasks (goal_task_id, title, level, checked, refreshed) VALUES (?, ?, ?, 0, 0)'
-      )
-      tasks.forEach(task => insert.run(task.id, task.title, task.level))
-    }
-
-    db.prepare(`
-      UPDATE daily_state SET
-        started = 0,
-        confirmed = 0,
-        penalty_shown = 0,
-        window_start = NULL,
-        last_reset = ?
-      WHERE id = 1
-    `).run(today)
-
-    db.prepare(`
-      UPDATE penalty_state SET
-        active = 0,
-        task_title = NULL,
-        task_difficulty = NULL,
-        task_timer_seconds = NULL,
-        started_at = NULL,
-        confirmed = 0
-      WHERE id = 1
-    `).run()
-  }
+    await client.query(
+      `UPDATE daily_state SET
+         started = FALSE, confirmed = FALSE, penalty_shown = FALSE, window_start = NULL, last_reset = $1
+       WHERE user_id = $2`,
+      [today, user.id]
+    )
+    await client.query(
+      `UPDATE penalty_state SET
+         active = FALSE, task_title = NULL, task_difficulty = NULL,
+         task_timer_seconds = NULL, started_at = NULL, confirmed = FALSE
+       WHERE user_id = $1`,
+      [user.id]
+    )
+  })
 
   next()
 }
 
-module.exports = { checkDailyReset, getWindowSeconds, getTodayInTimezone, getMaxTaskLevel, getMinTaskLevel, generateTasks }
+module.exports = { checkDailyReset }

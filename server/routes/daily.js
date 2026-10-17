@@ -1,92 +1,136 @@
 const express = require('express')
 const router = express.Router()
-const db = require('../db/database')
+const { query, withTransaction } = require('../db')
 const { getRandomPenaltyTask } = require('../data/penaltyTasks')
-const { getWindowSeconds, getMaxTaskLevel, getMinTaskLevel } = require('../middleware/checkDailyReset')
+const {
+  XP_PER_TASK, PENALTY_XP, REFRESH_COST, CONFIRM_UNLOCK_BEFORE_END,
+  getWindowSeconds, getMaxTaskLevel, getMinTaskLevel, addXp, deductXp
+} = require('../lib/game')
 
-router.get('/', (req, res) => {
-  const state = db.prepare('SELECT * FROM daily_state WHERE id = 1').get()
-  const tasks = db.prepare('SELECT * FROM daily_tasks').all()
-  const penalty = db.prepare('SELECT * FROM penalty_state WHERE id = 1').get()
-  const user = db.prepare('SELECT * FROM user WHERE id = 1').get()
-  const goal = user?.active_goal_id
-    ? db.prepare('SELECT * FROM goals WHERE id = ?').get(user.active_goal_id)
-    : null
+function parseId(value) {
+  const id = Number(value)
+  return Number.isInteger(id) && id > 0 ? id : null
+}
 
+// the user's currently active goal, or null (only ever their own)
+async function getActiveGoal(db, user) {
+  if (!user.active_goal_id) return null
+  const { rows } = await db.query(
+    'SELECT * FROM goals WHERE id = $1 AND user_id = $2', [user.active_goal_id, user.id]
+  )
+  return rows[0] || null
+}
+
+// window length is driven by the highest level task rolled for today
+function windowForTasks(tasks) {
   const taskLevel = tasks.length > 0 ? Math.max(...tasks.map(t => t.level)) : 1
-  const windowSeconds = getWindowSeconds(taskLevel)
-  res.json({ state, tasks, penalty, windowSeconds })
+  return getWindowSeconds(taskLevel)
+}
+
+router.get('/', async (req, res) => {
+  const userId = req.user.id
+  const [{ rows: stateRows }, { rows: tasks }, { rows: penaltyRows }] = await Promise.all([
+    query('SELECT * FROM daily_state WHERE user_id = $1', [userId]),
+    query('SELECT * FROM daily_tasks WHERE user_id = $1 ORDER BY id ASC', [userId]),
+    query('SELECT * FROM penalty_state WHERE user_id = $1', [userId])
+  ])
+
+  res.json({
+    state: stateRows[0] || null,
+    tasks,
+    penalty: penaltyRows[0] || null,
+    windowSeconds: windowForTasks(tasks)
+  })
 })
 
 // stamp the start time so the countdown is consistent even across page refreshes
-router.post('/start', (req, res) => {
+router.post('/start', async (req, res) => {
   const now = new Date().toISOString()
-  db.prepare('UPDATE daily_state SET started = 1, window_start = ? WHERE id = 1').run(now)
+  await query(
+    'UPDATE daily_state SET started = TRUE, window_start = $1 WHERE user_id = $2',
+    [now, req.user.id]
+  )
   res.json({ success: true, window_start: now })
 })
 
-router.patch('/tasks/:id/check', (req, res) => {
-  const { checked } = req.body
-  db.prepare('UPDATE daily_tasks SET checked = ? WHERE id = ?')
-    .run(checked ? 1 : 0, req.params.id)
+router.patch('/tasks/:id/check', async (req, res) => {
+  const { checked } = req.body ?? {}
+  const { rowCount } = await query(
+    'UPDATE daily_tasks SET checked = $1 WHERE id = $2 AND user_id = $3',
+    [!!checked, parseId(req.params.id), req.user.id]
+  )
+  if (rowCount === 0) return res.status(404).json({ error: 'Task not found' })
   res.json({ success: true })
 })
 
 // confirm unlocks 1 minute before the window ends in demo mode
-router.post('/confirm', (req, res) => {
-  const user = db.prepare('SELECT * FROM user WHERE id = 1').get()
-  if (!user?.active_goal_id) return res.status(400).json({ error: 'No active goal' })
+router.post('/confirm', async (req, res) => {
+  const userId = req.user.id
 
-  const state = db.prepare('SELECT * FROM daily_state WHERE id = 1').get()
-  const goal = db.prepare('SELECT * FROM goals WHERE id = ?').get(user.active_goal_id)
-  const confirmTasks = db.prepare('SELECT * FROM daily_tasks').all()
-  const taskLevel = confirmTasks.length > 0 ? Math.max(...confirmTasks.map(t => t.level)) : 1
-  const windowSeconds = getWindowSeconds(taskLevel)
-  const elapsed = (new Date() - new Date(state.window_start)) / 1000
-  const remaining = windowSeconds - elapsed
-  const XP_PER_TASK = 5
+  const result = await withTransaction(async client => {
+    const goal = await getActiveGoal(client, req.user)
+    if (!goal) return { status: 400, body: { error: 'No active goal' } }
 
-  // demo mode — confirm unlocks 1 minute before end
-  if (remaining > 60) {
-    return res.status(403).json({
-      error: 'Confirm not yet unlocked',
-      unlocks_in: Math.ceil(remaining - 60)
-    })
-  }
+    const { rows: stateRows } = await client.query(
+      'SELECT * FROM daily_state WHERE user_id = $1', [userId]
+    )
+    const state = stateRows[0]
+    const { rows: tasks } = await client.query(
+      'SELECT * FROM daily_tasks WHERE user_id = $1', [userId]
+    )
 
-  const checkedCount = confirmTasks.filter(t => t.checked).length
-  let newXp = goal.xp + checkedCount * XP_PER_TASK
-  let newLevel = goal.level
+    const windowSeconds = windowForTasks(tasks)
+    const elapsed = (new Date() - new Date(state.window_start)) / 1000
+    const remaining = windowSeconds - elapsed
 
-  while (newXp >= 100) { newXp -= 100; newLevel++ }
+    if (remaining > CONFIRM_UNLOCK_BEFORE_END) {
+      return {
+        status: 403,
+        body: { error: 'Confirm not yet unlocked', unlocks_in: Math.ceil(remaining - CONFIRM_UNLOCK_BEFORE_END) }
+      }
+    }
 
-  db.prepare('UPDATE goals SET xp = ?, level = ? WHERE id = ?')
-    .run(newXp, newLevel, goal.id)
-  db.prepare('UPDATE daily_state SET confirmed = 1 WHERE id = 1').run()
+    const checkedCount = tasks.filter(t => t.checked).length
+    const xpEarned = checkedCount * XP_PER_TASK
+    const { xp, level } = addXp(goal.xp, goal.level, xpEarned)
 
-  res.json({ success: true, xp: newXp, level: newLevel, xp_earned: checkedCount * XP_PER_TASK })
+    await client.query(
+      'UPDATE goals SET xp = $1, level = $2 WHERE id = $3 AND user_id = $4', [xp, level, goal.id, userId]
+    )
+    await client.query('UPDATE daily_state SET confirmed = TRUE WHERE user_id = $1', [userId])
+
+    return { status: 200, body: { success: true, xp, level, xp_earned: xpEarned } }
+  })
+
+  res.status(result.status).json(result.body)
 })
 
 // picks a random penalty task and stamps the start time
-router.post('/penalty/trigger', (req, res) => {
+router.post('/penalty/trigger', async (req, res) => {
+  const userId = req.user.id
   const task = getRandomPenaltyTask()
-  db.prepare(`
-    UPDATE penalty_state SET
-      active = 1, task_title = ?, task_difficulty = ?,
-      task_timer_seconds = ?, started_at = ?, confirmed = 0
-    WHERE id = 1
-  `).run(task.title, task.difficulty, task.timer_seconds, new Date().toISOString())
-  db.prepare('UPDATE daily_state SET penalty_shown = 1 WHERE id = 1').run()
+  await withTransaction(async client => {
+    await client.query(
+      `UPDATE penalty_state SET
+         active = TRUE, task_title = $1, task_difficulty = $2,
+         task_timer_seconds = $3, started_at = $4, confirmed = FALSE
+       WHERE user_id = $5`,
+      [task.title, task.difficulty, task.timer_seconds, new Date().toISOString(), userId]
+    )
+    await client.query('UPDATE daily_state SET penalty_shown = TRUE WHERE user_id = $1', [userId])
+  })
   res.json({ success: true, task })
 })
 
 // confirm unlocks 1 minute before end for all penalty tasks in demo mode
-router.post('/penalty/confirm', (req, res) => {
-  const penalty = db.prepare('SELECT * FROM penalty_state WHERE id = 1').get()
+router.post('/penalty/confirm', async (req, res) => {
+  const userId = req.user.id
+  const { rows } = await query('SELECT * FROM penalty_state WHERE user_id = $1', [userId])
+  const penalty = rows[0]
   if (!penalty?.active) return res.status(400).json({ error: 'No active penalty' })
 
   const elapsed = (new Date() - new Date(penalty.started_at)) / 1000
-  const unlockThreshold = penalty.task_timer_seconds - 60
+  const unlockThreshold = penalty.task_timer_seconds - CONFIRM_UNLOCK_BEFORE_END
 
   if (elapsed < unlockThreshold) {
     return res.status(403).json({
@@ -95,104 +139,108 @@ router.post('/penalty/confirm', (req, res) => {
     })
   }
 
-  db.prepare('UPDATE penalty_state SET confirmed = 1, active = 0 WHERE id = 1').run()
-  db.prepare('UPDATE daily_state SET confirmed = 1 WHERE id = 1').run()
+  await withTransaction(async client => {
+    await client.query('UPDATE penalty_state SET confirmed = TRUE, active = FALSE WHERE user_id = $1', [userId])
+    await client.query('UPDATE daily_state SET confirmed = TRUE WHERE user_id = $1', [userId])
+  })
   res.json({ success: true })
 })
 
-// deducts a full day's worth of XP — can't go below 0 on level 1
-router.post('/penalty/fail', (req, res) => {
-  const user = db.prepare('SELECT * FROM user WHERE id = 1').get()
-  if (!user?.active_goal_id) return res.status(400).json({ error: 'No active goal' })
+// deducts a day's worth of XP — can't go below 0 on level 1
+router.post('/penalty/fail', async (req, res) => {
+  const userId = req.user.id
+  const result = await withTransaction(async client => {
+    const goal = await getActiveGoal(client, req.user)
+    if (!goal) return { status: 400, body: { error: 'No active goal' } }
 
-  const goal = db.prepare('SELECT * FROM goals WHERE id = ?').get(user.active_goal_id)
-  const PENALTY_XP = 15
-  let newXp = goal.xp - PENALTY_XP
-  let newLevel = goal.level
-
-  while (newXp < 0) {
-    if (newLevel > 1) { newLevel -= 1; newXp = 100 + newXp }
-    else { newXp = 0; break }
-  }
-
-  db.prepare('UPDATE goals SET xp = ?, level = ? WHERE id = ?')
-    .run(newXp, newLevel, goal.id)
-  db.prepare('UPDATE penalty_state SET active = 0 WHERE id = 1').run()
-  db.prepare('UPDATE daily_state SET confirmed = 1 WHERE id = 1').run()
-
-  res.json({ success: true, xp: newXp, level: newLevel })
+    const { xp, level } = deductXp(goal.xp, goal.level, PENALTY_XP)
+    await client.query(
+      'UPDATE goals SET xp = $1, level = $2 WHERE id = $3 AND user_id = $4', [xp, level, goal.id, userId]
+    )
+    await client.query('UPDATE penalty_state SET active = FALSE WHERE user_id = $1', [userId])
+    await client.query('UPDATE daily_state SET confirmed = TRUE WHERE user_id = $1', [userId])
+    return { status: 200, body: { success: true, xp, level } }
+  })
+  res.status(result.status).json(result.body)
 })
 
 // skips the penalty modal entirely — not enough time left in the day for even a penalty task
-router.post('/penalty/auto-fail', (req, res) => {
-  const user = db.prepare('SELECT * FROM user WHERE id = 1').get()
-  if (!user?.active_goal_id) return res.status(400).json({ error: 'No active goal' })
+router.post('/penalty/auto-fail', async (req, res) => {
+  const userId = req.user.id
+  const result = await withTransaction(async client => {
+    const goal = await getActiveGoal(client, req.user)
+    if (!goal) return { status: 400, body: { error: 'No active goal' } }
 
-  const goal = db.prepare('SELECT * FROM goals WHERE id = ?').get(user.active_goal_id)
-  const PENALTY_XP = 15
-  let newXp = goal.xp - PENALTY_XP
-  let newLevel = goal.level
-
-  while (newXp < 0) {
-    if (newLevel > 1) { newLevel -= 1; newXp = 100 + newXp }
-    else { newXp = 0; break }
-  }
-
-  db.prepare('UPDATE goals SET xp = ?, level = ? WHERE id = ?')
-    .run(newXp, newLevel, goal.id)
-  db.prepare('UPDATE daily_state SET confirmed = 1, penalty_shown = 1 WHERE id = 1').run()
-
-  res.json({ success: true, xp: newXp, level: newLevel })
+    const { xp, level } = deductXp(goal.xp, goal.level, PENALTY_XP)
+    await client.query(
+      'UPDATE goals SET xp = $1, level = $2 WHERE id = $3 AND user_id = $4', [xp, level, goal.id, userId]
+    )
+    await client.query(
+      'UPDATE daily_state SET confirmed = TRUE, penalty_shown = TRUE WHERE user_id = $1', [userId]
+    )
+    return { status: 200, body: { success: true, xp, level } }
+  })
+  res.status(result.status).json(result.body)
 })
 
 // costs 5XP to refresh unless the free refresh setting is on
 // can only be used once per task per day — tracked via the refreshed column
-router.post('/tasks/:id/refresh', (req, res) => {
-  const user = db.prepare('SELECT * FROM user WHERE id = 1').get()
-  if (!user?.active_goal_id) return res.status(400).json({ error: 'No active goal' })
+router.post('/tasks/:id/refresh', async (req, res) => {
+  const user = req.user
+  const taskId = parseId(req.params.id)
 
-  const goal = db.prepare('SELECT * FROM goals WHERE id = ?').get(user.active_goal_id)
-  const currentTask = db.prepare('SELECT * FROM daily_tasks WHERE id = ?').get(req.params.id)
-  if (!currentTask) return res.status(404).json({ error: 'Task not found' })
+  const result = await withTransaction(async client => {
+    const goal = await getActiveGoal(client, user)
+    if (!goal) return { status: 400, body: { error: 'No active goal' } }
 
-  if (currentTask.refreshed) return res.status(403).json({ error: 'Task already refreshed' })
+    const { rows: taskRows } = await client.query(
+      'SELECT * FROM daily_tasks WHERE id = $1 AND user_id = $2', [taskId, user.id]
+    )
+    const currentTask = taskRows[0]
+    if (!currentTask) return { status: 404, body: { error: 'Task not found' } }
+    if (currentTask.refreshed) return { status: 403, body: { error: 'Task already refreshed' } }
 
-  if (!user.task_refresh && goal.xp <= 0 && goal.level <= 1) {
-    return res.status(403).json({ error: 'Not enough XP to refresh' })
-  }
-
-  if (!user.task_refresh) {
-    let newXp = goal.xp - 5
-    let newLevel = goal.level
-    if (newXp < 0) {
-      if (newLevel > 1) { newLevel -= 1; newXp = 100 + newXp }
-      else { newXp = 0 }
+    if (!user.task_refresh && goal.xp <= 0 && goal.level <= 1) {
+      return { status: 403, body: { error: 'Not enough XP to refresh' } }
     }
-    db.prepare('UPDATE goals SET xp = ?, level = ? WHERE id = ?')
-      .run(newXp, newLevel, goal.id)
-  }
 
-  const minLevel = getMinTaskLevel(goal.level)
-  const maxLevel = getMaxTaskLevel(goal.level)
-  const currentTasks = db.prepare('SELECT * FROM daily_tasks').all()
-  const currentTitles = currentTasks.map(t => t.title)
+    const { rows: currentTasks } = await client.query(
+      'SELECT title FROM daily_tasks WHERE user_id = $1', [user.id]
+    )
+    const currentTitles = currentTasks.map(t => t.title)
 
-  const pool = db.prepare(`
-    SELECT * FROM goal_tasks
-    WHERE goal_id = ? AND title != '' AND level >= ? AND level <= ?
-  `).all(goal.id, minLevel, maxLevel)
+    const { rows: pool } = await client.query(
+      `SELECT * FROM goal_tasks
+       WHERE goal_id = $1 AND user_id = $2 AND title != '' AND level >= $3 AND level <= $4`,
+      [goal.id, user.id, getMinTaskLevel(goal.level), getMaxTaskLevel(goal.level)]
+    )
 
-  const available = pool.filter(t => !currentTitles.includes(t.title))
-  const source = available.length > 0 ? available : pool
-  const newTask = source[Math.floor(Math.random() * source.length)]
+    const available = pool.filter(t => !currentTitles.includes(t.title))
+    const source = available.length > 0 ? available : pool
+    const newTask = source[Math.floor(Math.random() * source.length)]
+    if (!newTask) return { status: 400, body: { error: 'No tasks available to swap' } }
 
-  if (!newTask) return res.status(400).json({ error: 'No tasks available to swap' })
+    let { xp, level } = goal
+    if (!user.task_refresh) {
+      ({ xp, level } = deductXp(goal.xp, goal.level, REFRESH_COST))
+      await client.query(
+        'UPDATE goals SET xp = $1, level = $2 WHERE id = $3 AND user_id = $4', [xp, level, goal.id, user.id]
+      )
+    }
 
-  db.prepare('UPDATE daily_tasks SET goal_task_id = ?, title = ?, level = ?, checked = 0, refreshed = 1 WHERE id = ?')
-    .run(newTask.id, newTask.title, newTask.level, req.params.id)
+    await client.query(
+      `UPDATE daily_tasks SET goal_task_id = $1, title = $2, level = $3, checked = FALSE, refreshed = TRUE
+       WHERE id = $4 AND user_id = $5`,
+      [newTask.id, newTask.title, newTask.level, taskId, user.id]
+    )
 
-  const updatedGoal = db.prepare('SELECT * FROM goals WHERE id = ?').get(goal.id)
-  res.json({ success: true, task: newTask, xp: updatedGoal.xp, level: updatedGoal.level })
+    return {
+      status: 200,
+      body: { success: true, task: { id: newTask.id, title: newTask.title, level: newTask.level }, xp, level }
+    }
+  })
+
+  res.status(result.status).json(result.body)
 })
 
 module.exports = router

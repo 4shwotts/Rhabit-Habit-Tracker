@@ -1,5 +1,32 @@
-// no state needed here — settings live in HomePage and get passed down
+import { useState } from 'react'
+import { useAuth } from '../auth/AuthContext'
+import { deleteAccount } from '../api'
+
+// game settings live in HomePage and get passed down; the account section
+// (log out / delete account) talks to the auth context directly
 function SettingsModal({ onClose, settings, onToggle }) {
+  const { logout, setUser } = useAuth()
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
+  const [password, setPassword] = useState('')
+  const [deleteError, setDeleteError] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+
+  // the server re-checks the password, then cascades the delete to every goal,
+  // task, daily state and penalty that belongs to this account
+  async function handleDelete(e) {
+    e.preventDefault()
+    if (deleting || !password) return
+    setDeleting(true)
+    setDeleteError(null)
+    const result = await deleteAccount(password)
+    setDeleting(false)
+    if (result.error) {
+      setDeleteError(result.error)
+      return
+    }
+    setUser(null) // route guard then sends the user to the login page
+  }
+
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="settings-box" onClick={(e) => e.stopPropagation()}>
@@ -54,6 +81,44 @@ function SettingsModal({ onClose, settings, onToggle }) {
               <div className="settings-toggle-thumb" />
             </div>
           </div>
+
+          {confirmingDelete ? (
+            <form className="settings-delete-confirm" onSubmit={handleDelete}>
+              <p className="settings-delete-warning">
+                This permanently deletes your account and all of your progress. Enter your password to confirm.
+              </p>
+              <input
+                className="setup-input auth-input"
+                type="password"
+                autoComplete="current-password"
+                aria-label="Password"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                maxLength={128}
+                autoFocus
+              />
+              {deleteError && <p className="auth-error" role="alert">{deleteError}</p>}
+              <div className="settings-account">
+                <button className="settings-account-btn danger" type="submit" disabled={deleting || !password}>
+                  {deleting ? 'Deleting...' : 'Delete permanently'}
+                </button>
+                <button
+                  className="settings-account-btn"
+                  type="button"
+                  onClick={() => { setConfirmingDelete(false); setPassword(''); setDeleteError(null) }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="settings-account">
+              <button className="settings-account-btn" type="button" onClick={logout}>Log out</button>
+              <button className="settings-account-btn danger" type="button" onClick={() => setConfirmingDelete(true)}>
+                Delete account
+              </button>
+            </div>
+          )}
         </div>
 
       </div>

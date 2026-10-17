@@ -6,7 +6,8 @@ import rightArrow from '../assets/icons/rightarrow.svg'
 import editIcon from '../assets/icons/EditButton.svg'
 import trashIcon from '../assets/icons/TrashButton.svg'
 import cornerFrame from '../assets/images/cornerframe.svg'
-import { createUser, createGoal, saveGoalTasks, starGoal } from '../api'
+import { createGoal, saveGoalTasks, starGoal, updateUsername, markSetupComplete } from '../api'
+import { useAuth } from '../auth/AuthContext'
 
 function getWindowLabel(level) {
   if (level <= 3) return '3hr'
@@ -23,7 +24,9 @@ function getWindowDescription(level) {
 }
 
 function SetupPage() {
-  const [username, setUsername] = useState('')
+  const { user, refresh } = useAuth()
+  // pre-filled from the account; still editable until the Stage 4 setup review
+  const [username, setUsername] = useState(user?.username || '')
   const [goalName, setGoalName] = useState('')
   const [activeLevel, setActiveLevel] = useState(1)
   const [tabPage, setTabPage] = useState(0)
@@ -98,22 +101,33 @@ function SetupPage() {
     setError(null)
 
     try {
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
-
-      await createUser(username.trim(), timezone)
+      // the account (and its timezone) already exists from sign up
+      if (username.trim() !== user?.username) {
+        const nameResult = await updateUsername(username.trim())
+        if (nameResult.error) throw new Error(nameResult.error)
+      }
 
       const goalResult = await createGoal(goalName.trim())
+      if (goalResult.error) throw new Error(goalResult.error)
       const goalId = goalResult.id
 
       for (let l = 1; l <= 10; l++) {
         const levelTaskList = tasks[l].filter(t => t.title.trim() !== '')
         if (levelTaskList.length > 0) {
-          await saveGoalTasks(goalId, l, levelTaskList)
+          const saved = await saveGoalTasks(goalId, l, levelTaskList)
+          if (saved.error) throw new Error(saved.error)
         }
       }
 
-      await starGoal(goalId)
-      navigate('/home')
+      const starred = await starGoal(goalId)
+      if (starred.error) throw new Error(starred.error)
+
+      const done = await markSetupComplete()
+      if (done.error) throw new Error(done.error)
+
+      // refresh the session so the route guard knows setup is finished
+      await refresh()
+      navigate('/home', { replace: true })
 
     } catch (err) {
       console.error('Setup failed:', err)

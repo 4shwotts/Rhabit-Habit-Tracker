@@ -1,73 +1,56 @@
 const express = require('express')
 const router = express.Router()
-const db = require('../db/database')
+const { query } = require('../db')
+const { publicUser } = require('./auth')
 
-// single user app so we always fetch id=1
+// the logged-in user's profile and settings (never includes the password hash)
 router.get('/', (req, res) => {
-  const user = db.prepare('SELECT * FROM user WHERE id = 1').get()
-  if (!user) return res.status(404).json({ error: 'No user found' })
-  res.json(user)
+  res.json(publicUser(req.user))
 })
 
-router.post('/', (req, res) => {
-  const { username, timezone } = req.body
-
-  if (!username || typeof username !== 'string' || username.trim().length < 1 || username.trim().length > 30) {
-    return res.status(400).json({ error: 'Username must be between 1 and 30 characters' })
-  }
-
-  // fall back to UTC if the timezone string isn't valid
-  const validTimezones = Intl.supportedValuesOf('timeZone')
-  const tz = timezone && validTimezones.includes(timezone) ? timezone : 'UTC'
-
-  const existing = db.prepare('SELECT * FROM user WHERE id = 1').get()
-  if (existing) return res.status(400).json({ error: 'User already exists' })
-
-  db.prepare(`
-    INSERT INTO user (id, username, timezone)
-    VALUES (1, ?, ?)
-  `).run(username.trim(), tz)
-
-  db.prepare(`INSERT OR IGNORE INTO daily_state (id) VALUES (1)`).run()
-  db.prepare(`INSERT OR IGNORE INTO penalty_state (id) VALUES (1)`).run()
-
-  res.json({ success: true })
-})
-
-router.patch('/settings', (req, res) => {
-  const { timer_visible, task_refresh, pause_progression } = req.body
+router.patch('/settings', async (req, res) => {
+  const { timer_visible, task_refresh, pause_progression } = req.body ?? {}
 
   // COALESCE means we only update fields that were actually sent
-  db.prepare(`
-    UPDATE user SET
-      timer_visible = COALESCE(?, timer_visible),
-      task_refresh = COALESCE(?, task_refresh),
-      pause_progression = COALESCE(?, pause_progression)
-    WHERE id = 1
-  `).run(
-    timer_visible !== undefined ? (timer_visible ? 1 : 0) : null,
-    task_refresh !== undefined ? (task_refresh ? 1 : 0) : null,
-    pause_progression !== undefined ? (pause_progression ? 1 : 0) : null
+  const toFlag = value => (value === undefined ? null : !!value)
+  await query(
+    `UPDATE users SET
+       timer_visible = COALESCE($1, timer_visible),
+       task_refresh = COALESCE($2, task_refresh),
+       pause_progression = COALESCE($3, pause_progression)
+     WHERE id = $4`,
+    [toFlag(timer_visible), toFlag(task_refresh), toFlag(pause_progression), req.user.id]
   )
 
   res.json({ success: true })
 })
 
-router.patch('/active-goal', (req, res) => {
-  const { goal_id } = req.body
-  if (!goal_id || typeof goal_id !== 'number') {
+router.patch('/active-goal', async (req, res) => {
+  const { goal_id } = req.body ?? {}
+  if (!Number.isInteger(goal_id)) {
     return res.status(400).json({ error: 'Invalid goal ID' })
   }
-  db.prepare('UPDATE user SET active_goal_id = ? WHERE id = 1').run(goal_id)
+  // only allow pointing at a goal this user owns
+  const { rowCount } = await query(
+    'UPDATE users SET active_goal_id = $1 WHERE id = $2 AND EXISTS (SELECT 1 FROM goals WHERE id = $1 AND user_id = $2)',
+    [goal_id, req.user.id]
+  )
+  if (rowCount === 0) return res.status(404).json({ error: 'Goal not found' })
   res.json({ success: true })
 })
 
-router.patch('/username', (req, res) => {
-  const { username } = req.body
+router.patch('/username', async (req, res) => {
+  const { username } = req.body ?? {}
   if (!username || typeof username !== 'string' || username.trim().length < 1 || username.trim().length > 30) {
     return res.status(400).json({ error: 'Username must be between 1 and 30 characters' })
   }
-  db.prepare('UPDATE user SET username = ? WHERE id = 1').run(username.trim())
+  await query('UPDATE users SET username = $1 WHERE id = $2', [username.trim(), req.user.id])
+  res.json({ success: true })
+})
+
+// marks first-time setup as done so the route guard stops sending the user to /setup
+router.post('/setup-complete', async (req, res) => {
+  await query('UPDATE users SET setup_complete = TRUE WHERE id = $1', [req.user.id])
   res.json({ success: true })
 })
 

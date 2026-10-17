@@ -2,3 +2,11 @@ node_modules/
 **/node_modules/
 server/db/rhabit.db
 dist/
+# local dev database (Stage 1, SQLite)
+server/db/rhabit_dev.db*
+
+# environment files — only the .example versions are committed
+.env
+.env.*
+!.env.example
+server/.env

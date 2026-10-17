@@ -1,171 +1,156 @@
-const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3001/api'
+// All API calls go to /api on the frontend's own origin — Vite proxies it in
+// development and a Vercel rewrite proxies it in production — so the httpOnly
+// session cookie is first-party and sent automatically.
+const BASE = import.meta.env.VITE_API_URL || '/api'
+
+// Shared fetch wrapper. Always resolves to the parsed JSON body; failed
+// requests get an `error` string so callers can keep checking `result.error`.
+async function request(path, { method = 'GET', body } = {}) {
+  const options = { method, credentials: 'include' }
+  if (body !== undefined) {
+    options.headers = { 'Content-Type': 'application/json' }
+    options.body = JSON.stringify(body)
+  }
+
+  const res = await fetch(`${BASE}${path}`, options)
+  let data
+  try {
+    data = await res.json()
+  } catch {
+    data = {}
+  }
+
+  // a 401 from a game route means the session expired or was revoked —
+  // AuthContext listens for this and sends the user back to the login page
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    window.dispatchEvent(new Event('rhabit:session-expired'))
+  }
+
+  if (!res.ok && !data.error) data.error = 'Something went wrong. Please try again.'
+  return data
+}
+
+// auth
+export async function getMe() {
+  const data = await request('/auth/me')
+  return data.user || null
+}
+
+export function signup(fields) {
+  return request('/auth/signup', { method: 'POST', body: fields })
+}
+
+export function login(email, password) {
+  return request('/auth/login', { method: 'POST', body: { email, password } })
+}
+
+export function logout() {
+  return request('/auth/logout', { method: 'POST' })
+}
+
+export function verifyEmail(token) {
+  return request('/auth/verify-email', { method: 'POST', body: { token } })
+}
+
+export function resendVerification(email) {
+  return request('/auth/resend-verification', { method: 'POST', body: { email } })
+}
+
+export function forgotPassword(email) {
+  return request('/auth/forgot-password', { method: 'POST', body: { email } })
+}
+
+export function resetPassword(token, password) {
+  return request('/auth/reset-password', { method: 'POST', body: { token, password } })
+}
+
+export function deleteAccount(password) {
+  return request('/auth/account', { method: 'DELETE', body: { password } })
+}
 
 // user
 export async function getUser() {
-  const res = await fetch(`${BASE}/user`)
-  if (!res.ok) return null
-  return res.json()
+  const data = await request('/user')
+  return data.error ? null : data
 }
 
-export async function createUser(username, timezone) {
-  const res = await fetch(`${BASE}/user`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, timezone })
-  })
-  return res.json()
+export function updateSettings(settings) {
+  return request('/user/settings', { method: 'PATCH', body: settings })
 }
 
-export async function updateSettings(settings) {
-  const res = await fetch(`${BASE}/user/settings`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(settings)
-  })
-  return res.json()
+export function updateUsername(username) {
+  return request('/user/username', { method: 'PATCH', body: { username } })
+}
+
+export function markSetupComplete() {
+  return request('/user/setup-complete', { method: 'POST' })
 }
 
 // goals
 export async function getGoals() {
-  const res = await fetch(`${BASE}/goals`)
-  return res.json()
+  const data = await request('/goals')
+  return Array.isArray(data) ? data : []
 }
 
-export async function createGoal(name) {
-  const res = await fetch(`${BASE}/goals`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
-  })
-  return res.json()
+export function createGoal(name) {
+  return request('/goals', { method: 'POST', body: { name } })
 }
 
-export async function updateGoalName(id, name) {
-  const res = await fetch(`${BASE}/goals/${id}/name`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name })
-  })
-  return res.json()
+export function updateGoalName(id, name) {
+  return request(`/goals/${id}/name`, { method: 'PATCH', body: { name } })
 }
 
-export async function updateGoalXP(id, xp, level) {
-  const res = await fetch(`${BASE}/goals/${id}/xp`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ xp, level })
-  })
-  return res.json()
+export function starGoal(id) {
+  return request(`/goals/${id}/star`, { method: 'PATCH' })
 }
 
-export async function starGoal(id) {
-  const res = await fetch(`${BASE}/goals/${id}/star`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' }
-  })
-  return res.json()
+export function unstarGoal(id) {
+  return request(`/goals/${id}/unstar`, { method: 'PATCH' })
 }
 
-export async function unstarGoal(id) {
-  const res = await fetch(`${BASE}/goals/${id}/unstar`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' }
-  })
-  return res.json()
+export function deleteGoal(id) {
+  return request(`/goals/${id}`, { method: 'DELETE' })
 }
 
-export async function deleteGoal(id) {
-  const res = await fetch(`${BASE}/goals/${id}`, { method: 'DELETE' })
-  return res.json()
-}
-
-export async function saveGoalTasks(goalId, level, tasks) {
-  const res = await fetch(`${BASE}/goals/${goalId}/tasks`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ level, tasks })
-  })
-  return res.json()
+export function saveGoalTasks(goalId, level, tasks) {
+  return request(`/goals/${goalId}/tasks`, { method: 'POST', body: { level, tasks } })
 }
 
 // daily
-export async function getDaily() {
-  const res = await fetch(`${BASE}/daily`)
-  return res.json()
+export function getDaily() {
+  return request('/daily')
 }
 
-export async function startDaily() {
-  const res = await fetch(`${BASE}/daily/start`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  })
-  return res.json()
+export function startDaily() {
+  return request('/daily/start', { method: 'POST' })
 }
 
-export async function checkTask(id, checked) {
-  const res = await fetch(`${BASE}/daily/tasks/${id}/check`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ checked })
-  })
-  return res.json()
+export function checkTask(id, checked) {
+  return request(`/daily/tasks/${id}/check`, { method: 'PATCH', body: { checked } })
 }
 
-export async function confirmDaily() {
-  const res = await fetch(`${BASE}/daily/confirm`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  })
-  return res.json()
+export function confirmDaily() {
+  return request('/daily/confirm', { method: 'POST' })
 }
 
-export async function refreshTask(id) {
-  const res = await fetch(`${BASE}/daily/tasks/${id}/refresh`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  })
-  return res.json()
+export function refreshTask(id) {
+  return request(`/daily/tasks/${id}/refresh`, { method: 'POST' })
 }
 
 // penalty
-export async function triggerPenalty() {
-  const res = await fetch(`${BASE}/daily/penalty/trigger`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  })
-  return res.json()
+export function triggerPenalty() {
+  return request('/daily/penalty/trigger', { method: 'POST' })
 }
 
-export async function confirmPenalty() {
-  const res = await fetch(`${BASE}/daily/penalty/confirm`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  })
-  return res.json()
+export function confirmPenalty() {
+  return request('/daily/penalty/confirm', { method: 'POST' })
 }
 
-export async function failPenalty() {
-  const res = await fetch(`${BASE}/daily/penalty/fail`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  })
-  return res.json()
+export function failPenalty() {
+  return request('/daily/penalty/fail', { method: 'POST' })
 }
 
 // skips the modal entirely — not enough time in the day for a penalty task
-export async function autoFailPenalty() {
-  const res = await fetch(`${BASE}/daily/penalty/auto-fail`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  })
-  return res.json()
-}
-
-// resets the demo database back to the seed state
-export async function resetDemo() {
-  const res = await fetch(`${BASE}/reset-demo`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' }
-  })
-  return res.json()
+export function autoFailPenalty() {
+  return request('/daily/penalty/auto-fail', { method: 'POST' })
 }
