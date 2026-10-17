@@ -15,9 +15,9 @@ router.patch('/settings', async (req, res) => {
   const toFlag = value => (value === undefined ? null : !!value)
   await query(
     `UPDATE users SET
-       timer_visible = COALESCE($1, timer_visible),
-       task_refresh = COALESCE($2, task_refresh),
-       pause_progression = COALESCE($3, pause_progression)
+       timer_visible = COALESCE($1::boolean, timer_visible),
+       task_refresh = COALESCE($2::boolean, task_refresh),
+       pause_progression = COALESCE($3::boolean, pause_progression)
      WHERE id = $4`,
     [toFlag(timer_visible), toFlag(task_refresh), toFlag(pause_progression), req.user.id]
   )

@@ -66,8 +66,8 @@ function validTimezone(value) {
 }
 
 function isUniqueViolation(err) {
-  // pg uses SQLSTATE 23505, better-sqlite3 uses SQLITE_CONSTRAINT_UNIQUE
-  return err?.code === '23505' || err?.code === 'SQLITE_CONSTRAINT_UNIQUE'
+  // Postgres SQLSTATE for unique_violation
+  return err?.code === '23505'
 }
 
 // The shape of the user returned to the browser — never includes secrets.
@@ -89,12 +89,10 @@ function publicUser(user) {
 // Issues a fresh one-time token of `type`, replacing any older ones.
 async function issueToken(db, userId, type, ttlMs) {
   const { raw, hash } = createOneTimeToken()
-  const now = new Date()
   await db.query('DELETE FROM auth_tokens WHERE user_id = $1 AND type = $2', [userId, type])
   await db.query(
-    `INSERT INTO auth_tokens (user_id, type, token_hash, expires_at, created_at)
-     VALUES ($1, $2, $3, $4, $5)`,
-    [userId, type, hash, new Date(now.getTime() + ttlMs), now]
+    'INSERT INTO auth_tokens (user_id, type, token_hash, expires_at) VALUES ($1, $2, $3, $4)',
+    [userId, type, hash, new Date(Date.now() + ttlMs)]
   )
   return raw
 }
@@ -146,9 +144,9 @@ router.post('/signup', async (req, res) => {
   try {
     rawToken = await withTransaction(async client => {
       const { rows } = await client.query(
-        `INSERT INTO users (email, username, password_hash, timezone, created_at)
-         VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-        [email, username, passwordHash, timezone, new Date()]
+        `INSERT INTO users (email, username, password_hash, timezone)
+         VALUES ($1, $2, $3, $4) RETURNING id`,
+        [email, username, passwordHash, timezone]
       )
       const userId = rows[0].id
       // per-user game state rows, created up front so routes can always UPDATE

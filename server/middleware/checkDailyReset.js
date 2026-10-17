@@ -16,9 +16,9 @@ async function checkDailyReset(req, res, next) {
   if (state.last_reset === today) return next()
 
   await withTransaction(async client => {
-    // re-check inside the transaction so two simultaneous requests don't both reset
+    // lock the row and re-check, so two simultaneous requests don't both reset
     const { rows: fresh } = await client.query(
-      'SELECT last_reset FROM daily_state WHERE user_id = $1', [user.id]
+      'SELECT last_reset FROM daily_state WHERE user_id = $1 FOR UPDATE', [user.id]
     )
     if (fresh[0]?.last_reset === today) return
 
@@ -26,6 +26,12 @@ async function checkDailyReset(req, res, next) {
       'SELECT * FROM goals WHERE id = $1 AND user_id = $2', [user.active_goal_id, user.id]
     )
     await rollDailyTasks(client, user.id, goals[0])
+
+    // snapshots only matter for the current day; prune older ones so the
+    // table doesn't grow forever
+    await client.query(
+      'DELETE FROM goal_daily_snapshot WHERE user_id = $1 AND date < $2', [user.id, today]
+    )
 
     await client.query(
       `UPDATE daily_state SET

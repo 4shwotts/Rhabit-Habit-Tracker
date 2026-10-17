@@ -4,17 +4,18 @@ const { query } = require('../db')
 const config = require('../config')
 const { readSessionToken, clearSessionCookie } = require('../lib/auth')
 
-// Columns safe to load onto req.user. password_hash is deliberately excluded so
-// it can never be serialised into a response by accident.
-const USER_COLUMNS = `id, email, username, email_verified, token_version, timezone,
-  timer_visible, task_refresh, pause_progression, active_goal_id, setup_complete, created_at`
 
 async function requireAuth(req, res, next) {
   const payload = readSessionToken(req.cookies?.[config.cookieName])
   if (!payload) return res.status(401).json({ error: 'Not logged in' })
 
+  // explicit column list: password_hash is deliberately never loaded onto
+  // req.user, so it can't be serialised into a response by accident
   const { rows } = await query(
-    `SELECT ${USER_COLUMNS} FROM users WHERE id = $1`,
+    `SELECT id, email, username, email_verified, token_version, timezone,
+            timer_visible, task_refresh, pause_progression, active_goal_id,
+            setup_complete, created_at
+     FROM users WHERE id = $1`,
     [parseInt(payload.sub, 10)]
   )
   const user = rows[0]
@@ -37,4 +38,4 @@ function requireVerified(req, res, next) {
   next()
 }
 
-module.exports = { requireAuth, requireVerified, USER_COLUMNS }
+module.exports = { requireAuth, requireVerified }

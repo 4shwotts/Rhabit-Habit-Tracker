@@ -12,11 +12,21 @@ async function request(path, { method = 'GET', body } = {}) {
     options.body = JSON.stringify(body)
   }
 
-  const res = await fetch(`${BASE}${path}`, options)
+  let res
+  try {
+    res = await fetch(`${BASE}${path}`, options)
+  } catch {
+    return { error: 'Cannot reach the Rhabit server. Check your connection and try again.' }
+  }
+
   let data
   try {
     data = await res.json()
   } catch {
+    // a non-JSON 5xx comes from the proxy, not our API — the backend is down or asleep
+    if (res.status >= 500) {
+      return { error: 'Cannot reach the Rhabit server. Is the backend running?' }
+    }
     data = {}
   }
 

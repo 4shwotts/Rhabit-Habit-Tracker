@@ -40,6 +40,7 @@ function GoalsPage() {
   const [editingTaskIndex, setEditingTaskIndex] = useState(null)
   const [scrollThumbTop, setScrollThumbTop] = useState(0)
   const [scrollThumbHeight, setScrollThumbHeight] = useState(30)
+  const [notice, setNotice] = useState(null)
   const scrollRef = useRef(null)
 
   useEffect(() => {
@@ -86,6 +87,12 @@ function GoalsPage() {
   async function addGoal() {
     try {
       const result = await createGoal(`Goal Pathway ${goals.length + 1}`)
+      // e.g. the per-user goal cap was reached — show why and add nothing
+      if (result.error) {
+        setNotice(result.error)
+        setTimeout(() => setNotice(null), 4000)
+        return
+      }
       const newGoal = {
         id: result.id,
         name: `Goal Pathway ${goals.length + 1}`,
@@ -245,6 +252,22 @@ function GoalsPage() {
       <img src={cornerFrame} className="corner top-right" alt="" />
       <img src={cornerFrame} className="corner bottom-left" alt="" />
       <img src={cornerFrame} className="corner bottom-right" alt="" />
+
+      {/* same toast style as the HomePage "SYSTEM UPDATE" message */}
+      {notice && (
+        <div role="alert" style={{
+          position: 'fixed', top: '20px', left: '50%',
+          transform: 'translateX(-50%)',
+          background: 'rgba(76, 66, 106, 0.95)',
+          border: '2px solid #916FF1', borderRadius: '37px',
+          padding: '12px 32px',
+          fontFamily: 'Alumni Sans, sans-serif', fontSize: '22px',
+          fontStyle: 'italic', color: '#C1AAFF',
+          zIndex: 50, backdropFilter: 'blur(12px)', letterSpacing: '-0.5px'
+        }}>
+          ⚠ {notice}
+        </div>
+      )}
 
       <div className="goals-layout">
         <div className="goals-top-bar">

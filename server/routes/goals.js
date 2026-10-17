@@ -1,6 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const { query, withTransaction } = require('../db')
+const config = require('../config')
 const { getTodayInTimezone, generateTasks, getMinTaskLevel, getMaxTaskLevel } = require('../lib/game')
 
 // Parses a route id; anything that isn't a positive integer can't match a row.
@@ -47,11 +48,26 @@ router.post('/', async (req, res) => {
   if (!name || typeof name !== 'string' || name.trim().length < 1 || name.trim().length > 50) {
     return res.status(400).json({ error: 'Invalid goal name' })
   }
-  const { rows } = await query(
-    'INSERT INTO goals (user_id, name, created_at) VALUES ($1, $2, $3) RETURNING id',
-    [req.user.id, name.trim(), new Date()]
-  )
-  res.json({ success: true, id: rows[0].id })
+  const userId = req.user.id
+  const maxGoals = config.limits.goalsPerUser
+
+  const id = await withTransaction(async client => {
+    // lock the user row so parallel requests can't both slip under the cap
+    await client.query('SELECT id FROM users WHERE id = $1 FOR UPDATE', [userId])
+    const { rows: countRows } = await client.query(
+      'SELECT count(*)::int AS count FROM goals WHERE user_id = $1', [userId]
+    )
+    if (countRows[0].count >= maxGoals) return null
+
+    const { rows } = await client.query(
+      'INSERT INTO goals (user_id, name) VALUES ($1, $2) RETURNING id',
+      [userId, name.trim()]
+    )
+    return rows[0].id
+  })
+
+  if (!id) return res.status(409).json({ error: `You can have at most ${maxGoals} goal pathways` })
+  res.json({ success: true, id })
 })
 
 router.patch('/:id/name', async (req, res) => {
@@ -180,7 +196,7 @@ router.post('/:id/tasks', async (req, res) => {
   if (!Number.isInteger(level) || level < 1 || level > 10) {
     return res.status(400).json({ error: 'Invalid level' })
   }
-  if (!Array.isArray(tasks) || tasks.length > 6) {
+  if (!Array.isArray(tasks) || tasks.length > config.limits.tasksPerLevel) {
     return res.status(400).json({ error: 'Invalid task list' })
   }
   const titles = []

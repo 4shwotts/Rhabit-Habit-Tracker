@@ -4,11 +4,13 @@ require('dotenv').config()
 
 const isProduction = process.env.NODE_ENV === 'production'
 
+// Throws if the variable is missing in production, or in development when
+// there is no sensible dev fallback (e.g. DATABASE_URL).
 function required(name, devFallback) {
   const value = process.env[name]
   if (value) return value
-  if (isProduction) {
-    throw new Error(`Missing required environment variable: ${name}`)
+  if (isProduction || devFallback === undefined) {
+    throw new Error(`Missing required environment variable: ${name} (see server/.env.example)`)
   }
   return devFallback
 }
@@ -16,6 +18,15 @@ function required(name, devFallback) {
 const config = {
   isProduction,
   port: parseInt(process.env.PORT, 10) || 3001,
+
+  // Neon Postgres connection string (use a separate Neon branch for local dev)
+  databaseUrl: required('DATABASE_URL'),
+
+  // Per-user caps to stop one account filling the database
+  limits: {
+    goalsPerUser: 20,
+    tasksPerLevel: 6
+  },
 
   // Secret used to sign session JWTs. Must be long and random in production.
   jwtSecret: required('JWT_SECRET', 'dev-only-insecure-secret-change-me'),
