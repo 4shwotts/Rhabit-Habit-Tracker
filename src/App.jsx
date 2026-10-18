@@ -46,13 +46,13 @@ function AppRoutes() {
       <Route path="/login" element={<RequireStage stage="guest"><LoginPage /></RequireStage>} />
       <Route path="/signup" element={<RequireStage stage="guest"><SignupPage /></RequireStage>} />
 
-      {/* reachable from emailed links whatever the session state */}
+      {/* reachable from emailed links (and the login page) whatever the session state */}
       <Route path="/verify-email" element={<VerifyEmailPage />} />
+      <Route path="/verify-pending" element={<VerifyPendingPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
 
       {/* logged in */}
-      <Route path="/verify-pending" element={<RequireStage stage="unverified"><VerifyPendingPage /></RequireStage>} />
       <Route path="/setup" element={<RequireStage stage="setup"><SetupPage /></RequireStage>} />
       <Route path="/home" element={<RequireStage stage="app"><HomePage /></RequireStage>} />
       <Route path="/goals" element={<RequireStage stage="app"><GoalsPage /></RequireStage>} />

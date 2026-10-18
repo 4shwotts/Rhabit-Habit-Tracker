@@ -11,6 +11,8 @@ const { requireAuth } = require('../middleware/requireAuth')
 const limits = require('../middleware/rateLimits')
 const { validate, z, fields } = require('../lib/validate')
 const { createFormToken, checkSignup } = require('../lib/botCheck')
+const { isAcceptableEmail } = require('../lib/emailDomain')
+const { setChallengeCookie, checkSecondFactor } = require('../lib/twoFactor')
 const {
   setSessionCookie, clearSessionCookie, createOneTimeToken, hashToken
 } = require('../lib/auth')
@@ -48,7 +50,8 @@ const loginBody = z.strictObject({ email: fields.email, password: fields.passwor
 const emailBody = z.strictObject({ email: fields.email })
 const tokenBody = z.strictObject({ token: fields.token })
 const resetBody = z.strictObject({ token: fields.token, password: fields.newPassword })
-const deleteBody = z.strictObject({ password: fields.password })
+// `code` (authenticator or backup code) is required when 2FA is on
+const deleteBody = z.strictObject({ password: fields.password, code: z.string().max(20).optional() })
 
 // ---- helpers ----
 
@@ -79,7 +82,8 @@ function publicUser(user) {
     timer_visible: !!user.timer_visible,
     task_refresh: !!user.task_refresh,
     pause_progression: !!user.pause_progression,
-    active_goal_id: user.active_goal_id
+    active_goal_id: user.active_goal_id,
+    two_factor_enabled: !!user.totp_enabled
   }
 }
 
@@ -137,6 +141,12 @@ router.post('/signup', limits.signup, validate({ body: signupBody }), async (req
     return res.status(202).json({ message: GENERIC_SIGNUP_MESSAGE })
   }
 
+  // no throwaway inboxes or domains that can't receive mail. This says nothing
+  // about whether an account exists, so it can be a real error message.
+  if (!await isAcceptableEmail(email)) {
+    return res.status(400).json({ error: 'Please use a verified email address' })
+  }
+
   // hashed before the existence check so both paths take the same time
   const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
 
@@ -178,13 +188,27 @@ router.post('/login',
   async (req, res) => {
     const { email, password } = req.body
     const { rows } = await query(
-      'SELECT id, password_hash, token_version FROM users WHERE email = $1', [email]
+      'SELECT id, password_hash, token_version, email_verified, totp_enabled FROM users WHERE email = $1',
+      [email]
     )
     const user = rows[0]
 
     // always run bcrypt, even for unknown emails, to keep timing identical
     const ok = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH)
     if (!user || !ok) return res.status(401).json({ error: GENERIC_LOGIN_ERROR })
+
+    // Unverified accounts never get a session. Only reachable with the right
+    // password, so it reveals nothing to someone guessing emails.
+    if (!user.email_verified) {
+      return res.status(403).json({ error: 'Verify your email to continue', code: 'EMAIL_NOT_VERIFIED' })
+    }
+
+    // 2FA on: no session yet — the browser gets a 5-minute challenge cookie and
+    // must send a valid code to /api/auth/2fa/verify
+    if (user.totp_enabled) {
+      setChallengeCookie(res, user)
+      return res.json({ two_factor_required: true })
+    }
 
     setSessionCookie(res, user)
     res.json({ success: true })
@@ -270,9 +294,16 @@ router.delete('/account',
   limits.deleteAccount,
   validate({ body: deleteBody, invalidBodyStatus: 401, invalidBodyMessage: 'Incorrect password' }),
   async (req, res) => {
-    const { rows } = await query('SELECT password_hash FROM users WHERE id = $1', [req.user.id])
-    const ok = rows[0] && await bcrypt.compare(req.body.password, rows[0].password_hash)
+    const { rows } = await query(
+      'SELECT id, password_hash, totp_enabled, totp_secret, totp_last_step FROM users WHERE id = $1',
+      [req.user.id]
+    )
+    const user = rows[0]
+    const ok = user && await bcrypt.compare(req.body.password, user.password_hash)
     if (!ok) return res.status(401).json({ error: 'Incorrect password' })
+    if (user.totp_enabled && !await checkSecondFactor({ query }, user, req.body.code)) {
+      return res.status(401).json({ error: 'Incorrect authenticator or backup code' })
+    }
 
     await query('DELETE FROM users WHERE id = $1', [req.user.id])
     clearSessionCookie(res)

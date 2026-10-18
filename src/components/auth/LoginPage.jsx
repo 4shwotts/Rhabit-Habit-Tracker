@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout, { AuthField, AuthMessage } from './AuthLayout'
-import { login } from '../../api'
+import { login, verifyTwoFactor } from '../../api'
 import { useAuth, stageOf, pathForStage } from '../../auth/AuthContext'
 
 function LoginPage() {
@@ -11,6 +11,15 @@ function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+  // second step, shown when the account has two-step sign-in turned on
+  const [needsCode, setNeedsCode] = useState(false)
+  const [code, setCode] = useState('')
+  const [useBackupCode, setUseBackupCode] = useState(false)
+
+  async function finishLogin() {
+    const user = await refresh()
+    navigate(pathForStage(stageOf(user)), { replace: true })
+  }
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -19,15 +28,94 @@ function LoginPage() {
     setError(null)
 
     const result = await login(email.trim(), password)
+    setSubmitting(false)
+
+    // right password but email not verified yet: show the verify page (no session)
+    if (result.code === 'EMAIL_NOT_VERIFIED') {
+      navigate('/verify-pending', { state: { email: email.trim() } })
+      return
+    }
     if (result.error) {
       // the server's message is deliberately generic ("Invalid email or password")
       setError(result.error)
-      setSubmitting(false)
       return
     }
+    if (result.two_factor_required) {
+      setNeedsCode(true)
+      return
+    }
+    await finishLogin()
+  }
 
-    const user = await refresh()
-    navigate(pathForStage(stageOf(user)), { replace: true })
+  async function handleCode(e) {
+    e.preventDefault()
+    if (submitting) return
+    setSubmitting(true)
+    setError(null)
+
+    const result = await verifyTwoFactor(code.trim())
+    setSubmitting(false)
+
+    if (result.code === 'CHALLENGE_EXPIRED') {
+      // took longer than 5 minutes, or the password changed meanwhile
+      setNeedsCode(false)
+      setCode('')
+      setPassword('')
+      setError(result.error)
+      return
+    }
+    if (result.error) {
+      setError(result.error)
+      return
+    }
+    await finishLogin()
+  }
+
+  if (needsCode) {
+    return (
+      <AuthLayout
+        title="TWO-STEP SIGN-IN"
+        subtitle={useBackupCode
+          ? 'ENTER ONE OF YOUR BACKUP CODES'
+          : 'ENTER THE 6-DIGIT CODE FROM YOUR AUTHENTICATOR APP'}
+      >
+        <form className="auth-form" onSubmit={handleCode} noValidate>
+          <AuthField
+            label={useBackupCode ? 'BACKUP CODE' : 'CODE'}
+            id="login-code"
+            type="text"
+            inputMode={useBackupCode ? 'text' : 'numeric'}
+            autoComplete="one-time-code"
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            maxLength={useBackupCode ? 12 : 6}
+            autoFocus
+            required
+          />
+          <AuthMessage error={error} />
+          <button className="auth-btn" type="submit" disabled={submitting || !code.trim()}>
+            {submitting ? 'Checking...' : 'Verify'}
+          </button>
+        </form>
+
+        <div className="auth-links">
+          <button
+            className="auth-link auth-link-btn"
+            type="button"
+            onClick={() => { setUseBackupCode(b => !b); setCode(''); setError(null) }}
+          >
+            {useBackupCode ? 'Use your authenticator app instead' : 'Lost your phone? Use a backup code'}
+          </button>
+          <button
+            className="auth-link auth-link-btn"
+            type="button"
+            onClick={() => { setNeedsCode(false); setCode(''); setError(null) }}
+          >
+            Back to log in
+          </button>
+        </div>
+      </AuthLayout>
+    )
   }
 
   return (

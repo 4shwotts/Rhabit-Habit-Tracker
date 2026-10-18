@@ -40,6 +40,12 @@ const config = {
   jwtSecret: required('JWT_SECRET', 'dev-only-insecure-secret-change-me'),
   sessionDays: 7,
   cookieName: 'rhabit_session',
+  // short-lived cookie between "password correct" and "authenticator code correct"
+  twoFactorCookieName: 'rhabit_2fa',
+
+  // Encrypts authenticator-app (TOTP) secrets at rest. Long and random in
+  // production; changing it disables everyone's existing 2FA setups.
+  totpEncryptionKey: required('TOTP_ENCRYPTION_KEY', 'dev-only-insecure-totp-key-change-me'),
 
   // Public URL of the frontend, used to build links in emails.
   appUrl: (process.env.APP_URL || 'http://localhost:5173').replace(/\/$/, ''),

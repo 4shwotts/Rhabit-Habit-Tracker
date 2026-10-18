@@ -46,6 +46,7 @@ const dailyRoutes = require('./routes/daily')
 const setupRoutes = require('./routes/setup')
 
 // public: account routes (they apply requireAuth themselves where needed)
+app.use('/api/auth/2fa', require('./routes/twoFactor'))
 app.use('/api/auth', authRoutes)
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }))
 

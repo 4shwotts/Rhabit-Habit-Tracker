@@ -14,7 +14,7 @@ async function requireAuth(req, res, next) {
   const { rows } = await query(
     `SELECT id, email, username, email_verified, token_version, timezone,
             timer_visible, task_refresh, pause_progression, active_goal_id,
-            setup_complete, created_at
+            setup_complete, totp_enabled, created_at
      FROM users WHERE id = $1`,
     [parseInt(payload.sub, 10)]
   )

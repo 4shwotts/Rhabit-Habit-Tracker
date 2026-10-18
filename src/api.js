@@ -80,8 +80,26 @@ export function resetPassword(token, password) {
   return request('/auth/reset-password', { method: 'POST', body: { token, password } })
 }
 
-export function deleteAccount(password) {
-  return request('/auth/account', { method: 'DELETE', body: { password } })
+// `code` (authenticator or backup code) is only needed when 2FA is on
+export function deleteAccount(password, code) {
+  return request('/auth/account', { method: 'DELETE', body: code ? { password, code } : { password } })
+}
+
+// two-step sign-in (authenticator app)
+export function verifyTwoFactor(code) {
+  return request('/auth/2fa/verify', { method: 'POST', body: { code } })
+}
+
+export function startTwoFactorSetup(password) {
+  return request('/auth/2fa/setup', { method: 'POST', body: { password } })
+}
+
+export function enableTwoFactor(code) {
+  return request('/auth/2fa/enable', { method: 'POST', body: { code } })
+}
+
+export function disableTwoFactor(password, code) {
+  return request('/auth/2fa/disable', { method: 'POST', body: { password, code } })
 }
 
 // user

@@ -39,7 +39,9 @@ function clearSessionCookie(res) {
 function readSessionToken(token) {
   if (!token) return null
   try {
-    return jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] })
+    const payload = jwt.verify(token, config.jwtSecret, { algorithms: ['HS256'] })
+    // tokens with a purpose (e.g. the 2FA login challenge) are not sessions
+    return payload.purpose ? null : payload
   } catch {
     return null
   }

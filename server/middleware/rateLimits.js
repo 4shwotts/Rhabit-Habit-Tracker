@@ -60,6 +60,18 @@ module.exports = {
   resetPassword: limiter({ windowMs: HOUR, limit: 10, message: TOO_MANY_ATTEMPTS }),
   verifyEmail: limiter({ windowMs: HOUR, limit: 20, message: TOO_MANY_ATTEMPTS }),
 
+  // 2FA login step: failed codes per pending login (the challenge's user), and per IP
+  twoFactorVerifyIp: limiter({ windowMs: 15 * MINUTE, limit: 20, message: TOO_MANY_ATTEMPTS }),
+  twoFactorVerifyUser: limiter({
+    windowMs: 15 * MINUTE, limit: 5, message: TOO_MANY_ATTEMPTS, skipSuccessfulRequests: true,
+    keyGenerator: req => `2fa:${req.twoFactorChallenge?.sub ?? ipKeyGenerator(req.ip)}`
+  }),
+  // turning 2FA on/off re-checks the password and a code
+  twoFactorManage: limiter({
+    windowMs: 15 * MINUTE, limit: 10, message: TOO_MANY_ATTEMPTS, skipSuccessfulRequests: true,
+    keyGenerator: req => `2fa-manage:${req.user?.id ?? ipKeyGenerator(req.ip)}`
+  }),
+
   // account deletion re-checks the password, so limit failed guesses per user
   deleteAccount: limiter({
     windowMs: 15 * MINUTE, limit: 5, message: TOO_MANY_ATTEMPTS, skipSuccessfulRequests: true,

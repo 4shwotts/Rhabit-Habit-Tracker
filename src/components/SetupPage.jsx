@@ -90,9 +90,8 @@ function SetupPage() {
       <div className="setup-content">
         <img src={logo} className="setup-logo" alt="Rhabit" />
 
-        <p className="setup-greeting">
-          GREETINGS, {user?.username?.toUpperCase()} — THE SYSTEM WILL BOOT ITSELF UP ONCE YOU UPLOAD YOUR INFORMATION BELOW
-        </p>
+        <p className="setup-greeting setup-greeting-name">GREETINGS, {user?.username?.toUpperCase()}</p>
+        <p className="setup-greeting">THE SYSTEM WILL BOOT ITSELF UP ONCE YOU UPLOAD YOUR INFORMATION BELOW</p>
 
         <div className="setup-inputs-row">
           <div className="setup-field">
@@ -134,7 +133,7 @@ function SetupPage() {
 
         {error && <p className="auth-error" role="alert">{error}</p>}
 
-        {/* Start stays centred; the log out link sits to its right */}
+        {/* Start stays centred; log out sits to its right */}
         <div className="setup-actions">
           <span />
           <button
@@ -145,8 +144,8 @@ function SetupPage() {
           >
             <span>{submitting ? 'Saving...' : 'Start'}</span>
           </button>
-          <button className="auth-link auth-link-btn setup-logout" type="button" onClick={logout}>
-            Not you? Log out
+          <button className="settings-account-btn setup-logout" type="button" onClick={logout}>
+            Log out
           </button>
         </div>
       </div>

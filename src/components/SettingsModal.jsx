@@ -1,13 +1,18 @@
 import { useState } from 'react'
 import { useAuth } from '../auth/AuthContext'
 import { deleteAccount } from '../api'
+import TwoFactorPanel from './TwoFactorPanel'
 
 // game settings live in HomePage and get passed down; the account section
 // (log out / delete account) talks to the auth context directly
 function SettingsModal({ onClose, settings, onToggle }) {
-  const { logout, setUser } = useAuth()
+  const { user, logout, setUser } = useAuth()
+  const twoFactorOn = !!user?.two_factor_enabled
+  // the 2FA setup/turn-off flow replaces the settings list while it's open
+  const [showTwoFactor, setShowTwoFactor] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
   const [password, setPassword] = useState('')
+  const [deleteCode, setDeleteCode] = useState('')
   const [deleteError, setDeleteError] = useState(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -15,10 +20,10 @@ function SettingsModal({ onClose, settings, onToggle }) {
   // task, daily state and penalty that belongs to this account
   async function handleDelete(e) {
     e.preventDefault()
-    if (deleting || !password) return
+    if (deleting || !password || (twoFactorOn && !deleteCode.trim())) return
     setDeleting(true)
     setDeleteError(null)
-    const result = await deleteAccount(password)
+    const result = await deleteAccount(password, twoFactorOn ? deleteCode.trim() : undefined)
     setDeleting(false)
     if (result.error) {
       setDeleteError(result.error)
@@ -52,6 +57,10 @@ function SettingsModal({ onClose, settings, onToggle }) {
         </svg>
 
         <div className="settings-content">
+          {showTwoFactor ? (
+            <TwoFactorPanel onDone={() => setShowTwoFactor(false)} />
+          ) : (
+          <>
           <div className="setting-row">
             <span className="setting-label">Timer visibility</span>
             <div
@@ -82,6 +91,16 @@ function SettingsModal({ onClose, settings, onToggle }) {
             </div>
           </div>
 
+          <div className="setting-row">
+            <span className="setting-label">
+              Two-step sign-in
+              <span className={`twofa-status ${twoFactorOn ? 'on' : ''}`}>{twoFactorOn ? 'On' : 'Off'}</span>
+            </span>
+            <button className="settings-account-btn" type="button" onClick={() => setShowTwoFactor(true)}>
+              {twoFactorOn ? 'Turn off' : 'Set up'}
+            </button>
+          </div>
+
           {confirmingDelete ? (
             <form className="settings-delete-confirm" onSubmit={handleDelete}>
               <p className="settings-delete-warning">
@@ -97,15 +116,31 @@ function SettingsModal({ onClose, settings, onToggle }) {
                 maxLength={128}
                 autoFocus
               />
+              {twoFactorOn && (
+                <input
+                  className="setup-input auth-input"
+                  type="text"
+                  autoComplete="one-time-code"
+                  aria-label="Authenticator or backup code"
+                  placeholder="Authenticator code"
+                  value={deleteCode}
+                  onChange={e => setDeleteCode(e.target.value)}
+                  maxLength={12}
+                />
+              )}
               {deleteError && <p className="auth-error" role="alert">{deleteError}</p>}
               <div className="settings-account">
-                <button className="settings-account-btn danger" type="submit" disabled={deleting || !password}>
+                <button
+                  className="settings-account-btn danger"
+                  type="submit"
+                  disabled={deleting || !password || (twoFactorOn && !deleteCode.trim())}
+                >
                   {deleting ? 'Deleting...' : 'Delete permanently'}
                 </button>
                 <button
                   className="settings-account-btn"
                   type="button"
-                  onClick={() => { setConfirmingDelete(false); setPassword(''); setDeleteError(null) }}
+                  onClick={() => { setConfirmingDelete(false); setPassword(''); setDeleteCode(''); setDeleteError(null) }}
                 >
                   Cancel
                 </button>
@@ -118,6 +153,8 @@ function SettingsModal({ onClose, settings, onToggle }) {
                 Delete account
               </button>
             </div>
+          )}
+          </>
           )}
         </div>
 
