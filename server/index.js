@@ -43,6 +43,7 @@ const authRoutes = require('./routes/auth')
 const userRoutes = require('./routes/user')
 const goalRoutes = require('./routes/goals')
 const dailyRoutes = require('./routes/daily')
+const setupRoutes = require('./routes/setup')
 
 // public: account routes (they apply requireAuth themselves where needed)
 app.use('/api/auth', authRoutes)
@@ -54,6 +55,7 @@ const gameGuards = [requireAuth, requireVerified, checkDailyReset]
 app.use('/api/user', ...gameGuards, userRoutes)
 app.use('/api/goals', ...gameGuards, goalRoutes)
 app.use('/api/daily', ...gameGuards, dailyRoutes)
+app.use('/api/setup', ...gameGuards, setupRoutes)
 
 app.use((req, res) => res.status(404).json({ error: 'Not found' }))
 

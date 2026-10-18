@@ -98,8 +98,9 @@ export function updateUsername(username) {
   return request('/user/username', { method: 'PATCH', body: { username } })
 }
 
-export function markSetupComplete() {
-  return request('/user/setup-complete', { method: 'POST' })
+// first-time setup in one request: goal pathway + tasks per level
+export function completeSetup(goalName, levels) {
+  return request('/setup', { method: 'POST', body: { goal_name: goalName, levels } })
 }
 
 // goals

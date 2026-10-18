@@ -2,29 +2,11 @@ import { useNavigate } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import cornerFrame from '../assets/images/cornerframe.svg'
 import trashIcon from '../assets/icons/TrashButton.svg'
-import leftArrow from '../assets/icons/leftarrow.svg'
-import rightArrow from '../assets/icons/rightarrow.svg'
-import editIcon from '../assets/icons/EditButton.svg'
+import LevelTaskEditor from './LevelTaskEditor'
 import {
   getUser, getGoals, createGoal, updateGoalName,
   deleteGoal, starGoal, unstarGoal, saveGoalTasks
 } from '../api'
-
-const TASKS_PER_PAGE = 3
-
-function getWindowLabel(level) {
-  if (level <= 3) return '3hr'
-  if (level <= 6) return '2hr'
-  if (level <= 9) return '1.5hr'
-  return '1hr'
-}
-
-function getWindowDescription(level) {
-  if (level <= 3) return 'Level 1-3 tasks must be completed within a 3 hour daily window'
-  if (level <= 6) return 'Level 4-6 tasks must be completed within a 2 hour daily window'
-  if (level <= 9) return 'Level 7-9 tasks must be completed within a 1.5 hour daily window'
-  return 'Level 10 tasks must be completed within a 1 hour daily window'
-}
 
 function GoalsPage() {
   const navigate = useNavigate()
@@ -34,10 +16,6 @@ function GoalsPage() {
   const [goals, setGoals] = useState([])
   const [starred, setStarred] = useState(null)
   const [expandedGoal, setExpandedGoal] = useState(null)
-  const [expandedTabPage, setExpandedTabPage] = useState(0)
-  const [expandedActiveLevel, setExpandedActiveLevel] = useState(1)
-  const [expandedTaskPage, setExpandedTaskPage] = useState(0)
-  const [editingTaskIndex, setEditingTaskIndex] = useState(null)
   const [scrollThumbTop, setScrollThumbTop] = useState(0)
   const [scrollThumbHeight, setScrollThumbHeight] = useState(30)
   const [notice, setNotice] = useState(null)
@@ -62,11 +40,6 @@ function GoalsPage() {
 
   // recalculate scrollbar thumb whenever goals list changes
   useEffect(() => { handleScroll() }, [goals])
-
-  useEffect(() => {
-    setExpandedTaskPage(0)
-    setEditingTaskIndex(null)
-  }, [expandedActiveLevel])
 
   function handleScroll() {
     const el = scrollRef.current
@@ -154,85 +127,35 @@ function GoalsPage() {
     }
   }
 
+  // the task editor keeps its own tab/page state and resets each time it opens
   function openExpanded(goal) {
     setExpandedGoal(goal)
-    setExpandedTabPage(0)
-    setExpandedActiveLevel(1)
-    setExpandedTaskPage(0)
-    setEditingTaskIndex(null)
   }
 
   function closeExpanded() {
     setExpandedGoal(null)
-    setEditingTaskIndex(null)
   }
 
-  function getCurrentLevelTasks() {
-    if (!expandedGoal) return []
-    return expandedGoal.levelTasks?.[expandedActiveLevel] || []
-  }
-
-  function updateExpandedTask(index, value) {
+  // keeps the open goal and the list in sync as tasks are edited
+  function updateExpandedLevel(level, list) {
     if (!expandedGoal) return
-    const currentTasks = [...getCurrentLevelTasks()]
-    currentTasks[index] = { ...currentTasks[index], title: value }
     const updatedGoal = {
       ...expandedGoal,
-      levelTasks: { ...expandedGoal.levelTasks, [expandedActiveLevel]: currentTasks }
+      levelTasks: { ...expandedGoal.levelTasks, [level]: list }
     }
     setExpandedGoal(updatedGoal)
     setGoals(prev => prev.map(g => g.id === expandedGoal.id ? updatedGoal : g))
   }
 
-  async function deleteExpandedTask(index) {
-    if (!expandedGoal) return
-    const currentTasks = getCurrentLevelTasks().filter((_, i) => i !== index)
-    const updatedGoal = {
-      ...expandedGoal,
-      levelTasks: { ...expandedGoal.levelTasks, [expandedActiveLevel]: currentTasks }
-    }
-    setExpandedGoal(updatedGoal)
-    setGoals(prev => prev.map(g => g.id === expandedGoal.id ? updatedGoal : g))
-    await saveGoalTasks(expandedGoal.id, expandedActiveLevel, currentTasks)
-    const totalPages = Math.ceil(currentTasks.length / TASKS_PER_PAGE)
-    if (expandedTaskPage >= totalPages && expandedTaskPage > 0) {
-      setExpandedTaskPage(totalPages - 1)
-    }
-  }
-
-  async function addExpandedTask() {
-    if (!expandedGoal) return
-    const currentTasks = getCurrentLevelTasks()
-    if (currentTasks.length >= 6) return
-    const newTasks = [...currentTasks, { title: '' }]
-    const updatedGoal = {
-      ...expandedGoal,
-      levelTasks: { ...expandedGoal.levelTasks, [expandedActiveLevel]: newTasks }
-    }
-    setExpandedGoal(updatedGoal)
-    setGoals(prev => prev.map(g => g.id === expandedGoal.id ? updatedGoal : g))
-    const newPage = Math.floor((newTasks.length - 1) / TASKS_PER_PAGE)
-    setExpandedTaskPage(newPage)
-    setEditingTaskIndex(newTasks.length - 1)
-  }
-
-  // saves on blur rather than on every keystroke
-  async function saveExpandedTasks() {
+  // saves a level when an edit is finished (blur) or a task is deleted
+  async function saveExpandedLevel(level, list) {
     if (!expandedGoal) return
     try {
-      await saveGoalTasks(expandedGoal.id, expandedActiveLevel, getCurrentLevelTasks())
+      await saveGoalTasks(expandedGoal.id, level, list)
     } catch (err) {
       console.error('Failed to save tasks:', err)
     }
   }
-
-  const expandedLevels = expandedTabPage === 0 ? [1, 2, 3, 4, 5] : [6, 7, 8, 9, 10]
-  const currentLevelTasks = expandedGoal ? getCurrentLevelTasks() : []
-  const totalTaskPages = Math.max(1, Math.ceil(currentLevelTasks.length / TASKS_PER_PAGE))
-  const pagedTasks = currentLevelTasks.slice(
-    expandedTaskPage * TASKS_PER_PAGE,
-    expandedTaskPage * TASKS_PER_PAGE + TASKS_PER_PAGE
-  )
 
   if (loading) return (
     <div style={{
@@ -427,88 +350,16 @@ function GoalsPage() {
             <div className="expanded-goal-content">
               <h2 className="expanded-goal-title">{expandedGoal.name}: Level {expandedGoal.level}</h2>
 
-              <div className="tabs-carousel">
-                <button className="carousel-arrow"
-                  onClick={() => { setExpandedTabPage(0); setExpandedActiveLevel(1) }}
-                  disabled={expandedTabPage === 0}>
-                  <img src={leftArrow} alt="prev"/>
-                </button>
-                <div className="level-tabs">
-                  {expandedLevels.map(l => (
-                    <button key={l}
-                      className={`level-tab ${expandedActiveLevel === l ? 'active' : ''}`}
-                      onClick={() => setExpandedActiveLevel(l)}>
-                      Level {l} Tasks
-                    </button>
-                  ))}
-                </div>
-                <button className="carousel-arrow"
-                  onClick={() => { setExpandedTabPage(1); setExpandedActiveLevel(6) }}
-                  disabled={expandedTabPage === 1}>
-                  <img src={rightArrow} alt="next"/>
-                </button>
-              </div>
-
-              <p className="window-info-label">⏱ {getWindowDescription(expandedActiveLevel)}</p>
-
-              <div className="expanded-task-list">
-                {pagedTasks.length === 0 ? (
-                  <p className="expanded-no-tasks">No tasks yet — click Add Task</p>
-                ) : (
-                  pagedTasks.map((task, i) => {
-                    const globalIndex = expandedTaskPage * TASKS_PER_PAGE + i
-                    return (
-                      <div className="task-row" key={globalIndex}>
-                        <div className="task-text">
-                          <span className="task-level-label">
-                            Level {expandedActiveLevel} Task — {getWindowLabel(expandedActiveLevel)} timer
-                          </span>
-                          <input
-                            className="task-edit-input"
-                            type="text"
-                            value={task.title}
-                            placeholder="Click to Edit"
-                            readOnly={editingTaskIndex !== globalIndex}
-                            onChange={e => updateExpandedTask(globalIndex, e.target.value)}
-                            onBlur={() => saveExpandedTasks()}
-                            maxLength={40}
-                          />
-                        </div>
-                        <div className="task-actions">
-                          <button
-                            className={`task-icon-btn ${editingTaskIndex === globalIndex ? 'editing' : ''}`}
-                            onClick={() => setEditingTaskIndex(editingTaskIndex === globalIndex ? null : globalIndex)}>
-                            <img src={editIcon} alt="edit" width="50" height="50"/>
-                          </button>
-                          <button className="task-icon-btn" onClick={() => deleteExpandedTask(globalIndex)}>
-                            <img src={trashIcon} alt="delete" width="50" height="50"/>
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-
-              <div className="task-add-row">
-                <div className="task-pagination">
-                  <button
-                    className={`page-dot ${expandedTaskPage === 0 ? 'active' : 'inactive'}`}
-                    onClick={() => { setExpandedTaskPage(p => Math.max(0, p - 1)); setEditingTaskIndex(null) }}
-                  />
-                  <button
-                    className={`page-dot ${expandedTaskPage > 0 ? 'active' : 'inactive'}`}
-                    onClick={() => { setExpandedTaskPage(p => Math.min(totalTaskPages - 1, p + 1)); setEditingTaskIndex(null) }}
-                  />
-                </div>
-                <button
-                  className="add-task-btn"
-                  onClick={addExpandedTask}
-                  disabled={getCurrentLevelTasks().length >= 6}
-                >
-                  Add Task
-                </button>
-              </div>
+              <LevelTaskEditor
+                key={expandedGoal.id}
+                tasksByLevel={expandedGoal.levelTasks}
+                onChange={updateExpandedLevel}
+                onCommit={saveExpandedLevel}
+                listClassName="expanded-task-list"
+                emptyMessage="No tasks yet — click Add Task"
+                placeholder="Click to Edit"
+                iconSize={50}
+              />
             </div>
           </div>
         </div>

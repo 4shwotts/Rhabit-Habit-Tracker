@@ -53,16 +53,4 @@ router.patch('/username',
   }
 )
 
-// marks first-time setup as done so the route guard stops sending the user to
-// /setup — only once they actually have a goal pathway
-router.post('/setup-complete', validate(), async (req, res) => {
-  const { rowCount } = await query(
-    `UPDATE users SET setup_complete = TRUE
-     WHERE id = $1 AND EXISTS (SELECT 1 FROM goals WHERE user_id = $1)`,
-    [req.user.id]
-  )
-  if (rowCount === 0) return res.status(409).json({ error: 'Create a goal pathway first' })
-  res.json({ success: true })
-})
-
 module.exports = router

@@ -393,6 +393,11 @@ function HomePage() {
     })
   }
 
+  // levels 4–10 are optional at setup, so the newest unlocked task level can be
+  // empty — point the user to Goals to fill it in
+  const unlockedTier = Math.min(level, 10)
+  const emptyTier = !!goal && !(goal.levelTasks?.[unlockedTier] || []).some(t => t.title?.trim())
+
   const canConfirm = confirmUnlock === 0 && !confirmed
   const xpPercent = Math.min(xpAnim, 100) / 100
   const started = !!dailyState?.started
@@ -492,6 +497,12 @@ function HomePage() {
         <div className="home-clock">
           {formatClock(currentTime, user?.timezone || 'UTC')}
         </div>
+
+        {emptyTier && (
+          <button className="home-tier-notice" type="button" onClick={() => navigate('/goals')}>
+            Level {unlockedTier} tasks unlocked — add some in Goals
+          </button>
+        )}
 
         <div className="home-task-list">
           {endMessage ? (

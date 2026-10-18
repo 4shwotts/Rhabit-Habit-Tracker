@@ -1,140 +1,83 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import logo from '../assets/icons/Rhabit Logo.svg'
-import leftArrow from '../assets/icons/leftarrow.svg'
-import rightArrow from '../assets/icons/rightarrow.svg'
-import editIcon from '../assets/icons/EditButton.svg'
-import trashIcon from '../assets/icons/TrashButton.svg'
 import cornerFrame from '../assets/images/cornerframe.svg'
-import { createGoal, saveGoalTasks, starGoal, updateUsername, markSetupComplete } from '../api'
+import LevelTaskEditor from './LevelTaskEditor'
+import { completeSetup } from '../api'
 import { useAuth } from '../auth/AuthContext'
 
-function getWindowLabel(level) {
-  if (level <= 3) return '3hr'
-  if (level <= 6) return '2hr'
-  if (level <= 9) return '1.5hr'
-  return '1hr'
-}
+// Levels 1–3 must be filled in before starting so the first few level-ups
+// always have tasks; 4–10 can be added later from Goals. The server enforces
+// the same rule (server/routes/setup.js).
+const REQUIRED_LEVELS = [1, 2, 3]
+const MIN_TASKS = 3
 
-function getWindowDescription(level) {
-  if (level <= 3) return 'Level 1-3 tasks must be completed within a 3 hour daily window'
-  if (level <= 6) return 'Level 4-6 tasks must be completed within a 2 hour daily window'
-  if (level <= 9) return 'Level 7-9 tasks must be completed within a 1.5 hour daily window'
-  return 'Level 10 tasks must be completed within a 1 hour daily window'
-}
+const emptyLevels = () => ({ 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: [], 10: [] })
+const filledCount = list => list.filter(t => t.title.trim() !== '').length
 
 function SetupPage() {
-  const { user, refresh } = useAuth()
-  // pre-filled from the account; still editable until the Stage 4 setup review
-  const [username, setUsername] = useState(user?.username || '')
+  const { user, refresh, logout } = useAuth()
+  const navigate = useNavigate()
   const [goalName, setGoalName] = useState('')
-  const [activeLevel, setActiveLevel] = useState(1)
-  const [tabPage, setTabPage] = useState(0)
-  const [currentTaskPage, setCurrentTaskPage] = useState(0)
-  const [editingIndex, setEditingIndex] = useState(null)
+  const [tasks, setTasks] = useState(emptyLevels)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
-  const navigate = useNavigate()
 
-  const [tasks, setTasks] = useState({
-    1: [], 2: [], 3: [], 4: [], 5: [],
-    6: [], 7: [], 8: [], 9: [], 10: []
-  })
+  // required levels that still need tasks, e.g. [2, 3]
+  const missingLevels = REQUIRED_LEVELS.filter(l => filledCount(tasks[l]) < MIN_TASKS)
+  const canConfirm = goalName.trim() !== '' && missingLevels.length === 0
 
-  const TASKS_PER_PAGE = 3
-  const levels = tabPage === 0 ? [1, 2, 3, 4, 5] : [6, 7, 8, 9, 10]
-
-  const levelTasks = tasks[activeLevel]
-  const totalPages = Math.max(1, Math.ceil(levelTasks.length / TASKS_PER_PAGE))
-  const startIndex = currentTaskPage * TASKS_PER_PAGE
-  const visibleTasks = levelTasks.slice(startIndex, startIndex + TASKS_PER_PAGE)
-
-  const paddedTasks = [
-    ...visibleTasks,
-    ...Array(Math.max(0, TASKS_PER_PAGE - visibleTasks.length)).fill(null)
-  ]
-
-  function canConfirm() {
-    if (!username.trim() || !goalName.trim()) return false
-    for (let l = 1; l <= 10; l++) {
-      const filled = tasks[l].filter(t => t.title.trim() !== '').length
-      if (filled < 3) return false
+  // shown under the level tabs so it's clear which levels are required
+  function renderLevelNote(level, levelTasks) {
+    if (!REQUIRED_LEVELS.includes(level)) {
+      return <p className="setup-level-note optional">Optional — you can fill this level in later from Goals</p>
     }
-    return true
+    const count = filledCount(levelTasks)
+    return (
+      <p className={`setup-level-note ${count >= MIN_TASKS ? 'done' : 'required'}`}>
+        {count >= MIN_TASKS ? '✓' : '•'} {Math.min(count, MIN_TASKS)}/{MIN_TASKS} tasks — required
+      </p>
+    )
   }
 
-  function addTask() {
-    const currentLevelTasks = tasks[activeLevel]
-    if (currentLevelTasks.length >= 6) return
-    const newTasks = [...currentLevelTasks, { title: '' }]
-    setTasks(prev => ({ ...prev, [activeLevel]: newTasks }))
-    setCurrentTaskPage(Math.floor((newTasks.length - 1) / TASKS_PER_PAGE))
-    setEditingIndex((newTasks.length - 1) % TASKS_PER_PAGE)
-  }
-
-  function deleteTask(index) {
-    const realIndex = startIndex + index
-    const updated = levelTasks.filter((_, i) => i !== realIndex)
-    setTasks(prev => ({ ...prev, [activeLevel]: updated }))
-    setEditingIndex(null)
-    if (currentTaskPage > 0 && startIndex >= updated.length) {
-      setCurrentTaskPage(currentTaskPage - 1)
+  function startHint() {
+    if (!goalName.trim()) return 'Name your goal pathway to continue'
+    if (missingLevels.length > 0) {
+      // "Level 3" / "Levels 2 and 3" / "Levels 1, 2 and 3"
+      const list = missingLevels.length === 1
+        ? `Level ${missingLevels[0]}`
+        : `Levels ${missingLevels.slice(0, -1).join(', ')} and ${missingLevels.at(-1)}`
+      return `Add at least ${MIN_TASKS} tasks to ${list} to continue`
     }
-  }
-
-  function updateTask(index, value) {
-    const realIndex = startIndex + index
-    const updated = [...levelTasks]
-    updated[realIndex] = { ...updated[realIndex], title: value }
-    setTasks(prev => ({ ...prev, [activeLevel]: updated }))
-  }
-
-  function handleLevelChange(level) {
-    setActiveLevel(level)
-    setCurrentTaskPage(0)
-    setEditingIndex(null)
+    return null
   }
 
   async function handleConfirm() {
-    if (!canConfirm() || submitting) return
+    if (!canConfirm || submitting) return
     setSubmitting(true)
     setError(null)
 
-    try {
-      // the account (and its timezone) already exists from sign up
-      if (username.trim() !== user?.username) {
-        const nameResult = await updateUsername(username.trim())
-        if (nameResult.error) throw new Error(nameResult.error)
-      }
+    // one request: the server creates everything in a single transaction
+    const levels = Object.entries(tasks)
+      .map(([level, list]) => ({
+        level: Number(level),
+        titles: list.map(t => t.title.trim()).filter(Boolean)
+      }))
+      .filter(l => l.titles.length > 0)
 
-      const goalResult = await createGoal(goalName.trim())
-      if (goalResult.error) throw new Error(goalResult.error)
-      const goalId = goalResult.id
-
-      for (let l = 1; l <= 10; l++) {
-        const levelTaskList = tasks[l].filter(t => t.title.trim() !== '')
-        if (levelTaskList.length > 0) {
-          const saved = await saveGoalTasks(goalId, l, levelTaskList)
-          if (saved.error) throw new Error(saved.error)
-        }
-      }
-
-      const starred = await starGoal(goalId)
-      if (starred.error) throw new Error(starred.error)
-
-      const done = await markSetupComplete()
-      if (done.error) throw new Error(done.error)
-
-      // refresh the session so the route guard knows setup is finished
-      await refresh()
-      navigate('/home', { replace: true })
-
-    } catch (err) {
-      console.error('Setup failed:', err)
-      setError('Something went wrong. Please try again.')
+    const result = await completeSetup(goalName.trim(), levels)
+    if (result.error) {
+      setError(result.error)
       setSubmitting(false)
+      return
     }
+
+    // refresh the session so the route guard knows setup is finished
+    await refresh()
+    navigate('/home', { replace: true })
   }
+
+  const hint = startHint()
 
   return (
     <div className="setup-page">
@@ -146,24 +89,14 @@ function SetupPage() {
       <div className="setup-content">
         <img src={logo} className="setup-logo" alt="Rhabit" />
 
-        <p className="setup-greeting">GREETINGS,</p>
+        <p className="setup-greeting">GREETINGS, {user?.username?.toUpperCase()}</p>
         <p className="setup-greeting">THE SYSTEM WILL BOOT ITSELF UP ONCE YOU UPLOAD YOUR INFORMATION BELOW</p>
 
         <div className="setup-inputs-row">
           <div className="setup-field">
-            <label className="setup-label">YOUR USERNAME</label>
+            <label className="setup-label" htmlFor="setup-goal-name">NAME OF GOAL PATHWAY</label>
             <input
-              className="setup-input"
-              type="text"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              maxLength={20}
-              style={{ textAlign: username.length > 15 ? 'left' : 'center' }}
-            />
-          </div>
-          <div className="setup-field">
-            <label className="setup-label">NAME OF GOAL PATHWAY</label>
-            <input
+              id="setup-goal-name"
               className="setup-input"
               type="text"
               value={goalName}
@@ -177,114 +110,40 @@ function SetupPage() {
         <p className="setup-priority-label">
           LIST YOUR TASKS FROM LOWEST TO HIGHEST PRIORITY (1-10)
         </p>
+        <p className="setup-requirement">
+          Levels 1–3 need at least {MIN_TASKS} tasks each. Levels 4–10 are optional — new task
+          levels unlock as you level up, and you can add them any time from Goals.
+        </p>
 
         <div className="setup-task-panel">
-          <div className="tabs-carousel">
-            <button
-              className="carousel-arrow"
-              onClick={() => { setTabPage(0); handleLevelChange(1) }}
-              disabled={tabPage === 0}
-            >
-              <img src={leftArrow} alt="prev" />
-            </button>
-            <div className="level-tabs">
-              {levels.map(level => (
-                <button
-                  key={level}
-                  className={`level-tab${activeLevel === level ? ' active' : ''}`}
-                  onClick={() => handleLevelChange(level)}
-                >
-                  Level {level} Tasks
-                </button>
-              ))}
-            </div>
-            <button
-              className="carousel-arrow"
-              onClick={() => { setTabPage(1); handleLevelChange(6) }}
-              disabled={tabPage === 1}
-            >
-              <img src={rightArrow} alt="next" />
-            </button>
-          </div>
-
-          <p className="window-info-label">⏱ {getWindowDescription(activeLevel)}</p>
-
-          <div className="task-fixed-area">
-            {paddedTasks.map((task, index) => (
-              <div
-                className={`task-row ${task === null ? 'task-row-empty' : ''}`}
-                key={index}
-              >
-                {task !== null ? (
-                  <>
-                    <div className="task-text">
-                      <span className="task-level-label">
-                        Level {activeLevel} Task — {getWindowLabel(activeLevel)} timer
-                      </span>
-                      <input
-                        className="task-edit-input"
-                        type="text"
-                        value={task.title}
-                        placeholder="Task Empty - Edit to add content"
-                        readOnly={editingIndex !== index}
-                        onChange={e => updateTask(index, e.target.value)}
-                        maxLength={40}
-                      />
-                    </div>
-                    <div className="task-actions">
-                      <button
-                        className={`task-icon-btn ${editingIndex === index ? 'editing' : ''}`}
-                        onClick={() => setEditingIndex(editingIndex === index ? null : index)}
-                      >
-                        <img src={editIcon} alt="edit" width="60" height="60" />
-                      </button>
-                      <button
-                        className="task-icon-btn"
-                        onClick={() => deleteTask(index)}
-                      >
-                        <img src={trashIcon} alt="delete" width="60" height="60" />
-                      </button>
-                    </div>
-                  </>
-                ) : null}
-              </div>
-            ))}
-          </div>
-
-          <div className="task-add-row">
-            <div className="task-pagination">
-              <button
-                className={`page-dot ${currentTaskPage === 0 ? 'active' : 'inactive'}`}
-                onClick={() => { setCurrentTaskPage(p => Math.max(0, p - 1)); setEditingIndex(null) }}
-              />
-              <button
-                className={`page-dot ${currentTaskPage > 0 ? 'active' : 'inactive'}`}
-                onClick={() => { setCurrentTaskPage(p => Math.min(totalPages - 1, p + 1)); setEditingIndex(null) }}
-              />
-            </div>
-            <button
-              className="add-task-btn"
-              onClick={addTask}
-              disabled={tasks[activeLevel].length >= 6}
-            >
-              Add Task
-            </button>
-          </div>
+          <LevelTaskEditor
+            tasksByLevel={tasks}
+            onChange={(level, list) => setTasks(prev => ({ ...prev, [level]: list }))}
+            padEmptyRows
+            placeholder="Task Empty - Edit to add content"
+            iconSize={60}
+            renderLevelNote={renderLevelNote}
+          />
         </div>
 
         <p className="setup-warning">
-          WARNING SYSTEM <strong>DOESNT TOLERATE, INTOLERANCE</strong>. YOU <strong>MUST COMPLETE ALL</strong> DAILY OBJECTIVES
+          WARNING: THE SYSTEM <strong>DOESN'T TOLERATE FAILURE</strong>. YOU <strong>MUST COMPLETE ALL</strong> DAILY OBJECTIVES
           <br />IF YOU <strong>FAIL</strong> YOU MUST FACE THE <strong>CONSEQUENCES</strong> OF <strong>YOUR</strong> ACTIONS
         </p>
 
-        {error && <p style={{ color: '#ff6b6b', fontFamily: 'Alumni Sans', fontSize: '20px' }}>{error}</p>}
+        {error && <p className="auth-error" role="alert">{error}</p>}
+        {!error && hint && <p className="setup-start-hint">{hint}</p>}
 
         <button
           className="start-btn"
           onClick={handleConfirm}
-          disabled={!canConfirm() || submitting}
+          disabled={!canConfirm || submitting}
         >
           <span>{submitting ? 'Saving...' : 'Start'}</span>
+        </button>
+
+        <button className="auth-link auth-link-btn" type="button" onClick={logout}>
+          Not you? Log out
         </button>
       </div>
     </div>

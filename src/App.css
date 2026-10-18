@@ -2055,3 +2055,82 @@ body {
   height: 1px;
   overflow: hidden;
 }
+
+/* ---- SETUP: levels 1–3 required, 4–10 optional ---- */
+.setup-requirement {
+  font-family: 'Alumni Sans', sans-serif;
+  font-size: 20px;
+  font-style: italic;
+  line-height: 24px;
+  color: var(--text-secondary);
+  text-align: center;
+  max-width: 760px;
+  margin-top: -6px;
+}
+
+.setup-level-note {
+  font-family: 'Alumni Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  text-align: center;
+  letter-spacing: 0.3px;
+}
+
+.setup-level-note.required {
+  color: #FFB3B3;
+}
+
+.setup-level-note.done {
+  color: #C1AAFF;
+}
+
+.setup-level-note.optional {
+  color: var(--text-secondary);
+  font-weight: 500;
+  font-style: italic;
+}
+
+.setup-start-hint {
+  font-family: 'Alumni Sans', sans-serif;
+  font-size: 20px;
+  color: #C1AAFF;
+  text-align: center;
+}
+
+/* setup is now taller than some laptop screens — let it scroll */
+.setup-page {
+  overflow-y: auto;
+  justify-content: flex-start;
+}
+
+.setup-page .setup-content {
+  margin: auto 0;
+  padding: 12px 0;
+}
+
+/* keep the corner brackets pinned to the screen while setup/auth pages scroll */
+.setup-page .corner {
+  position: fixed;
+}
+
+/* ---- HOME: notice when a newly unlocked task level has no tasks ---- */
+.home-tier-notice {
+  display: block;
+  margin: 6px auto 0;
+  background: rgba(145, 111, 241, 0.15);
+  border: 1px solid rgba(145, 111, 241, 0.4);
+  border-radius: 20px;
+  color: #C1AAFF;
+  font-family: 'Alumni Sans', sans-serif;
+  font-size: 18px;
+  font-style: italic;
+  padding: 4px 18px;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+}
+
+.home-tier-notice:hover,
+.home-tier-notice:focus-visible {
+  background: rgba(145, 111, 241, 0.3);
+  outline: none;
+}
