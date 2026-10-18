@@ -2344,17 +2344,19 @@ body {
   width: 100%;
 }
 
-/* translucent "holographic" glass panel, floating just below the level pill */
+/* translucent "holographic" glass panel, floating just below the level pill.
+   Sized to its text; the border is doubled by two offset, colour-shifted copies
+   that glitch now and then, like a projection not quite holding together. */
 .level-info-tab {
   position: relative;
   z-index: 1;
-  width: min(78%, 860px);
+  max-width: min(78%, 860px);
   margin-top: 10px;
-  border-radius: 18px;
-  border: 1.5px solid rgba(193, 170, 255, 0.45);
+  border-radius: 6px;
+  border: 1px solid rgba(193, 170, 255, 0.6);
   background:
     /* soft sheen across the top edge */
-    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 45%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 50%),
     /* iridescent tint: violet -> lilac -> a hint of blue -> violet */
     linear-gradient(115deg,
       rgba(145, 111, 241, 0.22) 0%,
@@ -2364,16 +2366,82 @@ body {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow:
-    0 0 18px rgba(145, 111, 241, 0.25),
-    inset 0 0 14px rgba(193, 170, 255, 0.12);
+    0 0 16px rgba(145, 111, 241, 0.22),
+    inset 0 0 12px rgba(193, 170, 255, 0.1);
+  animation: holo-flicker 6s infinite steps(1);
+}
+
+/* the two ghost borders: one shifted blue-ward, one magenta-ward */
+.level-info-tab::before,
+.level-info-tab::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+.level-info-tab::before {
+  border: 1px solid rgba(120, 165, 255, 0.55);
+  transform: translate(-2px, 0);
+  animation: holo-glitch-a 3.4s infinite steps(1);
+}
+
+.level-info-tab::after {
+  border: 1px solid rgba(225, 120, 255, 0.45);
+  transform: translate(2px, 1px);
+  animation: holo-glitch-b 4.1s infinite steps(1);
+}
+
+/* mostly still, then a brief jolt where a horizontal slice of the ghost
+   border tears sideways */
+@keyframes holo-glitch-a {
+  0%, 100% { clip-path: inset(0); transform: translate(-2px, 0); }
+  /* top edge tears left */
+  12% { clip-path: inset(0 0 72% 0); transform: translate(-9px, 0); }
+  13% { clip-path: inset(0); transform: translate(-2px, 0); }
+  /* a middle slice jumps right */
+  47% { clip-path: inset(40% 0 35% 0); transform: translate(7px, 0); }
+  48.5% { clip-path: inset(0); transform: translate(-2px, 0); }
+  /* bottom edge drifts */
+  81% { clip-path: inset(75% 0 0 0); transform: translate(-6px, 1px); }
+  82% { clip-path: inset(0); transform: translate(-2px, 0); }
+}
+
+@keyframes holo-glitch-b {
+  0%, 100% { clip-path: inset(0); transform: translate(2px, 1px); }
+  /* bottom edge tears right */
+  23% { clip-path: inset(70% 0 0 0); transform: translate(10px, 1px); }
+  24% { clip-path: inset(0); transform: translate(2px, 1px); }
+  /* top edge snaps left */
+  64% { clip-path: inset(0 0 78% 0); transform: translate(-8px, 0); }
+  65.5% { clip-path: inset(0); transform: translate(2px, 1px); }
+}
+
+/* the whole panel dips for a single frame now and then */
+@keyframes holo-flicker {
+  0%, 100% { opacity: 1; }
+  33% { opacity: 0.82; }
+  33.6% { opacity: 1; }
+  71% { opacity: 0.9; }
+  71.4% { opacity: 1; }
+}
+
+/* respect "reduce motion": keep the offset ghost borders, drop the jolts */
+@media (prefers-reduced-motion: reduce) {
+  .level-info-tab,
+  .level-info-tab::before,
+  .level-info-tab::after {
+    animation: none;
+  }
 }
 
 .level-info-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  padding: 8px 28px 9px;
+  gap: 1px;
+  padding: 5px 22px 6px;
 }
 
 .level-info-line {
