@@ -38,7 +38,9 @@ const config = {
 
   // Secret used to sign session JWTs. Must be long and random in production.
   jwtSecret: required('JWT_SECRET', 'dev-only-insecure-secret-change-me'),
-  sessionDays: 7,
+  // sessions are per visit (the frontend logs out on a fresh tab) and the
+  // cookie ends when the browser closes; the token itself expires after this
+  sessionHours: 12,
   cookieName: 'rhabit_session',
   // short-lived cookie between "password correct" and "authenticator code correct"
   twoFactorCookieName: 'rhabit_2fa',

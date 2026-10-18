@@ -87,6 +87,12 @@ function SetupPage() {
       <img src={cornerFrame} className="corner bottom-left" alt="" />
       <img src={cornerFrame} className="corner bottom-right" alt="" />
 
+      {/* top-right, where Home keeps its settings/goals buttons, so the centre
+          column stays symmetrical */}
+      <button className="settings-account-btn setup-logout" type="button" onClick={logout}>
+        Log out
+      </button>
+
       <div className="setup-content">
         <img src={logo} className="setup-logo" alt="Rhabit" />
 
@@ -133,9 +139,7 @@ function SetupPage() {
 
         {error && <p className="auth-error" role="alert">{error}</p>}
 
-        {/* Start stays centred; log out sits to its right */}
         <div className="setup-actions">
-          <span />
           <button
             className="start-btn"
             onClick={handleConfirm}
@@ -143,9 +147,6 @@ function SetupPage() {
             title={canConfirm ? undefined : status.text}
           >
             <span>{submitting ? 'Saving...' : 'Start'}</span>
-          </button>
-          <button className="settings-account-btn setup-logout" type="button" onClick={logout}>
-            Log out
           </button>
         </div>
       </div>

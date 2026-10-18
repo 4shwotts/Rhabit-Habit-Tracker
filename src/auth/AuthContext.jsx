@@ -5,6 +5,24 @@ import { getMe, logout as apiLogout } from '../api'
 // The server is the source of truth — this only decides which page to show.
 const AuthContext = createContext(null)
 
+// Per-visit sessions: every new visit (new tab, a link from elsewhere, or a
+// reopened browser) starts at the login page, even if a session cookie is still
+// around. sessionStorage survives a refresh of the same tab but not a new tab,
+// so a marker there means "this visit already logged in".
+const VISIT_KEY = 'rhabit_visit_session'
+
+function visitIsLoggedIn() {
+  try { return sessionStorage.getItem(VISIT_KEY) === '1' } catch { return false }
+}
+
+function markVisitLoggedIn() {
+  try { sessionStorage.setItem(VISIT_KEY, '1') } catch { /* storage blocked: session still works */ }
+}
+
+function clearVisit() {
+  try { sessionStorage.removeItem(VISIT_KEY) } catch { /* ignore */ }
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [checking, setChecking] = useState(true)
@@ -13,6 +31,8 @@ export function AuthProvider({ children }) {
   const refresh = useCallback(async () => {
     try {
       const me = await getMe()
+      // only called after an action in this tab (login, verify, setup)
+      if (me) markVisitLoggedIn()
       setUser(me)
       return me
     } catch {
@@ -23,9 +43,13 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  // initial session check on page load
+  // initial check on page load: a fresh visit drops any leftover session and
+  // starts at login; a refresh of an already-logged-in tab carries on
   useEffect(() => {
-    getMe()
+    const check = visitIsLoggedIn()
+      ? getMe()
+      : apiLogout().catch(() => {}).then(() => null)
+    check
       .then(me => setUser(me))
       .catch(() => setUser(null))
       .finally(() => setChecking(false))
@@ -39,6 +63,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   const logout = useCallback(async () => {
+    clearVisit()
     try { await apiLogout() } finally { setUser(null) }
   }, [])
 

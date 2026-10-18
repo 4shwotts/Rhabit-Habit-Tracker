@@ -3,19 +3,17 @@ const crypto = require('crypto')
 const jwt = require('jsonwebtoken')
 const config = require('../config')
 
-const SESSION_MAX_AGE_MS = config.sessionDays * 24 * 60 * 60 * 1000
-
 // httpOnly so page scripts can't read it, Secure so it only travels over HTTPS
 // (browsers make an exception for http://localhost), SameSite=Lax so other
 // sites can't make the browser send it on cross-site POSTs. In production the
 // frontend proxies /api through Vercel, so the cookie is first-party.
+// No maxAge: a browser-session cookie, gone when the browser closes.
 function cookieOptions() {
   return {
     httpOnly: true,
     secure: config.isProduction,
     sameSite: 'lax',
-    path: '/',
-    maxAge: SESSION_MAX_AGE_MS
+    path: '/'
   }
 }
 
@@ -25,14 +23,13 @@ function setSessionCookie(res, user) {
   const token = jwt.sign(
     { sub: String(user.id), tv: user.token_version },
     config.jwtSecret,
-    { algorithm: 'HS256', expiresIn: `${config.sessionDays}d` }
+    { algorithm: 'HS256', expiresIn: `${config.sessionHours}h` }
   )
   res.cookie(config.cookieName, token, cookieOptions())
 }
 
 function clearSessionCookie(res) {
-  const { maxAge, ...opts } = cookieOptions()
-  res.clearCookie(config.cookieName, opts)
+  res.clearCookie(config.cookieName, cookieOptions())
 }
 
 // Returns the decoded payload, or null if the token is missing, forged or expired.
