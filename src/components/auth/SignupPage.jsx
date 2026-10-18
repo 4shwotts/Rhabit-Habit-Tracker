@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AuthLayout, { AuthField, AuthMessage } from './AuthLayout'
-import { signup, resendVerification } from '../../api'
+import { signup, resendVerification, getSignupToken } from '../../api'
 
 const MIN_PASSWORD = 8
 
@@ -15,6 +15,14 @@ function SignupPage() {
   // once submitted we only ever show the generic "check your inbox" message
   const [sentMessage, setSentMessage] = useState(null)
   const [resendMessage, setResendMessage] = useState(null)
+  // bot protection: a signed "form opened at" token for the server's timing
+  // check, and a honeypot field that only bots fill in (see server/lib/botCheck.js)
+  const [formToken, setFormToken] = useState(null)
+  const [honeypot, setHoneypot] = useState('')
+
+  useEffect(() => {
+    getSignupToken().then(setFormToken).catch(() => setFormToken(null))
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -30,7 +38,9 @@ function SignupPage() {
       username: username.trim(),
       email: email.trim(),
       password,
-      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      form_token: formToken || undefined,
+      website: honeypot
     })
     setSubmitting(false)
 
@@ -80,6 +90,15 @@ function SignupPage() {
           value={confirm} onChange={e => setConfirm(e.target.value)} maxLength={72} required
         />
         <p className="auth-hint">At least {MIN_PASSWORD} characters.</p>
+
+        {/* honeypot: hidden from people and screen readers, so only bots fill it */}
+        <div className="auth-honeypot" aria-hidden="true">
+          <label htmlFor="signup-website">Leave this field empty</label>
+          <input
+            id="signup-website" type="text" name="website" tabIndex={-1} autoComplete="off"
+            value={honeypot} onChange={e => setHoneypot(e.target.value)}
+          />
+        </div>
 
         <AuthMessage error={error} />
 

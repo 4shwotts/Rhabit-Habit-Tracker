@@ -8,6 +8,11 @@ const REFRESH_COST = 5
 const XP_PER_LEVEL = 100
 // confirm button unlocks this many seconds before the window/penalty ends
 const CONFIRM_UNLOCK_BEFORE_END = 60
+// if a session can't fit before midnight, a late penalty is only offered when
+// at least this much of the day is left; otherwise XP is deducted straight away
+const LATE_PENALTY_MIN_SECONDS = 3600
+// allowance for network latency and clock drift between browser and server
+const TIMING_GRACE_SECONDS = 5
 
 // demo mode — shortened windows so visitors can test the full flow quickly
 function getWindowSeconds(level) {
@@ -42,6 +47,32 @@ function getTodayInTimezone(timezone) {
   } catch {
     return new Date().toISOString().split('T')[0]
   }
+}
+
+// Seconds left until midnight in the user's timezone (decides "too late to start").
+function getSecondsUntilMidnight(timezone) {
+  try {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+      timeZone: timezone,
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
+      hour12: false
+    }).formatToParts(new Date())
+    const get = type => parseInt(parts.find(p => p.type === type).value, 10)
+    // some engines report midnight as hour 24
+    const h = get('hour') % 24, m = get('minute'), s = get('second')
+    return 86400 - (h * 3600 + m * 60 + s)
+  } catch {
+    const now = new Date()
+    const midnight = new Date(now)
+    midnight.setHours(24, 0, 0, 0)
+    return Math.floor((midnight - now) / 1000)
+  }
+}
+
+// window length is driven by the highest level task rolled for today
+function windowForTasks(tasks) {
+  const taskLevel = tasks.length > 0 ? Math.max(...tasks.map(t => t.level)) : 1
+  return getWindowSeconds(taskLevel)
 }
 
 // Removes `amount` XP, dropping levels as needed but never below level 1 / 0 XP.
@@ -111,6 +142,10 @@ module.exports = {
   REFRESH_COST,
   XP_PER_LEVEL,
   CONFIRM_UNLOCK_BEFORE_END,
+  LATE_PENALTY_MIN_SECONDS,
+  TIMING_GRACE_SECONDS,
+  getSecondsUntilMidnight,
+  windowForTasks,
   getWindowSeconds,
   getMaxTaskLevel,
   getMinTaskLevel,

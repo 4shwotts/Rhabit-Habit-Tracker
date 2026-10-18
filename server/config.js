@@ -15,6 +15,14 @@ function required(name, devFallback) {
   return devFallback
 }
 
+function parseTrustProxy(value, production) {
+  if (value === undefined || value === '') return production
+  if (value === 'true') return true
+  if (value === 'false') return false
+  const hops = parseInt(value, 10)
+  return Number.isInteger(hops) ? hops : production
+}
+
 const config = {
   isProduction,
   port: parseInt(process.env.PORT, 10) || 3001,
@@ -42,6 +50,13 @@ const config = {
     .split(',')
     .map(o => o.trim())
     .filter(Boolean),
+
+  // How Express works out the client IP (used by rate limiting) behind proxies.
+  // Production requests arrive via Vercel's rewrite and Render's load balancer;
+  // Vercel overwrites X-Forwarded-For with the real client IP, so trusting the
+  // forwarded chain gives the right address. Override with TRUST_PROXY (a hop
+  // count, or "false") if the hosting setup changes.
+  trustProxy: parseTrustProxy(process.env.TRUST_PROXY, isProduction),
 
   // Brevo transactional email. Without a key in dev, emails are logged to the console.
   brevoApiKey: process.env.BREVO_API_KEY || '',

@@ -1,17 +1,43 @@
 const config = require('./config')
 const express = require('express')
+const helmet = require('helmet')
 const cors = require('cors')
 const cookieParser = require('cookie-parser')
 const { requireAuth, requireVerified } = require('./middleware/requireAuth')
 const { checkDailyReset } = require('./middleware/checkDailyReset')
+const limits = require('./middleware/rateLimits')
 
 const app = express()
 
-// credentials: true lets the browser send the session cookie on direct calls
-// (in production the Vercel proxy makes requests same-origin anyway)
+// so req.ip is the real client (rate limiting) — see config.trustProxy
+app.set('trust proxy', config.trustProxy)
+
+// security headers (also removes X-Powered-By)
+app.use(helmet())
+
+// only the frontend origin(s) may call the API from a browser; credentials lets
+// the session cookie through on direct calls (production goes via the Vercel
+// proxy, so the browser sees it as same-origin anyway)
 app.use(cors({ origin: config.corsOrigins, credentials: true }))
-app.use(express.json())
+
+// CSRF defence in depth on top of SameSite=Lax cookies: browsers always send
+// an Origin header on cross-site writes, so refuse writes from any origin
+// that isn't ours. Requests with no Origin (curl, server-to-server) carry no
+// browser cookies from another site, so they can't be CSRF.
+app.use((req, res, next) => {
+  const safe = req.method === 'GET' || req.method === 'HEAD' || req.method === 'OPTIONS'
+  const origin = req.get('origin')
+  if (!safe && origin && !config.corsOrigins.includes(origin)) {
+    return res.status(403).json({ error: 'Forbidden' })
+  }
+  next()
+})
+
+// small JSON bodies only — the largest legitimate request is a 6-task list
+app.use(express.json({ limit: '10kb' }))
 app.use(cookieParser())
+
+app.use('/api', limits.general)
 
 const authRoutes = require('./routes/auth')
 const userRoutes = require('./routes/user')
@@ -29,15 +55,23 @@ app.use('/api/user', ...gameGuards, userRoutes)
 app.use('/api/goals', ...gameGuards, goalRoutes)
 app.use('/api/daily', ...gameGuards, dailyRoutes)
 
-app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }))
+app.use((req, res) => res.status(404).json({ error: 'Not found' }))
 
-// last-resort error handler — logs the detail server-side, returns a generic message
+// Last-resort error handler. Details are logged server-side only; the client
+// gets a generic message, never a stack trace or database error.
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
-  console.error(err)
-  res.status(err.status && err.status < 500 ? err.status : 500).json({
-    error: err.status && err.status < 500 ? 'Bad request' : 'Something went wrong'
-  })
+  if (err.type === 'entity.too.large') return res.status(413).json({ error: 'Request too large' })
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Invalid JSON' })
+
+  // stack only: pg errors carry a `detail` field that can contain user data
+  console.error(err.stack || err.message)
+  const status = err.status && err.status >= 400 && err.status < 500 ? err.status : 500
+  res.status(status).json({ error: status === 500 ? 'Something went wrong' : 'Bad request' })
+})
+
+process.on('unhandledRejection', err => {
+  console.error('Unhandled rejection:', err?.stack || err)
 })
 
 app.listen(config.port, () => {

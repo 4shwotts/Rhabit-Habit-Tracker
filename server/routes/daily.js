@@ -1,246 +1,237 @@
+// Daily session routes. Every handler runs settleDay() first inside a locked
+// transaction, then checks the action is allowed *right now* according to the
+// stored timestamps. The client never sends XP, levels or times.
 const express = require('express')
 const router = express.Router()
-const { query, withTransaction } = require('../db')
-const { getRandomPenaltyTask } = require('../data/penaltyTasks')
+const { withTransaction } = require('../db')
+const { validate, z, idParam } = require('../lib/validate')
+const { settleDay, startPenalty, failPenalty, setGoalXp, secondsSince } = require('../lib/session')
 const {
-  XP_PER_TASK, PENALTY_XP, REFRESH_COST, CONFIRM_UNLOCK_BEFORE_END,
-  getWindowSeconds, getMaxTaskLevel, getMinTaskLevel, addXp, deductXp
+  XP_PER_TASK, REFRESH_COST, CONFIRM_UNLOCK_BEFORE_END, TIMING_GRACE_SECONDS,
+  getMaxTaskLevel, getMinTaskLevel, addXp, deductXp
 } = require('../lib/game')
 
-function parseId(value) {
-  const id = Number(value)
-  return Number.isInteger(id) && id > 0 ? id : null
-}
+const taskIdParams = z.strictObject({ id: idParam })
 
-// the user's currently active goal, or null (only ever their own)
-async function getActiveGoal(db, user) {
-  if (!user.active_goal_id) return null
-  const { rows } = await db.query(
-    'SELECT * FROM goals WHERE id = $1 AND user_id = $2', [user.active_goal_id, user.id]
-  )
-  return rows[0] || null
-}
-
-// window length is driven by the highest level task rolled for today
-function windowForTasks(tasks) {
-  const taskLevel = tasks.length > 0 ? Math.max(...tasks.map(t => t.level)) : 1
-  return getWindowSeconds(taskLevel)
-}
-
-router.get('/', async (req, res) => {
-  const userId = req.user.id
-  const [{ rows: stateRows }, { rows: tasks }, { rows: penaltyRows }] = await Promise.all([
-    query('SELECT * FROM daily_state WHERE user_id = $1', [userId]),
-    query('SELECT * FROM daily_tasks WHERE user_id = $1 ORDER BY id ASC', [userId]),
-    query('SELECT * FROM penalty_state WHERE user_id = $1', [userId])
-  ])
-
-  res.json({
-    state: stateRows[0] || null,
-    tasks,
-    penalty: penaltyRows[0] || null,
-    windowSeconds: windowForTasks(tasks)
+// Runs `fn(client, day)` after settling the day; `fn` returns [status, body].
+async function withDay(req, res, fn) {
+  const [status, body] = await withTransaction(async client => {
+    const day = await settleDay(client, req.user)
+    if (!day.state || !day.penalty) return [409, { error: 'Daily state missing' }]
+    return fn(client, day)
   })
-})
+  res.status(status).json(body)
+}
 
-// stamp the start time so the countdown is consistent even across page refreshes
-router.post('/start', async (req, res) => {
-  const now = new Date().toISOString()
-  await query(
-    'UPDATE daily_state SET started = TRUE, window_start = $1 WHERE user_id = $2',
-    [now, req.user.id]
-  )
-  res.json({ success: true, window_start: now })
-})
+const conflict = error => [409, { error }]
 
-router.patch('/tasks/:id/check', async (req, res) => {
-  const { checked } = req.body ?? {}
-  const { rowCount } = await query(
-    'UPDATE daily_tasks SET checked = $1 WHERE id = $2 AND user_id = $3',
-    [!!checked, parseId(req.params.id), req.user.id]
-  )
-  if (rowCount === 0) return res.status(404).json({ error: 'Task not found' })
-  res.json({ success: true })
-})
+// What the client needs to render the day. Timer lengths come from here so the
+// UI and the server always agree.
+function dayResponse(day) {
+  return {
+    state: day.state,
+    tasks: day.tasks,
+    penalty: { ...day.penalty, unlock_before_end: CONFIRM_UNLOCK_BEFORE_END },
+    windowSeconds: day.windowSeconds,
+    confirmUnlockBeforeEnd: CONFIRM_UNLOCK_BEFORE_END,
+    outcome: day.outcome
+  }
+}
 
-// confirm unlocks 1 minute before the window ends in demo mode
-router.post('/confirm', async (req, res) => {
-  const userId = req.user.id
+router.get('/', (req, res) =>
+  withDay(req, res, async (client, day) => [200, dayResponse(day)])
+)
 
-  const result = await withTransaction(async client => {
-    const goal = await getActiveGoal(client, req.user)
-    if (!goal) return { status: 400, body: { error: 'No active goal' } }
+// stamp the start time (and fix the window length) so the countdown is
+// consistent across refreshes and can't be changed afterwards
+router.post('/start', validate(), (req, res) =>
+  withDay(req, res, async (client, day) => {
+    const { state, penalty, tasks } = day
+    if (req.user.pause_progression) return conflict('Progression is paused')
+    if (state.confirmed) return conflict('Today is already complete')
+    if (state.started) return conflict('Today has already started')
+    if (penalty.active || state.penalty_shown) return conflict('A penalty is in progress')
+    if (!day.goal || tasks.length === 0) return conflict('No tasks for today')
 
-    const { rows: stateRows } = await client.query(
-      'SELECT * FROM daily_state WHERE user_id = $1', [userId]
+    const now = new Date()
+    await client.query(
+      'UPDATE daily_state SET started = TRUE, window_start = $1, window_seconds = $2 WHERE user_id = $3',
+      [now, day.windowSeconds, req.user.id]
     )
-    const state = stateRows[0]
-    const { rows: tasks } = await client.query(
-      'SELECT * FROM daily_tasks WHERE user_id = $1', [userId]
-    )
+    return [200, { success: true, window_start: now.toISOString(), windowSeconds: day.windowSeconds }]
+  })
+)
 
-    const windowSeconds = windowForTasks(tasks)
-    const elapsed = (new Date() - new Date(state.window_start)) / 1000
-    const remaining = windowSeconds - elapsed
-
-    if (remaining > CONFIRM_UNLOCK_BEFORE_END) {
-      return {
-        status: 403,
-        body: { error: 'Confirm not yet unlocked', unlocks_in: Math.ceil(remaining - CONFIRM_UNLOCK_BEFORE_END) }
-      }
+// ticking is only allowed while the window is open
+router.patch('/tasks/:id/check',
+  validate({ params: taskIdParams, body: z.strictObject({ checked: z.boolean() }) }),
+  (req, res) => withDay(req, res, async (client, day) => {
+    const { state, penalty } = day
+    if (!state.started) return conflict('Start your tasks first')
+    if (state.confirmed || penalty.active || state.penalty_shown) return conflict('Today is already settled')
+    if (secondsSince(state.window_start) > day.windowSeconds + TIMING_GRACE_SECONDS) {
+      return conflict('The window has closed')
     }
 
-    const checkedCount = tasks.filter(t => t.checked).length
-    const xpEarned = checkedCount * XP_PER_TASK
+    const { rowCount } = await client.query(
+      'UPDATE daily_tasks SET checked = $1 WHERE id = $2 AND user_id = $3',
+      [req.body.checked, req.params.id, req.user.id]
+    )
+    if (rowCount === 0) return [404, { error: 'Task not found' }]
+    return [200, { success: true }]
+  })
+)
+
+// confirm unlocks CONFIRM_UNLOCK_BEFORE_END seconds before the window ends,
+// and can only ever succeed once per day
+router.post('/confirm', validate(), (req, res) =>
+  withDay(req, res, async (client, day) => {
+    const { state, penalty, tasks, goal } = day
+    if (req.user.pause_progression) return conflict('Progression is paused')
+    if (!goal) return [400, { error: 'No active goal' }]
+    if (!state.started) return conflict('Start your tasks first')
+    if (state.confirmed) return conflict('Today is already complete')
+    if (penalty.active || state.penalty_shown) return conflict('A penalty is in progress')
+
+    const remaining = day.windowSeconds - secondsSince(state.window_start)
+    if (remaining > CONFIRM_UNLOCK_BEFORE_END + TIMING_GRACE_SECONDS) {
+      return [403, {
+        error: 'Confirm not yet unlocked',
+        unlocks_in: Math.ceil(remaining - CONFIRM_UNLOCK_BEFORE_END)
+      }]
+    }
+
+    const xpEarned = tasks.filter(t => t.checked).length * XP_PER_TASK
     const { xp, level } = addXp(goal.xp, goal.level, xpEarned)
+    await setGoalXp(client, req.user, goal, xp, level)
+    await client.query('UPDATE daily_state SET confirmed = TRUE WHERE user_id = $1', [req.user.id])
 
-    await client.query(
-      'UPDATE goals SET xp = $1, level = $2 WHERE id = $3 AND user_id = $4', [xp, level, goal.id, userId]
-    )
-    await client.query('UPDATE daily_state SET confirmed = TRUE WHERE user_id = $1', [userId])
-
-    return { status: 200, body: { success: true, xp, level, xp_earned: xpEarned } }
+    return [200, { success: true, xp, level, xp_earned: xpEarned }]
   })
+)
 
-  res.status(result.status).json(result.body)
-})
+// Called by the client when its window timer hits zero with tasks unticked.
+// Only allowed once the stored window has actually ended. Idempotent: if the
+// penalty is already running, returns it.
+router.post('/penalty/trigger', validate(), (req, res) =>
+  withDay(req, res, async (client, day) => {
+    const { state, penalty, tasks } = day
+    if (penalty.active) {
+      return [200, { success: true, task: penaltyTask(penalty) }]
+    }
+    if (!state.started) return conflict('Start your tasks first')
+    if (state.confirmed || state.penalty_shown) return conflict('Today is already settled')
+    if (tasks.length > 0 && tasks.every(t => t.checked)) return conflict('All tasks are complete')
+    if (secondsSince(state.window_start) < day.windowSeconds - TIMING_GRACE_SECONDS) {
+      return conflict('The window is still open')
+    }
 
-// picks a random penalty task and stamps the start time
-router.post('/penalty/trigger', async (req, res) => {
-  const userId = req.user.id
-  const task = getRandomPenaltyTask()
-  await withTransaction(async client => {
-    await client.query(
-      `UPDATE penalty_state SET
-         active = TRUE, task_title = $1, task_difficulty = $2,
-         task_timer_seconds = $3, started_at = $4, confirmed = FALSE
-       WHERE user_id = $5`,
-      [task.title, task.difficulty, task.timer_seconds, new Date().toISOString(), userId]
-    )
-    await client.query('UPDATE daily_state SET penalty_shown = TRUE WHERE user_id = $1', [userId])
+    const task = await startPenalty(client, req.user, day, new Date())
+    return [200, { success: true, task }]
   })
-  res.json({ success: true, task })
-})
+)
 
-// confirm unlocks 1 minute before end for all penalty tasks in demo mode
-router.post('/penalty/confirm', async (req, res) => {
-  const userId = req.user.id
-  const { rows } = await query('SELECT * FROM penalty_state WHERE user_id = $1', [userId])
-  const penalty = rows[0]
-  if (!penalty?.active) return res.status(400).json({ error: 'No active penalty' })
+// confirm unlocks CONFIRM_UNLOCK_BEFORE_END seconds before the penalty ends;
+// an expired penalty has already been failed by settleDay()
+router.post('/penalty/confirm', validate(), (req, res) =>
+  withDay(req, res, async (client, day) => {
+    const { penalty } = day
+    if (day.outcome === 'penalty_failed') return conflict('The penalty time ran out')
+    if (!penalty.active) return [400, { error: 'No active penalty' }]
 
-  const elapsed = (new Date() - new Date(penalty.started_at)) / 1000
-  const unlockThreshold = penalty.task_timer_seconds - CONFIRM_UNLOCK_BEFORE_END
+    const unlockAt = penalty.task_timer_seconds - CONFIRM_UNLOCK_BEFORE_END
+    const elapsed = secondsSince(penalty.started_at)
+    if (elapsed < unlockAt - TIMING_GRACE_SECONDS) {
+      return [403, { error: 'Confirm not yet unlocked', unlocks_in: Math.ceil(unlockAt - elapsed) }]
+    }
 
-  if (elapsed < unlockThreshold) {
-    return res.status(403).json({
-      error: 'Confirm not yet unlocked',
-      unlocks_in: Math.ceil(unlockThreshold - elapsed)
-    })
-  }
-
-  await withTransaction(async client => {
-    await client.query('UPDATE penalty_state SET confirmed = TRUE, active = FALSE WHERE user_id = $1', [userId])
-    await client.query('UPDATE daily_state SET confirmed = TRUE WHERE user_id = $1', [userId])
+    await client.query('UPDATE penalty_state SET confirmed = TRUE, active = FALSE WHERE user_id = $1', [req.user.id])
+    await client.query('UPDATE daily_state SET confirmed = TRUE WHERE user_id = $1', [req.user.id])
+    return [200, { success: true }]
   })
-  res.json({ success: true })
-})
+)
 
-// deducts a day's worth of XP — can't go below 0 on level 1
-router.post('/penalty/fail', async (req, res) => {
-  const userId = req.user.id
-  const result = await withTransaction(async client => {
-    const goal = await getActiveGoal(client, req.user)
-    if (!goal) return { status: 400, body: { error: 'No active goal' } }
+// Called by the client when the penalty timer hits zero. Idempotent: XP is only
+// ever deducted once, whether settleDay() or this handler applies it.
+router.post('/penalty/fail', validate(), (req, res) =>
+  withDay(req, res, async (client, day) => {
+    const { penalty, goal } = day
+    const current = () => [200, { success: true, xp: goal?.xp ?? 0, level: goal?.level ?? 1 }]
 
-    const { xp, level } = deductXp(goal.xp, goal.level, PENALTY_XP)
-    await client.query(
-      'UPDATE goals SET xp = $1, level = $2 WHERE id = $3 AND user_id = $4', [xp, level, goal.id, userId]
-    )
-    await client.query('UPDATE penalty_state SET active = FALSE WHERE user_id = $1', [userId])
-    await client.query('UPDATE daily_state SET confirmed = TRUE WHERE user_id = $1', [userId])
-    return { status: 200, body: { success: true, xp, level } }
+    if (day.outcome === 'penalty_failed') return current()
+    if (!penalty.active) {
+      return day.state.confirmed ? current() : [400, { error: 'No active penalty' }]
+    }
+    if (secondsSince(penalty.started_at) < penalty.task_timer_seconds - TIMING_GRACE_SECONDS) {
+      return conflict('The penalty is still running')
+    }
+
+    await failPenalty(client, req.user, day)
+    return current()
   })
-  res.status(result.status).json(result.body)
-})
+)
 
-// skips the penalty modal entirely — not enough time left in the day for even a penalty task
-router.post('/penalty/auto-fail', async (req, res) => {
-  const userId = req.user.id
-  const result = await withTransaction(async client => {
-    const goal = await getActiveGoal(client, req.user)
-    if (!goal) return { status: 400, body: { error: 'No active goal' } }
+// costs REFRESH_COST XP unless the free refresh setting is on.
+// Once per task per day, never on the first (guaranteed highest-tier) task,
+// and only before or during the window.
+router.post('/tasks/:id/refresh', validate({ params: taskIdParams }), (req, res) =>
+  withDay(req, res, async (client, day) => {
+    const { state, penalty, tasks, goal } = day
+    const user = req.user
+    if (!goal) return [400, { error: 'No active goal' }]
+    if (state.confirmed || penalty.active || state.penalty_shown) return conflict('Today is already settled')
+    if (state.started && secondsSince(state.window_start) > day.windowSeconds + TIMING_GRACE_SECONDS) {
+      return conflict('The window has closed')
+    }
 
-    const { xp, level } = deductXp(goal.xp, goal.level, PENALTY_XP)
-    await client.query(
-      'UPDATE goals SET xp = $1, level = $2 WHERE id = $3 AND user_id = $4', [xp, level, goal.id, userId]
-    )
-    await client.query(
-      'UPDATE daily_state SET confirmed = TRUE, penalty_shown = TRUE WHERE user_id = $1', [userId]
-    )
-    return { status: 200, body: { success: true, xp, level } }
-  })
-  res.status(result.status).json(result.body)
-})
-
-// costs 5XP to refresh unless the free refresh setting is on
-// can only be used once per task per day — tracked via the refreshed column
-router.post('/tasks/:id/refresh', async (req, res) => {
-  const user = req.user
-  const taskId = parseId(req.params.id)
-
-  const result = await withTransaction(async client => {
-    const goal = await getActiveGoal(client, user)
-    if (!goal) return { status: 400, body: { error: 'No active goal' } }
-
-    const { rows: taskRows } = await client.query(
-      'SELECT * FROM daily_tasks WHERE id = $1 AND user_id = $2', [taskId, user.id]
-    )
-    const currentTask = taskRows[0]
-    if (!currentTask) return { status: 404, body: { error: 'Task not found' } }
-    if (currentTask.refreshed) return { status: 403, body: { error: 'Task already refreshed' } }
+    const index = tasks.findIndex(t => t.id === req.params.id)
+    const currentTask = tasks[index]
+    if (!currentTask) return [404, { error: 'Task not found' }]
+    if (index === 0) return [403, { error: 'This task cannot be refreshed' }]
+    if (currentTask.refreshed) return [403, { error: 'Task already refreshed' }]
+    if (currentTask.checked) return [403, { error: 'Completed tasks cannot be refreshed' }]
 
     if (!user.task_refresh && goal.xp <= 0 && goal.level <= 1) {
-      return { status: 403, body: { error: 'Not enough XP to refresh' } }
+      return [403, { error: 'Not enough XP to refresh' }]
     }
 
-    const { rows: currentTasks } = await client.query(
-      'SELECT title FROM daily_tasks WHERE user_id = $1', [user.id]
-    )
-    const currentTitles = currentTasks.map(t => t.title)
-
+    const currentTitles = tasks.map(t => t.title)
     const { rows: pool } = await client.query(
       `SELECT * FROM goal_tasks
        WHERE goal_id = $1 AND user_id = $2 AND title != '' AND level >= $3 AND level <= $4`,
       [goal.id, user.id, getMinTaskLevel(goal.level), getMaxTaskLevel(goal.level)]
     )
-
     const available = pool.filter(t => !currentTitles.includes(t.title))
     const source = available.length > 0 ? available : pool
     const newTask = source[Math.floor(Math.random() * source.length)]
-    if (!newTask) return { status: 400, body: { error: 'No tasks available to swap' } }
+    if (!newTask) return [400, { error: 'No tasks available to swap' }]
 
-    let { xp, level } = goal
     if (!user.task_refresh) {
-      ({ xp, level } = deductXp(goal.xp, goal.level, REFRESH_COST))
-      await client.query(
-        'UPDATE goals SET xp = $1, level = $2 WHERE id = $3 AND user_id = $4', [xp, level, goal.id, user.id]
-      )
+      const { xp, level } = deductXp(goal.xp, goal.level, REFRESH_COST)
+      await setGoalXp(client, user, goal, xp, level)
     }
 
     await client.query(
       `UPDATE daily_tasks SET goal_task_id = $1, title = $2, level = $3, checked = FALSE, refreshed = TRUE
        WHERE id = $4 AND user_id = $5`,
-      [newTask.id, newTask.title, newTask.level, taskId, user.id]
+      [newTask.id, newTask.title, newTask.level, currentTask.id, user.id]
     )
 
-    return {
-      status: 200,
-      body: { success: true, task: { id: newTask.id, title: newTask.title, level: newTask.level }, xp, level }
-    }
+    return [200, {
+      success: true,
+      task: { id: newTask.id, title: newTask.title, level: newTask.level },
+      xp: goal.xp,
+      level: goal.level
+    }]
   })
+)
 
-  res.status(result.status).json(result.body)
-})
+function penaltyTask(penalty) {
+  return {
+    title: penalty.task_title,
+    difficulty: penalty.task_difficulty,
+    timer_seconds: penalty.task_timer_seconds
+  }
+}
 
 module.exports = router

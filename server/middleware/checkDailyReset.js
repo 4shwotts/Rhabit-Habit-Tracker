@@ -33,11 +33,13 @@ async function checkDailyReset(req, res, next) {
       'DELETE FROM goal_daily_snapshot WHERE user_id = $1 AND date < $2', [user.id, today]
     )
 
+    // goal_id records which pathway today's session (and its XP) belongs to
     await client.query(
       `UPDATE daily_state SET
-         started = FALSE, confirmed = FALSE, penalty_shown = FALSE, window_start = NULL, last_reset = $1
-       WHERE user_id = $2`,
-      [today, user.id]
+         started = FALSE, confirmed = FALSE, penalty_shown = FALSE,
+         window_start = NULL, window_seconds = NULL, last_reset = $1, goal_id = $2
+       WHERE user_id = $3`,
+      [today, goals[0]?.id ?? null, user.id]
     )
     await client.query(
       `UPDATE penalty_state SET

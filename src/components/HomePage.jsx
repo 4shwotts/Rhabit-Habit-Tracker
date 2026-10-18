@@ -12,10 +12,10 @@ import PenaltyModal from './PenaltyModal'
 import {
   getUser, getGoals, getDaily, startDaily, checkTask,
   confirmDaily, refreshTask, triggerPenalty,
-  failPenalty, confirmPenalty, autoFailPenalty, updateSettings
+  failPenalty, confirmPenalty, updateSettings
 } from '../api'
 
-const XP_PER_TASK = 5
+// display only — the server decides what a refresh actually costs
 const REFRESH_COST = 5
 
 function formatTime(seconds) {
@@ -30,27 +30,6 @@ function getWindowLabel(level) {
   if (level <= 6) return '2 hours'
   if (level <= 9) return '1.5 hours'
   return '1 hour'
-}
-
-function getSecondsUntilMidnight(timezone) {
-  try {
-    const now = new Date()
-    const formatter = new Intl.DateTimeFormat('en-CA', {
-      timeZone: timezone,
-      year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit',
-      hour12: false
-    })
-    const parts = formatter.formatToParts(now)
-    const get = type => parseInt(parts.find(p => p.type === type).value)
-    const h = get('hour'), m = get('minute'), s = get('second')
-    return (23 - h) * 3600 + (59 - m) * 60 + (60 - s)
-  } catch {
-    const now = new Date()
-    const midnight = new Date(now)
-    midnight.setHours(24, 0, 0, 0)
-    return Math.floor((midnight - now) / 1000)
-  }
 }
 
 function HomePage() {
@@ -141,13 +120,13 @@ function HomePage() {
           pauseProgression: !!userData.pause_progression
         })
 
-        const { state, tasks, penalty, windowSeconds: ws } = dailyData
+        // `outcome` is anything the server settled on this load: a missed window,
+        // an expired penalty, or opening the app too late in the day
+        const { state, tasks, penalty, windowSeconds: ws, confirmUnlockBeforeEnd, outcome } = dailyData
         setDailyTasks(tasks)
         setDailyState(state)
         setPenaltyState(penalty)
         setWindowSeconds(ws)
-
-        const secondsUntilMidnight = getSecondsUntilMidnight(userData.timezone)
 
         let activeGoal = null
         if (userData.active_goal_id) {
@@ -161,6 +140,25 @@ function HomePage() {
           }
         }
 
+        if (outcome === 'late_auto_failed') {
+          setConfirmed(true)
+          showEndState(`You did not have enough time to save yourself at all, [username]`, userData.username)
+          setDissolvingIndices([0, 1, 2])
+          setLoading(false)
+          return
+        }
+
+        if (outcome === 'penalty_failed') {
+          setConfirmed(true)
+          showEndState(
+            `You failed to do the tasks and you failed on the penalty task, you aren't worthy of this XP.`,
+            userData.username
+          )
+          setDissolvingIndices([0, 1, 2])
+          setLoading(false)
+          return
+        }
+
         const alreadyConfirmed = !!state?.confirmed
         setConfirmed(alreadyConfirmed)
         if (alreadyConfirmed) {
@@ -171,52 +169,27 @@ function HomePage() {
 
         if (penalty?.active) {
           setPenaltyTriggeredByTimer(true)
+          // server found it was too late to start today and launched a penalty instead
+          if (outcome === 'late_penalty') {
+            setAutoLaunchPenalty(true)
+            setConfirmed(true)
+          }
           setDissolvingIndices([0, 1, 2])
           setShowPenalty(true)
           setLoading(false)
           return
         }
 
-        if (!state?.started && !userData.pause_progression) {
-          const penaltyDuration = 3600
-
-          if (secondsUntilMidnight < ws) {
-            if (secondsUntilMidnight >= penaltyDuration) {
-              await triggerPenalty()
-              const fresh = await getDaily()
-              setPenaltyState(fresh.penalty)
-              setPenaltyTriggeredByTimer(true)
-              setAutoLaunchPenalty(true)
-              setConfirmed(true)
-              setDissolvingIndices([0, 1, 2])
-              setShowPenalty(true)
-              setLoading(false)
-              return
-            } else {
-              const result = await autoFailPenalty()
-              if (activeGoal) {
-                setXp(result.xp)
-                setXpAnim(result.xp)
-                setLevel(result.level)
-              }
-              showEndState(`You did not have enough time to save yourself at all, [username]`, userData.username)
-              setDissolvingIndices([0, 1, 2])
-              setLoading(false)
-              return
-            }
-          }
-        }
-
         if (state?.started && state?.window_start) {
           const elapsed = Math.floor((Date.now() - new Date(state.window_start)) / 1000)
           const remaining = Math.max(0, ws - elapsed)
           setTimeLeft(remaining)
-          const confirmUnlockAt = ws - 60
+          const confirmUnlockAt = ws - confirmUnlockBeforeEnd
           const confirmRemaining = Math.max(0, confirmUnlockAt - elapsed)
           setConfirmUnlock(confirmRemaining)
         } else {
           setTimeLeft(ws)
-          setConfirmUnlock(ws - 600)
+          setConfirmUnlock(Math.max(0, ws - confirmUnlockBeforeEnd))
         }
 
         setChecked(tasks.map(t => !!t.checked))
@@ -288,7 +261,11 @@ function HomePage() {
     const updated = [...checked]
     updated[index] = newChecked
     setChecked(updated)
-    await checkTask(task.id, newChecked)
+    const result = await checkTask(task.id, newChecked)
+    // the server refuses ticks outside the window — undo the optimistic tick
+    if (result.error) {
+      setChecked(prev => prev.map((c, i) => (i === index ? !newChecked : c)))
+    }
   }
 
   async function handleConfirm() {
@@ -299,7 +276,6 @@ function HomePage() {
 
       const oldWindowLabel = getWindowLabel(level)
       const newWindowLabel = getWindowLabel(result.level)
-      const checkedCount = checked.filter(Boolean).length
 
       setXp(result.xp)
       setLevel(result.level)
@@ -308,7 +284,7 @@ function HomePage() {
       clearInterval(confirmRef.current)
 
       if (!penaltyTriggeredByTimer) {
-        setXpEarnedText(`+${checkedCount * XP_PER_TASK}XP`)
+        setXpEarnedText(`+${result.xp_earned}XP`)
         setTimeout(() => {
           setXpEarnedText(null)
           setShowTasksDone(true)
@@ -352,6 +328,10 @@ function HomePage() {
   async function handlePenaltyFail() {
     try {
       const result = await failPenalty()
+      if (result.error) {
+        console.error('Failed penalty:', result.error)
+        return
+      }
       setXp(result.xp)
       setXpAnim(result.xp)
       setLevel(result.level)

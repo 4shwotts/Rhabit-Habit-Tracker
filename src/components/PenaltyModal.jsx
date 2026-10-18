@@ -25,8 +25,8 @@ function PenaltyModal({ onClose, onConfirm, onPenalty, penaltyData, autoTriggere
     const elapsed = Math.floor((now - startedAt) / 1000)
     const taskRemaining = Math.max(0, penaltyData.task_timer_seconds - elapsed)
 
-    // unlock threshold is hardcoded to 5s here but the server enforces it too
-    const unlockThreshold = penaltyData.task_timer_seconds - 5
+    // unlock time comes from the server, which also enforces it
+    const unlockThreshold = penaltyData.task_timer_seconds - (penaltyData.unlock_before_end ?? 60)
     const unlockRemaining = Math.max(0, unlockThreshold - elapsed)
 
     setTaskTimer(taskRemaining)

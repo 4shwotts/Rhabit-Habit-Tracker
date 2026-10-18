@@ -8,6 +8,9 @@ const bcrypt = require('bcrypt')
 const router = express.Router()
 const { query, withTransaction } = require('../db')
 const { requireAuth } = require('../middleware/requireAuth')
+const limits = require('../middleware/rateLimits')
+const { validate, z, fields } = require('../lib/validate')
+const { createFormToken, checkSignup } = require('../lib/botCheck')
 const {
   setSessionCookie, clearSessionCookie, createOneTimeToken, hashToken
 } = require('../lib/auth')
@@ -30,33 +33,27 @@ const GENERIC_FORGOT_MESSAGE = 'If an account exists for that email, a reset lin
 const INVALID_RESET_TOKEN = 'This reset link is invalid or has expired.'
 const INVALID_VERIFY_TOKEN = 'This verification link is invalid or has expired.'
 
-// ---- small validators (Stage 3 replaces these with a shared schema layer) ----
+// ---- request schemas (strict: unknown fields are rejected) ----
 
-function normaliseEmail(value) {
-  if (typeof value !== 'string') return null
-  const email = value.trim().toLowerCase()
-  // deliberately simple — the verification email is the real check
-  if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return null
-  return email
-}
+const signupBody = z.strictObject({
+  username: fields.username,
+  email: fields.email,
+  password: fields.newPassword,
+  timezone: z.string().max(64).optional(),
+  // bot checks — see lib/botCheck.js
+  form_token: z.string().max(200).optional(),
+  website: z.string().max(200).optional()
+})
+const loginBody = z.strictObject({ email: fields.email, password: fields.password })
+const emailBody = z.strictObject({ email: fields.email })
+const tokenBody = z.strictObject({ token: fields.token })
+const resetBody = z.strictObject({ token: fields.token, password: fields.newPassword })
+const deleteBody = z.strictObject({ password: fields.password })
 
-// bcrypt only uses the first 72 bytes, so longer passwords are rejected rather
-// than silently truncated.
-function validatePassword(value) {
-  if (typeof value !== 'string') return 'Password is required'
-  if (value.length < 8) return 'Password must be at least 8 characters'
-  if (Buffer.byteLength(value, 'utf8') > 72) return 'Password must be at most 72 bytes'
-  return null
-}
-
-function validUsername(value) {
-  if (typeof value !== 'string') return null
-  const username = value.trim()
-  return username.length >= 1 && username.length <= 30 ? username : null
-}
+// ---- helpers ----
 
 function validTimezone(value) {
-  if (typeof value !== 'string' || value.length > 64) return 'UTC'
+  if (!value) return 'UTC'
   try {
     new Intl.DateTimeFormat('en-GB', { timeZone: value })
     return value
@@ -97,10 +94,9 @@ async function issueToken(db, userId, type, ttlMs) {
   return raw
 }
 
-// Looks up a token by its hash and deletes it in the same step, so it can only
-// be used once. Returns the user_id, or null if missing or expired.
+// Looks up a token by its hash and deletes it in the same statement, so it can
+// only be used once. Returns the user_id, or null if missing or expired.
 async function consumeToken(db, rawToken, type) {
-  if (typeof rawToken !== 'string' || rawToken.length < 20 || rawToken.length > 200) return null
   const { rows } = await db.query(
     'DELETE FROM auth_tokens WHERE token_hash = $1 AND type = $2 RETURNING user_id, expires_at',
     [hashToken(rawToken), type]
@@ -122,17 +118,27 @@ async function safeSend(promiseFactory) {
 
 // ---- routes ----
 
-router.post('/signup', async (req, res) => {
-  const username = validUsername(req.body?.username)
-  const email = normaliseEmail(req.body?.email)
-  const passwordError = validatePassword(req.body?.password)
-  const timezone = validTimezone(req.body?.timezone)
+// Signed timestamp the signup form must send back (timing check).
+router.get('/signup-token', limits.signupToken, (req, res) => {
+  res.json({ token: createFormToken() })
+})
 
-  if (!username) return res.status(400).json({ error: 'Username must be between 1 and 30 characters' })
-  if (!email) return res.status(400).json({ error: 'Enter a valid email address' })
-  if (passwordError) return res.status(400).json({ error: passwordError })
+router.post('/signup', limits.signup, validate({ body: signupBody }), async (req, res) => {
+  const { username, email, password, form_token: formToken, website } = req.body
 
-  const passwordHash = await bcrypt.hash(req.body.password, BCRYPT_ROUNDS)
+  const botReason = checkSignup({ formToken, honeypot: website })
+  if (botReason === 'form token expired') {
+    // a real person who left the page open for hours — tell them to reload
+    return res.status(400).json({ error: 'This form has expired. Please reload the page and try again.' })
+  }
+  if (botReason) {
+    // pretend it worked so bots learn nothing; nothing is created or sent
+    console.warn(`Signup blocked by bot check: ${botReason}`)
+    return res.status(202).json({ message: GENERIC_SIGNUP_MESSAGE })
+  }
+
+  // hashed before the existence check so both paths take the same time
+  const passwordHash = await bcrypt.hash(password, BCRYPT_ROUNDS)
 
   const { rows: existing } = await query('SELECT id FROM users WHERE email = $1', [email])
   if (existing.length > 0) {
@@ -146,7 +152,7 @@ router.post('/signup', async (req, res) => {
       const { rows } = await client.query(
         `INSERT INTO users (email, username, password_hash, timezone)
          VALUES ($1, $2, $3, $4) RETURNING id`,
-        [email, username, passwordHash, timezone]
+        [email, username, passwordHash, validTimezone(req.body.timezone)]
       )
       const userId = rows[0].id
       // per-user game state rows, created up front so routes can always UPDATE
@@ -164,24 +170,28 @@ router.post('/signup', async (req, res) => {
   res.status(202).json({ message: GENERIC_SIGNUP_MESSAGE })
 })
 
-router.post('/login', async (req, res) => {
-  const email = normaliseEmail(req.body?.email)
-  const password = typeof req.body?.password === 'string' ? req.body.password : ''
+router.post('/login',
+  limits.loginIp,
+  limits.loginEmail,
+  // a malformed email gets the same answer as a wrong password
+  validate({ body: loginBody, invalidBodyStatus: 401, invalidBodyMessage: GENERIC_LOGIN_ERROR }),
+  async (req, res) => {
+    const { email, password } = req.body
+    const { rows } = await query(
+      'SELECT id, password_hash, token_version FROM users WHERE email = $1', [email]
+    )
+    const user = rows[0]
 
-  const { rows } = email
-    ? await query('SELECT id, password_hash, token_version FROM users WHERE email = $1', [email])
-    : { rows: [] }
-  const user = rows[0]
+    // always run bcrypt, even for unknown emails, to keep timing identical
+    const ok = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH)
+    if (!user || !ok) return res.status(401).json({ error: GENERIC_LOGIN_ERROR })
 
-  // always run bcrypt, even for unknown emails, to keep timing identical
-  const ok = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH)
-  if (!user || !ok) return res.status(401).json({ error: GENERIC_LOGIN_ERROR })
+    setSessionCookie(res, user)
+    res.json({ success: true })
+  }
+)
 
-  setSessionCookie(res, user)
-  res.json({ success: true })
-})
-
-router.post('/logout', (req, res) => {
+router.post('/logout', validate(), (req, res) => {
   clearSessionCookie(res)
   res.json({ success: true })
 })
@@ -191,17 +201,24 @@ router.get('/me', requireAuth, (req, res) => {
   res.json({ user: publicUser(req.user) })
 })
 
-router.post('/verify-email', async (req, res) => {
-  const userId = await consumeToken({ query }, req.body?.token, 'verify_email')
-  if (!userId) return res.status(400).json({ error: INVALID_VERIFY_TOKEN })
+router.post('/verify-email',
+  limits.verifyEmail,
+  validate({ body: tokenBody, invalidBodyMessage: INVALID_VERIFY_TOKEN }),
+  async (req, res) => {
+    const userId = await consumeToken({ query }, req.body.token, 'verify_email')
+    if (!userId) return res.status(400).json({ error: INVALID_VERIFY_TOKEN })
 
-  await query('UPDATE users SET email_verified = TRUE WHERE id = $1', [userId])
-  res.json({ success: true })
-})
+    await query('UPDATE users SET email_verified = TRUE WHERE id = $1', [userId])
+    res.json({ success: true })
+  }
+)
 
-router.post('/resend-verification', async (req, res) => {
-  const email = normaliseEmail(req.body?.email)
-  if (email) {
+router.post('/resend-verification',
+  limits.emailSendIp,
+  limits.emailSendEmail,
+  validate({ body: emailBody }),
+  async (req, res) => {
+    const { email } = req.body
     const { rows } = await query(
       'SELECT id, username, email_verified FROM users WHERE email = $1', [email]
     )
@@ -210,29 +227,29 @@ router.post('/resend-verification', async (req, res) => {
       const raw = await issueToken({ query }, user.id, 'verify_email', VERIFY_TOKEN_TTL_MS)
       await safeSend(() => sendVerificationEmail(email, user.username, raw))
     }
+    res.json({ message: GENERIC_RESEND_MESSAGE })
   }
-  res.json({ message: GENERIC_RESEND_MESSAGE })
-})
+)
 
-router.post('/forgot-password', async (req, res) => {
-  const email = normaliseEmail(req.body?.email)
-  if (email) {
+router.post('/forgot-password',
+  limits.emailSendIp,
+  limits.emailSendEmail,
+  validate({ body: emailBody }),
+  async (req, res) => {
+    const { email } = req.body
     const { rows } = await query('SELECT id FROM users WHERE email = $1', [email])
     if (rows[0]) {
       const raw = await issueToken({ query }, rows[0].id, 'reset_password', RESET_TOKEN_TTL_MS)
       await safeSend(() => sendPasswordResetEmail(email, raw))
     }
+    res.json({ message: GENERIC_FORGOT_MESSAGE })
   }
-  res.json({ message: GENERIC_FORGOT_MESSAGE })
-})
+)
 
-router.post('/reset-password', async (req, res) => {
-  const passwordError = validatePassword(req.body?.password)
-  if (passwordError) return res.status(400).json({ error: passwordError })
-
+router.post('/reset-password', limits.resetPassword, validate({ body: resetBody }), async (req, res) => {
   const passwordHash = await bcrypt.hash(req.body.password, BCRYPT_ROUNDS)
 
-  const userId = await consumeToken({ query }, req.body?.token, 'reset_password')
+  const userId = await consumeToken({ query }, req.body.token, 'reset_password')
   if (!userId) return res.status(400).json({ error: INVALID_RESET_TOKEN })
 
   // bumping token_version logs out every existing session; clicking the emailed
@@ -248,16 +265,20 @@ router.post('/reset-password', async (req, res) => {
 
 // Permanently deletes the account. Every table references users(id) with
 // ON DELETE CASCADE, so this one statement removes all of the user's data.
-router.delete('/account', requireAuth, async (req, res) => {
-  const password = typeof req.body?.password === 'string' ? req.body.password : ''
-  const { rows } = await query('SELECT password_hash FROM users WHERE id = $1', [req.user.id])
-  const ok = rows[0] && await bcrypt.compare(password, rows[0].password_hash)
-  if (!ok) return res.status(401).json({ error: 'Incorrect password' })
+router.delete('/account',
+  requireAuth,
+  limits.deleteAccount,
+  validate({ body: deleteBody, invalidBodyStatus: 401, invalidBodyMessage: 'Incorrect password' }),
+  async (req, res) => {
+    const { rows } = await query('SELECT password_hash FROM users WHERE id = $1', [req.user.id])
+    const ok = rows[0] && await bcrypt.compare(req.body.password, rows[0].password_hash)
+    if (!ok) return res.status(401).json({ error: 'Incorrect password' })
 
-  await query('DELETE FROM users WHERE id = $1', [req.user.id])
-  clearSessionCookie(res)
-  res.json({ success: true })
-})
+    await query('DELETE FROM users WHERE id = $1', [req.user.id])
+    clearSessionCookie(res)
+    res.json({ success: true })
+  }
+)
 
 module.exports = router
 module.exports.publicUser = publicUser

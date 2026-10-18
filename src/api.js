@@ -46,6 +46,12 @@ export async function getMe() {
   return data.user || null
 }
 
+// signed timestamp the signup form sends back (server-side timing check)
+export async function getSignupToken() {
+  const data = await request('/auth/signup-token')
+  return data.token || null
+}
+
 export function signup(fields) {
   return request('/auth/signup', { method: 'POST', body: fields })
 }
@@ -158,9 +164,4 @@ export function confirmPenalty() {
 
 export function failPenalty() {
   return request('/daily/penalty/fail', { method: 'POST' })
-}
-
-// skips the modal entirely — not enough time in the day for a penalty task
-export function autoFailPenalty() {
-  return request('/daily/penalty/auto-fail', { method: 'POST' })
 }
