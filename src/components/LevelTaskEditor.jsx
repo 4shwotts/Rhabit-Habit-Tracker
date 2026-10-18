@@ -42,7 +42,9 @@ function LevelTaskEditor({
   placeholder = 'Click to Edit',
   iconSize = 60,
   // optional small badge inside a level tab, e.g. setup's "✓" / "1/3" progress
-  renderTabBadge
+  renderTabBadge,
+  // optional second line in the info tab under the level pill (setup's progress)
+  infoExtra
 }) {
   const [tabPage, setTabPage] = useState(0)
   const [activeLevel, setActiveLevel] = useState(1)
@@ -90,6 +92,8 @@ function LevelTaskEditor({
 
   return (
     <>
+      {/* level pill with an info tab tucked underneath it */}
+      <div className="level-nav">
       <div className="tabs-carousel">
         <button
           className="carousel-arrow"
@@ -119,7 +123,13 @@ function LevelTaskEditor({
         </button>
       </div>
 
-      <p className="window-info-label">⏱ {getWindowDescription(activeLevel)}</p>
+      <div className="level-info-tab">
+        <div className="level-info-inner">
+          <span className="level-info-line">⏱ {getWindowDescription(activeLevel)}</span>
+          {infoExtra}
+        </div>
+      </div>
+      </div>
 
       <div className={listClassName}>
         {!padEmptyRows && rows.length === 0 ? (

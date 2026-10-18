@@ -2124,11 +2124,11 @@ body {
   width: 100%;
 }
 
-/* log out pinned top-right, inside the corner frame */
+/* log out pinned top-right, clear of the corner frame */
 .setup-logout {
   position: fixed;
-  top: 48px;
-  right: 64px;
+  top: 66px;
+  right: 84px;
   z-index: 12;
 }
 
@@ -2151,10 +2151,25 @@ body {
   padding: 24px 0 48px;
 }
 
-/* still scrolls on very short screens rather than cutting anything off */
+/* no visible scrollbars on setup/auth pages. Setup never scrolls: it scales
+   itself to fit the window (SetupPage.jsx). Auth pages are short, but can still
+   be wheel-scrolled on a tiny window without showing a bar. */
 .setup-page {
   overflow-y: auto;
   justify-content: flex-start;
+  scrollbar-width: none;
+}
+
+.setup-page::-webkit-scrollbar {
+  display: none;
+}
+
+.setup-page:not(.auth-page) {
+  overflow: hidden;
+}
+
+.setup-page .setup-content {
+  transform-origin: top center;
 }
 
 .setup-page .setup-content {
@@ -2311,4 +2326,71 @@ body {
   font-size: 18px;
   color: #FFFFFF;
   user-select: all;
+}
+
+/* ---- LEVEL PILL + INFO TAB (setup and the Goals pop-up) ---- */
+/* a HUD-style tab tucked under the level pill, holding the window length and
+   (on setup) the progress line, so that guidance reads as part of the control */
+.level-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.level-nav .tabs-carousel {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+}
+
+/* outer layer = the purple border, cut corners at the bottom */
+.level-info-tab {
+  position: relative;
+  z-index: 1;
+  width: min(78%, 860px);
+  margin-top: -3px;
+  padding: 0 2px 2px;
+  background: linear-gradient(180deg, rgba(145, 111, 241, 0.35), #916FF1);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px));
+}
+
+/* inner layer = dark glass with faint scan-lines and an inner glow */
+.level-info-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 9px 28px 10px;
+  background:
+    repeating-linear-gradient(0deg, rgba(145, 111, 241, 0.06) 0 1px, transparent 1px 4px),
+    linear-gradient(180deg, rgba(20, 15, 34, 0.96), rgba(46, 35, 80, 0.92));
+  box-shadow: inset 0 0 16px rgba(145, 111, 241, 0.3);
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 13px), calc(100% - 13px) 100%, 13px 100%, 0 calc(100% - 13px));
+}
+
+.level-info-line {
+  font-family: 'Alumni Sans', sans-serif;
+  font-size: 19px;
+  font-weight: 500;
+  line-height: 22px;
+  letter-spacing: 0.4px;
+  color: #E4DCFF;
+  text-align: center;
+}
+
+.level-info-line.status {
+  font-size: 18px;
+  color: var(--text-secondary);
+}
+
+.level-info-line.status.ready {
+  color: #C1AAFF;
+  text-shadow: 0 0 8px rgba(145, 111, 241, 0.6);
+}
+
+/* the task list sits a little below the tab */
+.level-nav + .task-fixed-area,
+.level-nav + .expanded-task-list {
+  margin-top: 4px;
 }

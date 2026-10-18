@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import logo from '../assets/icons/Rhabit Logo.svg'
 import cornerFrame from '../assets/images/cornerframe.svg'
@@ -22,6 +22,30 @@ function SetupPage() {
   const [tasks, setTasks] = useState(emptyLevels)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const contentRef = useRef(null)
+
+  // Fit the whole page in the window, never scrolling: the CSS breakpoints cover
+  // common screen sizes, and if the content is still taller than the window it's
+  // scaled down just enough to fit.
+  useLayoutEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+    const PAGE_PADDING = 40 // .setup-page has 20px top and bottom
+    const fit = () => {
+      const available = window.innerHeight - PAGE_PADDING
+      const scale = Math.min(1, available / el.offsetHeight)
+      el.style.transform = scale < 1 ? `scale(${scale})` : ''
+    }
+    fit()
+    // re-fit when the window resizes or the content changes height (e.g. an error)
+    const observer = new ResizeObserver(fit)
+    observer.observe(el)
+    window.addEventListener('resize', fit)
+    return () => {
+      observer.disconnect()
+      window.removeEventListener('resize', fit)
+    }
+  }, [])
 
   // required levels that still need tasks, e.g. [2, 3]
   const missingLevels = REQUIRED_LEVELS.filter(l => filledCount(tasks[l]) < MIN_TASKS)
@@ -93,7 +117,7 @@ function SetupPage() {
         Log out
       </button>
 
-      <div className="setup-content">
+      <div className="setup-content" ref={contentRef}>
         <img src={logo} className="setup-logo" alt="Rhabit" />
 
         <p className="setup-greeting setup-greeting-name">GREETINGS, {user?.username?.toUpperCase()}</p>
@@ -117,9 +141,6 @@ function SetupPage() {
         <p className="setup-priority-label">
           LIST YOUR TASKS FROM LOWEST TO HIGHEST PRIORITY (1-10)
         </p>
-        <p className={`setup-requirement ${status.ready ? 'ready' : ''}`} role="status">
-          {status.text}
-        </p>
 
         <div className="setup-task-panel">
           <LevelTaskEditor
@@ -129,6 +150,11 @@ function SetupPage() {
             placeholder="Task Empty - Edit to add content"
             iconSize={60}
             renderTabBadge={renderTabBadge}
+            infoExtra={
+              <span className={`level-info-line status ${status.ready ? 'ready' : ''}`} role="status">
+                {status.text}
+              </span>
+            }
           />
         </div>
 
