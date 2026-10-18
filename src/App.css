@@ -2344,29 +2344,36 @@ body {
   width: 100%;
 }
 
-/* outer layer = the purple border, cut corners at the bottom */
+/* translucent "holographic" glass panel, floating just below the level pill */
 .level-info-tab {
   position: relative;
   z-index: 1;
   width: min(78%, 860px);
-  margin-top: -3px;
-  padding: 0 2px 2px;
-  background: linear-gradient(180deg, rgba(145, 111, 241, 0.35), #916FF1);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px));
+  margin-top: 10px;
+  border-radius: 18px;
+  border: 1.5px solid rgba(193, 170, 255, 0.45);
+  background:
+    /* soft sheen across the top edge */
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0) 45%),
+    /* iridescent tint: violet -> lilac -> a hint of blue -> violet */
+    linear-gradient(115deg,
+      rgba(145, 111, 241, 0.22) 0%,
+      rgba(193, 170, 255, 0.10) 35%,
+      rgba(120, 160, 255, 0.12) 65%,
+      rgba(145, 111, 241, 0.22) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow:
+    0 0 18px rgba(145, 111, 241, 0.25),
+    inset 0 0 14px rgba(193, 170, 255, 0.12);
 }
 
-/* inner layer = dark glass with faint scan-lines and an inner glow */
 .level-info-inner {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 2px;
-  padding: 9px 28px 10px;
-  background:
-    repeating-linear-gradient(0deg, rgba(145, 111, 241, 0.06) 0 1px, transparent 1px 4px),
-    linear-gradient(180deg, rgba(20, 15, 34, 0.96), rgba(46, 35, 80, 0.92));
-  box-shadow: inset 0 0 16px rgba(145, 111, 241, 0.3);
-  clip-path: polygon(0 0, 100% 0, 100% calc(100% - 13px), calc(100% - 13px) 100%, 13px 100%, 0 calc(100% - 13px));
+  padding: 8px 28px 9px;
 }
 
 .level-info-line {
