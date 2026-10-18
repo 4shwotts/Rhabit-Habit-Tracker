@@ -41,8 +41,8 @@ function LevelTaskEditor({
   emptyMessage = 'No tasks yet — click Add Task',
   placeholder = 'Click to Edit',
   iconSize = 60,
-  // optional extra line under the window info, e.g. "2/3 tasks — required"
-  renderLevelNote
+  // optional small badge inside a level tab, e.g. setup's "✓" / "1/3" progress
+  renderTabBadge
 }) {
   const [tabPage, setTabPage] = useState(0)
   const [activeLevel, setActiveLevel] = useState(1)
@@ -106,6 +106,7 @@ function LevelTaskEditor({
               onClick={() => changeLevel(level)}
             >
               Level {level} Tasks
+              {renderTabBadge?.(level, tasksByLevel[level] || [])}
             </button>
           ))}
         </div>
@@ -119,7 +120,6 @@ function LevelTaskEditor({
       </div>
 
       <p className="window-info-label">⏱ {getWindowDescription(activeLevel)}</p>
-      {renderLevelNote?.(activeLevel, levelTasks)}
 
       <div className={listClassName}>
         {!padEmptyRows && rows.length === 0 ? (

@@ -2057,47 +2057,73 @@ body {
 }
 
 /* ---- SETUP: levels 1–3 required, 4–10 optional ---- */
+/* single guidance line under the priority label */
 .setup-requirement {
   font-family: 'Alumni Sans', sans-serif;
-  font-size: 20px;
+  font-size: 19px;
   font-style: italic;
-  line-height: 24px;
+  line-height: 22px;
   color: var(--text-secondary);
   text-align: center;
-  max-width: 760px;
   margin-top: -6px;
 }
 
-.setup-level-note {
-  font-family: 'Alumni Sans', sans-serif;
-  font-size: 18px;
-  font-weight: 600;
-  text-align: center;
-  letter-spacing: 0.3px;
-}
-
-.setup-level-note.required {
-  color: #FFB3B3;
-}
-
-.setup-level-note.done {
+.setup-requirement.ready {
   color: #C1AAFF;
 }
 
-.setup-level-note.optional {
-  color: var(--text-secondary);
-  font-weight: 500;
-  font-style: italic;
+/* progress badge inside the Level 1–3 tabs */
+.level-tab-badge {
+  display: inline-block;
+  margin-left: 6px;
+  min-width: 26px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-style: normal;
+  line-height: 16px;
+  vertical-align: middle;
+  color: #FFD1D1;
+  background: rgba(255, 107, 107, 0.18);
+  border: 1px solid rgba(255, 138, 138, 0.6);
 }
 
-.setup-start-hint {
-  font-family: 'Alumni Sans', sans-serif;
-  font-size: 20px;
-  color: #C1AAFF;
-  text-align: center;
+.level-tab-badge.done {
+  color: #FFFFFF;
+  background: rgba(193, 170, 255, 0.25);
+  border-color: #C1AAFF;
 }
 
-/* setup is now taller than some laptop screens — let it scroll */
+/* Start centred, log out link to its right */
+.setup-actions {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 24px;
+  width: 100%;
+}
+
+.setup-logout {
+  justify-self: start;
+}
+
+/* fit the whole setup page on one laptop screen: tighter rows and spacing,
+   with room below Start so it doesn't sit on the frame */
+.setup-page .task-row {
+  height: 66px;
+  padding: 4px 20px;
+}
+
+.setup-page .task-add-row {
+  margin-top: 8px;
+}
+
+.setup-page .setup-content {
+  gap: 10px;
+  padding: 24px 0 48px;
+}
+
+/* still scrolls on very short screens rather than cutting anything off */
 .setup-page {
   overflow-y: auto;
   justify-content: flex-start;
@@ -2105,7 +2131,21 @@ body {
 
 .setup-page .setup-content {
   margin: auto 0;
-  padding: 12px 0;
+}
+
+/* short laptop screens (e.g. 1366×768): compact everything so setup still fits */
+@media (max-height: 820px) {
+  .setup-page .setup-logo { width: 48px; }
+  .setup-page .setup-content { gap: 7px; padding: 14px 0 28px; }
+  .setup-page .setup-greeting { font-size: 19px; line-height: 22px; }
+  .setup-page .setup-label,
+  .setup-page .setup-priority-label { font-size: 21px; line-height: 24px; }
+  .setup-page .setup-input { height: 38px; }
+  .setup-page .tabs-carousel { height: 48px; }
+  .setup-page .task-row { height: 54px; }
+  .setup-page .setup-warning { font-size: 18px; line-height: 22px; }
+  .setup-page .start-btn { height: 58px; font-size: 40px; }
+  .setup-page .start-btn::after { font-size: 40px; }
 }
 
 /* keep the corner brackets pinned to the screen while setup/auth pages scroll */

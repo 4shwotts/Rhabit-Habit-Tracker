@@ -27,29 +27,30 @@ function SetupPage() {
   const missingLevels = REQUIRED_LEVELS.filter(l => filledCount(tasks[l]) < MIN_TASKS)
   const canConfirm = goalName.trim() !== '' && missingLevels.length === 0
 
-  // shown under the level tabs so it's clear which levels are required
-  function renderLevelNote(level, levelTasks) {
-    if (!REQUIRED_LEVELS.includes(level)) {
-      return <p className="setup-level-note optional">Optional — you can fill this level in later from Goals</p>
-    }
+  // small progress badge on the Level 1–3 tabs: "1/3" until filled, then "✓"
+  function renderTabBadge(level, levelTasks) {
+    if (!REQUIRED_LEVELS.includes(level)) return null
     const count = filledCount(levelTasks)
+    const done = count >= MIN_TASKS
     return (
-      <p className={`setup-level-note ${count >= MIN_TASKS ? 'done' : 'required'}`}>
-        {count >= MIN_TASKS ? '✓' : '•'} {Math.min(count, MIN_TASKS)}/{MIN_TASKS} tasks — required
-      </p>
+      <span className={`level-tab-badge ${done ? 'done' : ''}`} aria-label={done ? 'complete' : `${count} of ${MIN_TASKS} tasks`}>
+        {done ? '✓' : `${count}/${MIN_TASKS}`}
+      </span>
     )
   }
 
-  function startHint() {
-    if (!goalName.trim()) return 'Name your goal pathway to continue'
+  // one line of guidance near the top, worded as progress towards unlocking Start
+  function statusLine() {
     if (missingLevels.length > 0) {
-      // "Level 3" / "Levels 2 and 3" / "Levels 1, 2 and 3"
-      const list = missingLevels.length === 1
-        ? `Level ${missingLevels[0]}`
-        : `Levels ${missingLevels.slice(0, -1).join(', ')} and ${missingLevels.at(-1)}`
-      return `Add at least ${MIN_TASKS} tasks to ${list} to continue`
+      return {
+        ready: false,
+        text: `Fill Levels 1–3 with ${MIN_TASKS} tasks each to unlock Start · Levels 4–10 are optional and can be added later from Goals`
+      }
     }
-    return null
+    if (!goalName.trim()) {
+      return { ready: false, text: '✓ Levels 1–3 ready — name your goal pathway to unlock Start' }
+    }
+    return { ready: true, text: '✓ Ready to start · Levels 4–10 are optional and can be added later from Goals' }
   }
 
   async function handleConfirm() {
@@ -77,7 +78,7 @@ function SetupPage() {
     navigate('/home', { replace: true })
   }
 
-  const hint = startHint()
+  const status = statusLine()
 
   return (
     <div className="setup-page">
@@ -89,8 +90,9 @@ function SetupPage() {
       <div className="setup-content">
         <img src={logo} className="setup-logo" alt="Rhabit" />
 
-        <p className="setup-greeting">GREETINGS, {user?.username?.toUpperCase()}</p>
-        <p className="setup-greeting">THE SYSTEM WILL BOOT ITSELF UP ONCE YOU UPLOAD YOUR INFORMATION BELOW</p>
+        <p className="setup-greeting">
+          GREETINGS, {user?.username?.toUpperCase()} — THE SYSTEM WILL BOOT ITSELF UP ONCE YOU UPLOAD YOUR INFORMATION BELOW
+        </p>
 
         <div className="setup-inputs-row">
           <div className="setup-field">
@@ -110,9 +112,8 @@ function SetupPage() {
         <p className="setup-priority-label">
           LIST YOUR TASKS FROM LOWEST TO HIGHEST PRIORITY (1-10)
         </p>
-        <p className="setup-requirement">
-          Levels 1–3 need at least {MIN_TASKS} tasks each. Levels 4–10 are optional — new task
-          levels unlock as you level up, and you can add them any time from Goals.
+        <p className={`setup-requirement ${status.ready ? 'ready' : ''}`} role="status">
+          {status.text}
         </p>
 
         <div className="setup-task-panel">
@@ -122,7 +123,7 @@ function SetupPage() {
             padEmptyRows
             placeholder="Task Empty - Edit to add content"
             iconSize={60}
-            renderLevelNote={renderLevelNote}
+            renderTabBadge={renderTabBadge}
           />
         </div>
 
@@ -132,19 +133,22 @@ function SetupPage() {
         </p>
 
         {error && <p className="auth-error" role="alert">{error}</p>}
-        {!error && hint && <p className="setup-start-hint">{hint}</p>}
 
-        <button
-          className="start-btn"
-          onClick={handleConfirm}
-          disabled={!canConfirm || submitting}
-        >
-          <span>{submitting ? 'Saving...' : 'Start'}</span>
-        </button>
-
-        <button className="auth-link auth-link-btn" type="button" onClick={logout}>
-          Not you? Log out
-        </button>
+        {/* Start stays centred; the log out link sits to its right */}
+        <div className="setup-actions">
+          <span />
+          <button
+            className="start-btn"
+            onClick={handleConfirm}
+            disabled={!canConfirm || submitting}
+            title={canConfirm ? undefined : status.text}
+          >
+            <span>{submitting ? 'Saving...' : 'Start'}</span>
+          </button>
+          <button className="auth-link auth-link-btn setup-logout" type="button" onClick={logout}>
+            Not you? Log out
+          </button>
+        </div>
       </div>
     </div>
   )
