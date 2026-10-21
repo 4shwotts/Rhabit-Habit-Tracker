@@ -11,9 +11,9 @@
     <!-- shared SVG filter: warps thin "hologram" border lines so they're never
          perfectly straight (used via filter: url(#holo-distort) in App.css) -->
     <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
-      <filter id="holo-distort" x="-5%" y="-30%" width="110%" height="160%">
-        <feTurbulence type="fractalNoise" baseFrequency="0.015 0.4" numOctaves="1" seed="4" result="noise" />
-        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" />
+      <filter id="holo-distort" x="-6%" y="-40%" width="112%" height="180%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.02 0.55" numOctaves="2" seed="4" result="noise" />
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="6" xChannelSelector="R" yChannelSelector="G" />
       </filter>
     </svg>
     <div id="root"></div>
