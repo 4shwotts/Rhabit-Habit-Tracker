@@ -124,6 +124,8 @@ function LevelTaskEditor({
       </div>
 
       <div className="level-info-tab">
+        {/* the broken, distorted main border line (decorative) */}
+        <span className="level-info-frame" aria-hidden="true" />
         <div className="level-info-inner">
           <span className="level-info-line">⏱ {getWindowDescription(activeLevel)}</span>
           {infoExtra}

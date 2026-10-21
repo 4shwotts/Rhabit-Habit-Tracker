@@ -2353,25 +2353,16 @@ body {
   max-width: min(78%, 860px);
   margin-top: 10px;
   border-radius: 6px;
-  border: 1px solid rgba(193, 170, 255, 0.6);
-  background:
-    /* soft sheen across the top edge */
-    linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 50%),
-    /* iridescent tint: violet -> lilac -> a hint of blue -> violet */
-    linear-gradient(115deg,
-      rgba(145, 111, 241, 0.22) 0%,
-      rgba(193, 170, 255, 0.10) 35%,
-      rgba(120, 160, 255, 0.12) 65%,
-      rgba(145, 111, 241, 0.22) 100%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  box-shadow:
-    0 0 16px rgba(145, 111, 241, 0.22),
-    inset 0 0 12px rgba(193, 170, 255, 0.1);
   animation: holo-flicker 6s infinite steps(1);
 }
 
-/* the two ghost borders: one shifted blue-ward, one magenta-ward */
+/* Border lines: the main frame plus two ghost copies (one shifted blue-ward,
+   one magenta-ward). Each is warped by the SVG filter in index.html and broken
+   by a mask with soft, faded gaps; the gaps sit in different places on each
+   line so they never line up cleanly. The two mask layers are intersected:
+   the horizontal one cuts gaps into the top/bottom edges, the vertical one
+   into the sides. */
+.level-info-frame,
 .level-info-tab::before,
 .level-info-tab::after {
   content: '';
@@ -2379,16 +2370,57 @@ body {
   inset: -1px;
   border-radius: inherit;
   pointer-events: none;
+  filter: url(#holo-distort);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.level-info-frame {
+  border: 1px solid rgba(193, 170, 255, 0.75);
+  -webkit-mask-image:
+    linear-gradient(90deg, #000 0 7.7%, rgba(0,0,0,0.4) 10% 13%, #000 15.4% 24.6%, transparent 28.5% 34.6%, #000 38.5% 44.6%, rgba(0,0,0,0.3) 47% 49%, #000 51.5% 53%, transparent 56% 62.3%, #000 66% 70%, transparent 73% 76%, #000 79%),
+    linear-gradient(180deg, #000 0 26%, transparent 40% 60%, #000 74%);
+  mask-image:
+    linear-gradient(90deg, #000 0 7.7%, rgba(0,0,0,0.4) 10% 13%, #000 15.4% 24.6%, transparent 28.5% 34.6%, #000 38.5% 44.6%, rgba(0,0,0,0.3) 47% 49%, #000 51.5% 53%, transparent 56% 62.3%, #000 66% 70%, transparent 73% 76%, #000 79%),
+    linear-gradient(180deg, #000 0 26%, transparent 40% 60%, #000 74%);
+  -webkit-mask-size: 130% 100%, 100% 100%;
+  mask-size: 130% 100%, 100% 100%;
+  -webkit-mask-position: 0 0, 0 0;
+  mask-position: 0 0, 0 0;
+  /* every so often the gaps jump to new places */
+  animation: holo-gaps 5.3s infinite steps(1);
+}
+
+@keyframes holo-gaps {
+  0%, 100% { -webkit-mask-position: 0 0, 0 0; mask-position: 0 0, 0 0; }
+  29% { -webkit-mask-position: 60% 0, 0 0; mask-position: 60% 0, 0 0; }
+  31% { -webkit-mask-position: 0 0, 0 0; mask-position: 0 0, 0 0; }
+  58% { -webkit-mask-position: 100% 0, 0 0; mask-position: 100% 0, 0 0; }
+  76% { -webkit-mask-position: 30% 0, 0 0; mask-position: 30% 0, 0 0; }
 }
 
 .level-info-tab::before {
-  border: 1px solid rgba(120, 165, 255, 0.55);
+  border: 1px solid rgba(120, 165, 255, 0.45);
+  -webkit-mask-image:
+    linear-gradient(90deg, #000 0 22%, transparent 26% 29%, #000 32% 33%, transparent 36% 47%, #000 52% 69%, transparent 72% 83%, #000 88%),
+    linear-gradient(180deg, transparent 0 18%, #000 32% 100%);
+  mask-image:
+    linear-gradient(90deg, #000 0 22%, transparent 26% 29%, #000 32% 33%, transparent 36% 47%, #000 52% 69%, transparent 72% 83%, #000 88%),
+    linear-gradient(180deg, transparent 0 18%, #000 32% 100%);
   transform: translate(-2px, 0);
   animation: holo-glitch-a 3.4s infinite steps(1);
 }
 
 .level-info-tab::after {
-  border: 1px solid rgba(225, 120, 255, 0.45);
+  border: 1px solid rgba(225, 120, 255, 0.38);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0 6%, #000 10% 31%, transparent 35% 47%, #000 51% 57%, transparent 60% 63%, #000 66% 69%, transparent 72% 84%, #000 89%),
+    linear-gradient(180deg, #000 0 62%, transparent 78% 100%);
+  mask-image:
+    linear-gradient(90deg, transparent 0 6%, #000 10% 31%, transparent 35% 47%, #000 51% 57%, transparent 60% 63%, #000 66% 69%, transparent 72% 84%, #000 89%),
+    linear-gradient(180deg, #000 0 62%, transparent 78% 100%);
   transform: translate(2px, 1px);
   animation: holo-glitch-b 4.1s infinite steps(1);
 }
@@ -2430,6 +2462,7 @@ body {
 /* respect "reduce motion": keep the offset ghost borders, drop the jolts */
 @media (prefers-reduced-motion: reduce) {
   .level-info-tab,
+  .level-info-frame,
   .level-info-tab::before,
   .level-info-tab::after {
     animation: none;
@@ -2441,7 +2474,29 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  padding: 5px 22px 6px;
+  /* extra padding keeps the text clear of the feathered edges */
+  padding: 9px 26px 10px;
+  border-radius: inherit;
+  /* translucent glass with an iridescent tint: violet -> lilac -> blue -> violet */
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 60%),
+    linear-gradient(115deg,
+      rgba(145, 111, 241, 0.24) 0%,
+      rgba(193, 170, 255, 0.11) 35%,
+      rgba(120, 160, 255, 0.13) 65%,
+      rgba(145, 111, 241, 0.24) 100%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  /* feathered edges: the glass fades out before the border, so the broken
+     border line is the only crisp edge and its gaps read as real gaps */
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent),
+    linear-gradient(180deg, transparent, #000 9px, #000 calc(100% - 9px), transparent);
+  mask-image:
+    linear-gradient(90deg, transparent, #000 22px, #000 calc(100% - 22px), transparent),
+    linear-gradient(180deg, transparent, #000 9px, #000 calc(100% - 9px), transparent);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
 }
 
 .level-info-line {

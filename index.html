@@ -8,6 +8,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Alumni+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&display=swap" rel="stylesheet">
   </head>
   <body>
+    <!-- shared SVG filter: warps thin "hologram" border lines so they're never
+         perfectly straight (used via filter: url(#holo-distort) in App.css) -->
+    <svg width="0" height="0" style="position: absolute" aria-hidden="true" focusable="false">
+      <filter id="holo-distort" x="-5%" y="-30%" width="110%" height="160%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.015 0.4" numOctaves="1" seed="4" result="noise" />
+        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+    </svg>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
