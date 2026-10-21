@@ -15,12 +15,6 @@
 
 body {
   background-color: #07070A;
-  background-image:
-    url('./assets/images/textureABOVE.svg'),
-    url('./assets/images/texture.svg');
-  background-position: top center, bottom center;
-  background-repeat: no-repeat, no-repeat;
-  background-size: 100% 70%, 100% 70%;
   color: #FFFFFF;
   font-family: 'Alumni Sans', sans-serif;
   min-height: 100vh;
@@ -53,6 +47,22 @@ body {
   justify-content: center;
   align-items: center;
   overflow-x: hidden;
+}
+
+/* Background textures on a fixed full-screen layer behind everything, so
+   nothing (page scrolling, scaled content, glass blur) can shift or hide them */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    url('./assets/images/textureABOVE.svg'),
+    url('./assets/images/texture.svg');
+  background-position: top center, bottom center;
+  background-repeat: no-repeat, no-repeat;
+  background-size: 100% 70%, 100% 70%;
 }
 
 /* ---- SETUP PAGE ---- */
@@ -1824,7 +1834,7 @@ body {
 .settings-toggle.on {
   background: rgba(145, 111, 241, 0.35);
   border-color: #B89FF5;
-  box-shadow: inset 0 2px 6px rgba(0,0,0,0.3), 0 0 10px rgba(145,111,241,0.4);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.3);
 }
 
 .settings-toggle-thumb {
@@ -1843,7 +1853,6 @@ body {
   transform: translateX(36px);
   background: #916FF1;
   border-color: #C1AAFF;
-  box-shadow: 0 0 8px rgba(145,111,241,0.7);
 }
 /* ---- AUTH PAGES (login, sign up, verification, password reset) ---- */
 /* reuses the setup page frame, inputs and colours so accounts feel like part of the HUD */
@@ -1870,7 +1879,6 @@ body {
   letter-spacing: -2px;
   color: #C1AAFF;
   text-align: center;
-  text-shadow: 0 0 18px rgba(145, 111, 241, 0.45);
 }
 
 .auth-subtitle {
@@ -2410,7 +2418,7 @@ body {
 
 .level-info-frame {
   border: 1.5px solid rgba(205, 185, 255, 0.9);
-  filter: url(#holo-distort) drop-shadow(0 0 3px rgba(145, 111, 241, 0.9));
+  filter: url(#holo-distort);
   -webkit-mask-image: linear-gradient(90deg, #000 0 7%, transparent 11% 17%, #000 21% 29%, transparent 33% 46%, #000 50% 55%, rgba(0,0,0,0.25) 58% 63%, #000 66% 71%, transparent 75% 86%, #000 90%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%);
   mask-image: linear-gradient(90deg, #000 0 7%, transparent 11% 17%, #000 21% 29%, transparent 33% 46%, #000 50% 55%, rgba(0,0,0,0.25) 58% 63%, #000 66% 71%, transparent 75% 86%, #000 90%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%);
   /* every so often the gaps rearrange */
@@ -2506,7 +2514,6 @@ body {
 
 .level-info-line.status.ready {
   color: #C1AAFF;
-  text-shadow: 0 0 8px rgba(145, 111, 241, 0.6);
 }
 
 /* the task list sits a little below the tab */
@@ -2516,65 +2523,121 @@ body {
 }
 
 /* ---- HOLOGRAPHIC GLASS (setup page + Goals pop-up) ----
-   A calmer cousin of the info panel: translucent blurred glass with a subtle
-   violet -> lilac -> blue gradient, a soft top sheen, a thin lilac edge and a
-   faint blue/magenta colour fringe either side (no warping, no tearing). */
+   Flat translucent glass (no gradients, no glow) with near-square corners to
+   match the info panel. Distortion is graded: task cards get a lightly warped,
+   gapped border with one faint ghost line; Start and Log out get an even
+   fainter warp; everything else (tabs, dots, input) stays plain. */
 :root {
-  --holo-fill: linear-gradient(115deg,
-    rgba(145, 111, 241, 0.18) 0%,
-    rgba(193, 170, 255, 0.07) 35%,
-    rgba(120, 160, 255, 0.09) 65%,
-    rgba(145, 111, 241, 0.18) 100%);
-  --holo-fill-strong: linear-gradient(115deg,
-    rgba(145, 111, 241, 0.78) 0%,
-    rgba(193, 170, 255, 0.55) 45%,
-    rgba(130, 150, 255, 0.55) 70%,
-    rgba(145, 111, 241, 0.78) 100%);
-  --holo-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 55%);
+  --holo-glass: rgba(76, 60, 130, 0.16);
+  --holo-glass-frame: rgba(46, 35, 80, 0.22);
+  --holo-glass-hover: rgba(145, 111, 241, 0.16);
+  --holo-glass-active: rgba(145, 111, 241, 0.55);
   --holo-edge: rgba(193, 170, 255, 0.55);
-  --holo-edge-bright: rgba(214, 198, 255, 0.85);
-  /* offset outlines: blue to the left, magenta to the right, plus a soft glow */
-  --holo-fringe:
-    -1.5px 0 0 rgba(120, 165, 255, 0.32),
-    1.5px 0.5px 0 rgba(225, 120, 255, 0.26),
-    0 0 12px rgba(145, 111, 241, 0.16);
+  --holo-edge-bright: rgba(214, 198, 255, 0.9);
+  --holo-radius: 6px;
 }
 
 :is(.setup-page, .expanded-goal-box) :is(.tabs-carousel, .level-tab, .task-row, .add-task-btn, .page-dot),
 .setup-page :is(.setup-input, .start-btn, .setup-logout) {
-  background: var(--holo-sheen), var(--holo-fill);
+  background: var(--holo-glass);
   border: 1.5px solid var(--holo-edge);
-  box-shadow: var(--holo-fringe);
+  border-radius: var(--holo-radius);
+  box-shadow: none;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
-/* the outer level pill is a frame, so a touch quieter than what sits in it */
 :is(.setup-page, .expanded-goal-box) .tabs-carousel {
-  background: var(--holo-sheen), rgba(46, 35, 80, 0.25);
+  background: var(--holo-glass-frame);
 }
 
-/* hover: edge brightens, fill lifts slightly */
+:is(.setup-page, .expanded-goal-box) .level-tab-badge {
+  border-radius: 4px;
+}
+
+/* hover / focus: edge brightens, glass lifts slightly */
 :is(.setup-page, .expanded-goal-box) :is(.level-tab, .add-task-btn, .page-dot):hover:not(:disabled),
 :is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty):hover,
 .setup-page :is(.start-btn, .setup-logout):hover:not(:disabled),
 .setup-page .setup-input:focus {
-  background: var(--holo-sheen), var(--holo-fill), rgba(145, 111, 241, 0.12);
+  background: var(--holo-glass-hover);
   border-color: var(--holo-edge-bright);
 }
 
-/* selected level tab and current page dot: bright, solid-looking glass */
+/* selected level tab and current page dot: denser glass */
 :is(.setup-page, .expanded-goal-box) .level-tab.active,
 :is(.setup-page, .expanded-goal-box) .page-dot.active {
-  background: var(--holo-sheen), var(--holo-fill-strong);
+  background: var(--holo-glass-active);
   border-color: var(--holo-edge-bright);
-  box-shadow: var(--holo-fringe), 0 0 14px rgba(145, 111, 241, 0.35);
 }
 
-/* empty "+" rows: faint glass, no fringe */
+/* empty "+" rows: faint plain glass */
 .setup-page .task-row-empty {
   background: rgba(145, 111, 241, 0.04);
   border-color: rgba(193, 170, 255, 0.2);
-  box-shadow: none;
+}
+
+/* ---- graded distortion ----
+   The element's own border goes transparent (so the layout doesn't move) and
+   the visible border is redrawn on ::before, where it can be warped by an SVG
+   filter (index.html) and broken by a soft-gapped mask without touching the
+   text inside. */
+:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty),
+.setup-page :is(.start-btn, .setup-logout) {
+  border-color: transparent;
+}
+
+/* positioning context for the redrawn border (log out is already fixed) */
+:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty),
+.setup-page .start-btn {
+  position: relative;
+}
+
+:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::before,
+:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::after,
+.setup-page :is(.start-btn, .setup-logout)::before {
+  content: '';
+  position: absolute;
+  inset: -1.5px;
+  border-radius: inherit;
+  pointer-events: none;
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* task cards: light warp, two soft gaps per edge, one faint ghost line */
+:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::before {
+  border: 1.5px solid var(--holo-edge);
+  filter: url(#holo-distort-soft);
+  -webkit-mask-image: linear-gradient(90deg, #000 0 22%, transparent 26% 31%, #000 35% 70%, transparent 74% 78%, #000 82%), linear-gradient(180deg, #000 0 30%, transparent 45% 58%, #000 72%);
+  mask-image: linear-gradient(90deg, #000 0 22%, transparent 26% 31%, #000 35% 70%, transparent 74% 78%, #000 82%), linear-gradient(180deg, #000 0 30%, transparent 45% 58%, #000 72%);
+  transition: border-color 0.2s ease;
+}
+
+:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::after {
+  border: 1px solid rgba(150, 160, 255, 0.28);
+  filter: url(#holo-distort-soft);
+  transform: translate(2px, 1px);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0 8%, #000 14% 40%, transparent 46% 58%, #000 64% 88%, transparent 94%), linear-gradient(#000, #000);
+  mask-image: linear-gradient(90deg, transparent 0 8%, #000 14% 40%, transparent 46% 58%, #000 64% 88%, transparent 94%), linear-gradient(#000, #000);
+}
+
+:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty):hover::before {
+  border-color: var(--holo-edge-bright);
+}
+
+/* Start and Log out: barely-there warp and two tiny gaps, no ghost */
+.setup-page :is(.start-btn, .setup-logout)::before {
+  border: 1.5px solid var(--holo-edge);
+  filter: url(#holo-distort-faint);
+  -webkit-mask-image: linear-gradient(90deg, #000 0 30%, transparent 34% 38%, #000 42% 80%, transparent 84% 87%, #000 91%), linear-gradient(#000, #000);
+  mask-image: linear-gradient(90deg, #000 0 30%, transparent 34% 38%, #000 42% 80%, transparent 84% 87%, #000 91%), linear-gradient(#000, #000);
+  transition: border-color 0.2s ease;
+}
+
+.setup-page :is(.start-btn, .setup-logout):hover:not(:disabled)::before {
+  border-color: var(--holo-edge-bright);
 }
