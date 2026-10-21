@@ -2514,3 +2514,67 @@ body {
 .level-nav + .expanded-task-list {
   margin-top: 4px;
 }
+
+/* ---- HOLOGRAPHIC GLASS (setup page + Goals pop-up) ----
+   A calmer cousin of the info panel: translucent blurred glass with a subtle
+   violet -> lilac -> blue gradient, a soft top sheen, a thin lilac edge and a
+   faint blue/magenta colour fringe either side (no warping, no tearing). */
+:root {
+  --holo-fill: linear-gradient(115deg,
+    rgba(145, 111, 241, 0.18) 0%,
+    rgba(193, 170, 255, 0.07) 35%,
+    rgba(120, 160, 255, 0.09) 65%,
+    rgba(145, 111, 241, 0.18) 100%);
+  --holo-fill-strong: linear-gradient(115deg,
+    rgba(145, 111, 241, 0.78) 0%,
+    rgba(193, 170, 255, 0.55) 45%,
+    rgba(130, 150, 255, 0.55) 70%,
+    rgba(145, 111, 241, 0.78) 100%);
+  --holo-sheen: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 55%);
+  --holo-edge: rgba(193, 170, 255, 0.55);
+  --holo-edge-bright: rgba(214, 198, 255, 0.85);
+  /* offset outlines: blue to the left, magenta to the right, plus a soft glow */
+  --holo-fringe:
+    -1.5px 0 0 rgba(120, 165, 255, 0.32),
+    1.5px 0.5px 0 rgba(225, 120, 255, 0.26),
+    0 0 12px rgba(145, 111, 241, 0.16);
+}
+
+:is(.setup-page, .expanded-goal-box) :is(.tabs-carousel, .level-tab, .task-row, .add-task-btn, .page-dot),
+.setup-page :is(.setup-input, .start-btn, .setup-logout) {
+  background: var(--holo-sheen), var(--holo-fill);
+  border: 1.5px solid var(--holo-edge);
+  box-shadow: var(--holo-fringe);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* the outer level pill is a frame, so a touch quieter than what sits in it */
+:is(.setup-page, .expanded-goal-box) .tabs-carousel {
+  background: var(--holo-sheen), rgba(46, 35, 80, 0.25);
+}
+
+/* hover: edge brightens, fill lifts slightly */
+:is(.setup-page, .expanded-goal-box) :is(.level-tab, .add-task-btn, .page-dot):hover:not(:disabled),
+:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty):hover,
+.setup-page :is(.start-btn, .setup-logout):hover:not(:disabled),
+.setup-page .setup-input:focus {
+  background: var(--holo-sheen), var(--holo-fill), rgba(145, 111, 241, 0.12);
+  border-color: var(--holo-edge-bright);
+}
+
+/* selected level tab and current page dot: bright, solid-looking glass */
+:is(.setup-page, .expanded-goal-box) .level-tab.active,
+:is(.setup-page, .expanded-goal-box) .page-dot.active {
+  background: var(--holo-sheen), var(--holo-fill-strong);
+  border-color: var(--holo-edge-bright);
+  box-shadow: var(--holo-fringe), 0 0 14px rgba(145, 111, 241, 0.35);
+}
+
+/* empty "+" rows: faint glass, no fringe */
+.setup-page .task-row-empty {
+  background: rgba(145, 111, 241, 0.04);
+  border-color: rgba(193, 170, 255, 0.2);
+  box-shadow: none;
+}
