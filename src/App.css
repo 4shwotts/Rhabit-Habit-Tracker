@@ -2379,6 +2379,38 @@ body::before {
   border-radius: inherit;
 }
 
+/* Cube "rendering in" chunks around a box edge, shared by the hint panel and
+   task cards: small solid squares on and just off the border line, as if the
+   box is still snapping into place. Drawn on a layer 8px larger than the box. */
+:root {
+  --voxel-patches:
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 12.5% 7px / 7px 7px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 14.4% 1px / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 17.6% 6px / 7px 7px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 19.3% 0 / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 20.6% 8px / 4px 4px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 46.9% 7px / 6px 6px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 48.6% 0 / 6px 6px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 49.8% 6px / 4px 4px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 76.2% 6px / 7px 7px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 78.1% 1px / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 79.6% 8px / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 81.2% 0 / 4px 4px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 88.4% 7px / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 30.1% calc(100% - 6px) / 7px 7px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 31.9% 100% / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 33.2% calc(100% - 8px) / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 54.6% calc(100% - 7px) / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 62.3% calc(100% - 6px) / 6px 6px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 64.1% 100% / 6px 6px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 65.7% calc(100% - 8px) / 4px 4px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 66.6% calc(100% - 1px) / 4px 4px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 1px 38% / 6px 6px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 4px 70% / 4px 4px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) calc(100% - 1px) 30% / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) calc(100% - 3px) 64% / 6px 6px no-repeat;
+}
+
 /* Projected-surface fill, shared by the hint panel and task cards: a dark
    translucent tint, fine light grain, two faint irregular interference lines
    and a dark inner vignette (no glow). It's warped with the same filter as
@@ -2393,6 +2425,15 @@ body::before {
 
 .level-info-tab {
   isolation: isolate;
+}
+
+.level-info-tab::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  pointer-events: none;
+  background: var(--voxel-patches);
+  animation: voxel-flicker 4.6s infinite steps(1);
 }
 
 .level-info-fill {
@@ -2412,7 +2453,7 @@ body::before {
     rgba(20, 15, 38, 0.72);
   /* a single unbroken edge line, drawn on the fill so it follows the same
      warp as the fill's edge */
-  box-shadow: var(--holo-vignette), inset 0 0 0 1px rgba(193, 170, 255, 0.6);
+  box-shadow: var(--holo-vignette), inset 0 0 0 1.5px rgba(214, 198, 255, 0.85);
   filter: url(#holo-distort-fill);
 }
 
@@ -2543,50 +2584,19 @@ body::before {
   mask-repeat: no-repeat;
 }
 
-/* Task cards: a crisp straight border "rendering into the world". The line
-   has hard-edged missing blocks, and small square chunks sit in and around
-   those gaps, a few displaced off the line, like voxels still snapping into
-   place. No warping, no soft fades; the chunks flicker now and then. */
+/* Task cards: a crisp, complete straight border with cube chunks on and
+   around it (the shared --voxel-patches), like the card is still rendering
+   into the world. No warping; the chunks flicker now and then. */
 :is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::before {
   border: 1.5px solid var(--holo-edge);
-  -webkit-mask-image:
-    linear-gradient(90deg, #000 0 17%, transparent 17% 21.5%, #000 21.5% 46.5%, transparent 46.5% 50.5%, #000 50.5% 75.5%, transparent 75.5% 82%, #000 82%),
-    linear-gradient(90deg, #000 0 29.5%, transparent 29.5% 34.5%, #000 34.5% 61.5%, transparent 61.5% 67.5%, #000 67.5%);
-  mask-image:
-    linear-gradient(90deg, #000 0 17%, transparent 17% 21.5%, #000 21.5% 46.5%, transparent 46.5% 50.5%, #000 50.5% 75.5%, transparent 75.5% 82%, #000 82%),
-    linear-gradient(90deg, #000 0 29.5%, transparent 29.5% 34.5%, #000 34.5% 61.5%, transparent 61.5% 67.5%, #000 67.5%);
-  /* first layer cuts the top edge, second the bottom edge */
-  -webkit-mask-size: 100% 50%, 100% 50%;
-  mask-size: 100% 50%, 100% 50%;
-  -webkit-mask-position: 0 0, 0 100%;
-  mask-position: 0 0, 0 100%;
-  -webkit-mask-composite: source-over;
-  mask-composite: add;
+  -webkit-mask-image: none;
+  mask-image: none;
   transition: border-color 0.2s ease;
 }
 
 :is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::after {
-  inset: -7px;
-  background:
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 17.6% 6px / 6px 6px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 19.2% 1px / 4px 4px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 20.4% 7px / 4px 4px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 46.9% 7px / 5px 5px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 48.6% 0 / 5px 5px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 49.6% 6px / 3px 3px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 76.2% 6px / 6px 6px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 78.1% 2px / 4px 4px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 79.6% 7px / 5px 5px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 81.2% 0 / 3px 3px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 30.1% calc(100% - 6px) / 6px 6px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 31.9% calc(100% - 1px) / 4px 4px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 33.2% calc(100% - 7px) / 4px 4px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 62.3% calc(100% - 6px) / 5px 5px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 64.1% 100% / 5px 5px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 65.7% calc(100% - 7px) / 4px 4px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 66.6% calc(100% - 2px) / 3px 3px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 1px 40% / 5px 5px no-repeat,
-    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) calc(100% - 1px) 62% / 5px 5px no-repeat;
+  inset: -8px;
+  background: var(--voxel-patches);
   animation: voxel-flicker 4.6s infinite steps(1);
 }
 
@@ -2601,7 +2611,8 @@ body::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::after {
+  :is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::after,
+  .level-info-tab::after {
     animation: none;
   }
 }
