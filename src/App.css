@@ -2534,42 +2534,45 @@ body::before {
   color: #FFFFFF;
 }
 
-/* ---- TASK CARD CORNER PIECES ----
-   Chevron-ended L brackets on each corner of a task card, slightly oversized
-   and pushed outside the border so they clip over the edge rather than
-   sitting inside the card. Drawn on ::before (unused by the cards otherwise). */
-:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty) {
-  position: relative;
-  padding-left: 26px;
-  padding-right: 26px;
+/* ---- SETUP TYPOGRAPHY ----
+   Blocky pixel-cornered display type (Silkscreen) for the headings, and a
+   distorted take on the existing italic for the warning: warped by an SVG
+   filter, with hard-edged (unblurred) blue/magenta offset copies. No glow. */
+.setup-page :is(.setup-greeting, .setup-label, .setup-priority-label) {
+  font-family: 'Silkscreen', 'Alumni Sans', sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0;
+  line-height: 1.25;
 }
 
-:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::before {
-  content: '';
-  position: absolute;
-  inset: -5px;
-  pointer-events: none;
-  background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cg transform='rotate(0 11 11)'%3E%3Cpolygon points='1,4 4,1 20,1 14,7 7,7 7,14 1,20' fill='%23916FF1' stroke='%23D6C6FF' stroke-width='1' stroke-linejoin='round'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 22px 22px no-repeat,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cg transform='rotate(90 11 11)'%3E%3Cpolygon points='1,4 4,1 20,1 14,7 7,7 7,14 1,20' fill='%23916FF1' stroke='%23D6C6FF' stroke-width='1' stroke-linejoin='round'/%3E%3C/g%3E%3C/svg%3E") 100% 0 / 22px 22px no-repeat,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cg transform='rotate(180 11 11)'%3E%3Cpolygon points='1,4 4,1 20,1 14,7 7,7 7,14 1,20' fill='%23916FF1' stroke='%23D6C6FF' stroke-width='1' stroke-linejoin='round'/%3E%3C/g%3E%3C/svg%3E") 100% 100% / 22px 22px no-repeat,
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 22 22'%3E%3Cg transform='rotate(270 11 11)'%3E%3Cpolygon points='1,4 4,1 20,1 14,7 7,7 7,14 1,20' fill='%23916FF1' stroke='%23D6C6FF' stroke-width='1' stroke-linejoin='round'/%3E%3C/g%3E%3C/svg%3E") 0 100% / 22px 22px no-repeat;
+.setup-page .setup-greeting-name {
+  font-weight: 700;
+  font-size: 26px;
+  letter-spacing: 2px;
 }
 
-/* the Goals pop-up list clips overflow: give the corners room to stick out */
-.expanded-goal-box .expanded-task-list {
-  padding: 5px 6px;
+.setup-page .setup-greeting:not(.setup-greeting-name) {
+  font-size: 16px;
 }
 
-.expanded-goal-box .expanded-task-list .task-row {
-  height: 74px;
+.setup-page .setup-field {
+  width: auto;
 }
 
-/* a little more space between cards so neighbouring corner pieces don't meet */
-.setup-page .task-fixed-area {
-  gap: 14px;
+.setup-page .setup-label {
+  width: auto;
+  white-space: nowrap;
+  font-size: 17px;
 }
 
-.expanded-goal-box .expanded-task-list {
-  gap: 12px;
+.setup-page .setup-priority-label {
+  font-size: 16px;
+}
+
+.setup-page .setup-warning {
+  filter: url(#text-distort);
+  text-shadow:
+    -1.5px 0 0 rgba(120, 165, 255, 0.55),
+    1.5px 0 0 rgba(225, 120, 255, 0.45);
 }
