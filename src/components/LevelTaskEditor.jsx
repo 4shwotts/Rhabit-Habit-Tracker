@@ -124,9 +124,8 @@ function LevelTaskEditor({
       </div>
 
       <div className="level-info-tab">
-        {/* decorative layers: the warped glass fill, then the broken border line */}
+        {/* decorative layer: the warped glass fill */}
         <span className="level-info-fill" aria-hidden="true" />
-        <span className="level-info-frame" aria-hidden="true" />
         <div className="level-info-inner">
           <span className="level-info-line">⏱ {getWindowDescription(activeLevel)}</span>
           {infoExtra}

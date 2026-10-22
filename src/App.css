@@ -2410,89 +2410,10 @@ body::before {
       rgba(120, 160, 255, 0.16) 65%,
       rgba(145, 111, 241, 0.30) 100%),
     rgba(20, 15, 38, 0.72);
-  box-shadow: var(--holo-vignette);
+  /* a single unbroken edge line, drawn on the fill so it follows the same
+     warp as the fill's edge */
+  box-shadow: var(--holo-vignette), inset 0 0 0 1px rgba(193, 170, 255, 0.6);
   filter: url(#holo-distort-fill);
-}
-
-/* Border lines: the main frame plus two ghost copies. Each is warped by the
-   SVG filter in index.html and broken by a two-layer mask (intersected): the
-   horizontal layer cuts soft gaps into the top/bottom edges, the vertical one
-   into the sides. The ghosts share the two big holes with the frame but have
-   their own extra breaks, so the lines never line up cleanly. */
-.level-info-frame,
-.level-info-tab::before,
-.level-info-tab::after {
-  content: '';
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  pointer-events: none;
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-}
-
-.level-info-frame {
-  border: 1.5px solid rgba(205, 185, 255, 0.9);
-  filter: url(#holo-distort);
-  -webkit-mask-image: linear-gradient(90deg, #000 0 7%, transparent 11% 17%, #000 21% 29%, transparent 33% 46%, #000 50% 55%, rgba(0,0,0,0.25) 58% 63%, #000 66% 71%, transparent 75% 86%, #000 90%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%);
-  mask-image: linear-gradient(90deg, #000 0 7%, transparent 11% 17%, #000 21% 29%, transparent 33% 46%, #000 50% 55%, rgba(0,0,0,0.25) 58% 63%, #000 66% 71%, transparent 75% 86%, #000 90%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%);
-  /* every so often the gaps rearrange */
-  animation: holo-gaps 5.3s infinite steps(1);
-}
-
-@keyframes holo-gaps {
-  0%, 100% { -webkit-mask-image: linear-gradient(90deg, #000 0 7%, transparent 11% 17%, #000 21% 29%, transparent 33% 46%, #000 50% 55%, rgba(0,0,0,0.25) 58% 63%, #000 66% 71%, transparent 75% 86%, #000 90%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%); mask-image: linear-gradient(90deg, #000 0 7%, transparent 11% 17%, #000 21% 29%, transparent 33% 46%, #000 50% 55%, rgba(0,0,0,0.25) 58% 63%, #000 66% 71%, transparent 75% 86%, #000 90%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%); }
-  31% { -webkit-mask-image: linear-gradient(90deg, #000 0 13%, transparent 17% 26%, #000 30% 43%, transparent 47% 53%, #000 57% 67%, transparent 71% 79%, #000 83% 90%, rgba(0,0,0,0.2) 93% 96%, #000 99%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%); mask-image: linear-gradient(90deg, #000 0 13%, transparent 17% 26%, #000 30% 43%, transparent 47% 53%, #000 57% 67%, transparent 71% 79%, #000 83% 90%, rgba(0,0,0,0.2) 93% 96%, #000 99%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%); }
-  34% { -webkit-mask-image: linear-gradient(90deg, #000 0 7%, transparent 11% 17%, #000 21% 29%, transparent 33% 46%, #000 50% 55%, rgba(0,0,0,0.25) 58% 63%, #000 66% 71%, transparent 75% 86%, #000 90%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%); mask-image: linear-gradient(90deg, #000 0 7%, transparent 11% 17%, #000 21% 29%, transparent 33% 46%, #000 50% 55%, rgba(0,0,0,0.25) 58% 63%, #000 66% 71%, transparent 75% 86%, #000 90%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%); }
-  72% { -webkit-mask-image: linear-gradient(90deg, #000 0 13%, transparent 17% 26%, #000 30% 43%, transparent 47% 53%, #000 57% 67%, transparent 71% 79%, #000 83% 90%, rgba(0,0,0,0.2) 93% 96%, #000 99%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%); mask-image: linear-gradient(90deg, #000 0 13%, transparent 17% 26%, #000 30% 43%, transparent 47% 53%, #000 57% 67%, transparent 71% 79%, #000 83% 90%, rgba(0,0,0,0.2) 93% 96%, #000 99%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%); }
-  73.5% { -webkit-mask-image: linear-gradient(90deg, #000 0 7%, transparent 11% 17%, #000 21% 29%, transparent 33% 46%, #000 50% 55%, rgba(0,0,0,0.25) 58% 63%, #000 66% 71%, transparent 75% 86%, #000 90%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%); mask-image: linear-gradient(90deg, #000 0 7%, transparent 11% 17%, #000 21% 29%, transparent 33% 46%, #000 50% 55%, rgba(0,0,0,0.25) 58% 63%, #000 66% 71%, transparent 75% 86%, #000 90%), linear-gradient(180deg, #000 0 20%, transparent 34% 66%, #000 80%); }
-}
-
-.level-info-tab::before {
-  border: 1px solid rgba(120, 165, 255, 0.55);
-  filter: url(#holo-distort);
-  transform: translate(-3px, 0);
-  -webkit-mask-image:
-    linear-gradient(90deg, #000 0 20%, transparent 24% 28%, #000 31% 32%, transparent 34% 47%, #000 51% 69%, transparent 73% 87%, #000 91%),
-    linear-gradient(180deg, transparent 0 16%, #000 32% 100%);
-  mask-image:
-    linear-gradient(90deg, #000 0 20%, transparent 24% 28%, #000 31% 32%, transparent 34% 47%, #000 51% 69%, transparent 73% 87%, #000 91%),
-    linear-gradient(180deg, transparent 0 16%, #000 32% 100%);
-  animation: holo-glitch-a 3.4s infinite steps(1);
-}
-
-.level-info-tab::after {
-  border: 1px solid rgba(225, 120, 255, 0.5);
-  filter: url(#holo-distort);
-  transform: translate(3px, 1px);
-  -webkit-mask-image:
-    linear-gradient(90deg, transparent 0 5%, #000 9% 30%, transparent 33% 47%, #000 51% 56%, transparent 59% 64%, #000 67% 70%, transparent 74% 87%, #000 91%),
-    linear-gradient(180deg, #000 0 60%, transparent 78% 100%);
-  mask-image:
-    linear-gradient(90deg, transparent 0 5%, #000 9% 30%, transparent 33% 47%, #000 51% 56%, transparent 59% 64%, #000 67% 70%, transparent 74% 87%, #000 91%),
-    linear-gradient(180deg, #000 0 60%, transparent 78% 100%);
-  animation: holo-glitch-b 4.1s infinite steps(1);
-}
-
-/* mostly still, then a brief jolt where a strip of a ghost border tears sideways */
-@keyframes holo-glitch-a {
-  0%, 100% { clip-path: inset(-4px); transform: translate(-3px, 0); }
-  12% { clip-path: inset(-4px -4px 72% -4px); transform: translate(-11px, 0); }
-  13% { clip-path: inset(-4px); transform: translate(-3px, 0); }
-  47% { clip-path: inset(40% -4px 35% -4px); transform: translate(9px, 0); }
-  48.5% { clip-path: inset(-4px); transform: translate(-3px, 0); }
-  81% { clip-path: inset(75% -4px -4px -4px); transform: translate(-8px, 2px); }
-  82% { clip-path: inset(-4px); transform: translate(-3px, 0); }
-}
-
-@keyframes holo-glitch-b {
-  0%, 100% { clip-path: inset(-4px); transform: translate(3px, 1px); }
-  23% { clip-path: inset(70% -4px -4px -4px); transform: translate(12px, 1px); }
-  24% { clip-path: inset(-4px); transform: translate(3px, 1px); }
-  64% { clip-path: inset(-4px -4px 78% -4px); transform: translate(-10px, 0); }
-  65.5% { clip-path: inset(-4px); transform: translate(3px, 1px); }
 }
 
 /* the whole panel dips for a single frame now and then */
@@ -2504,12 +2425,9 @@ body::before {
   71.4% { opacity: 1; }
 }
 
-/* respect "reduce motion": keep the broken, warped border, drop the movement */
+/* respect "reduce motion" */
 @media (prefers-reduced-motion: reduce) {
-  .level-info-tab,
-  .level-info-frame,
-  .level-info-tab::before,
-  .level-info-tab::after {
+  .level-info-tab {
     animation: none;
   }
 }
@@ -2625,38 +2543,67 @@ body::before {
   mask-repeat: no-repeat;
 }
 
-/* task cards: light warp, two soft gaps per edge, one faint ghost line */
+/* Task cards: a crisp straight border "rendering into the world". The line
+   has hard-edged missing blocks, and small square chunks sit in and around
+   those gaps, a few displaced off the line, like voxels still snapping into
+   place. No warping, no soft fades; the chunks flicker now and then. */
 :is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::before {
   border: 1.5px solid var(--holo-edge);
-  filter: url(#holo-distort-soft);
-  -webkit-mask-image: linear-gradient(90deg, #000 0 22%, transparent 26% 31%, #000 35% 70%, transparent 74% 78%, #000 82%), linear-gradient(180deg, #000 0 30%, transparent 45% 58%, #000 72%);
-  mask-image: linear-gradient(90deg, #000 0 22%, transparent 26% 31%, #000 35% 70%, transparent 74% 78%, #000 82%), linear-gradient(180deg, #000 0 30%, transparent 45% 58%, #000 72%);
+  -webkit-mask-image:
+    linear-gradient(90deg, #000 0 17%, transparent 17% 21.5%, #000 21.5% 46.5%, transparent 46.5% 50.5%, #000 50.5% 75.5%, transparent 75.5% 82%, #000 82%),
+    linear-gradient(90deg, #000 0 29.5%, transparent 29.5% 34.5%, #000 34.5% 61.5%, transparent 61.5% 67.5%, #000 67.5%);
+  mask-image:
+    linear-gradient(90deg, #000 0 17%, transparent 17% 21.5%, #000 21.5% 46.5%, transparent 46.5% 50.5%, #000 50.5% 75.5%, transparent 75.5% 82%, #000 82%),
+    linear-gradient(90deg, #000 0 29.5%, transparent 29.5% 34.5%, #000 34.5% 61.5%, transparent 61.5% 67.5%, #000 67.5%);
+  /* first layer cuts the top edge, second the bottom edge */
+  -webkit-mask-size: 100% 50%, 100% 50%;
+  mask-size: 100% 50%, 100% 50%;
+  -webkit-mask-position: 0 0, 0 100%;
+  mask-position: 0 0, 0 100%;
+  -webkit-mask-composite: source-over;
+  mask-composite: add;
   transition: border-color 0.2s ease;
 }
 
-:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty) {
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-  isolation: isolate;
-}
-
-/* the card's fill: same projected surface as the hint panel, warped with the
-   same filter as the border so edge and line bend together */
 :is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::after {
-  z-index: -1;
-  background: var(--holo-interference), var(--holo-grain), rgba(30, 22, 56, 0.7);
-  box-shadow: var(--holo-vignette);
-  filter: url(#holo-distort-soft-fill);
-  transition: background-color 0.2s ease;
+  inset: -7px;
+  background:
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 17.6% 6px / 6px 6px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 19.2% 1px / 4px 4px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 20.4% 7px / 4px 4px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 46.9% 7px / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 48.6% 0 / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 49.6% 6px / 3px 3px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 76.2% 6px / 6px 6px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 78.1% 2px / 4px 4px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 79.6% 7px / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 81.2% 0 / 3px 3px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 30.1% calc(100% - 6px) / 6px 6px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 31.9% calc(100% - 1px) / 4px 4px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 33.2% calc(100% - 7px) / 4px 4px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 62.3% calc(100% - 6px) / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 64.1% 100% / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 65.7% calc(100% - 7px) / 4px 4px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 66.6% calc(100% - 2px) / 3px 3px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) 1px 40% / 5px 5px no-repeat,
+    linear-gradient(var(--holo-edge-bright), var(--holo-edge-bright)) calc(100% - 1px) 62% / 5px 5px no-repeat;
+  animation: voxel-flicker 4.6s infinite steps(1);
 }
 
-:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty):hover {
-  background: transparent;
+/* chunks blink out and jump a pixel, as if re-rendering */
+@keyframes voxel-flicker {
+  0%, 100% { opacity: 1; transform: none; }
+  21% { opacity: 0.35; transform: translateX(1px); }
+  22% { opacity: 1; transform: none; }
+  58% { opacity: 0; }
+  59.2% { opacity: 1; transform: translateY(-1px); }
+  60% { transform: none; }
 }
 
-:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty):hover::after {
-  background-color: rgba(48, 36, 88, 0.75);
+@media (prefers-reduced-motion: reduce) {
+  :is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::after {
+    animation: none;
+  }
 }
 
 :is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty):hover::before {
