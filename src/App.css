@@ -2366,8 +2366,7 @@ body::before {
   animation: holo-flicker 6s infinite steps(1);
 }
 
-/* the glass itself: iridescent tint, blurred backdrop, edges feathered out so
-   the broken border is the only crisp edge and its gaps read as real holes */
+/* text layer only; the glass lives on .level-info-fill below */
 .level-info-inner {
   height: 100%;
   display: flex;
@@ -2378,23 +2377,41 @@ body::before {
   gap: 2px;
   padding: 3px 26px 0;
   border-radius: inherit;
+}
+
+/* Projected-surface fill, shared by the hint panel and task cards: a dark
+   translucent tint, fine light grain, two faint irregular interference lines
+   and a dark inner vignette (no glow). It's warped with the same filter as
+   its border, so the whole panel bends as one rendered object. */
+:root {
+  --holo-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.86 0 0 0 0 0.8 0 0 0 0 1 0.14 0 0 0 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --holo-interference: linear-gradient(180deg,
+    transparent 0 31%, rgba(214, 198, 255, 0.07) 31% 32%,
+    transparent 32% 73%, rgba(214, 198, 255, 0.05) 73% 73.8%, transparent 73.8%);
+  --holo-vignette: inset 0 0 22px rgba(0, 0, 0, 0.55);
+}
+
+.level-info-tab {
+  isolation: isolate;
+}
+
+.level-info-fill {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0) 60%),
+    var(--holo-interference),
+    var(--holo-grain),
     linear-gradient(115deg,
-      rgba(145, 111, 241, 0.24) 0%,
-      rgba(193, 170, 255, 0.11) 35%,
-      rgba(120, 160, 255, 0.13) 65%,
-      rgba(145, 111, 241, 0.24) 100%);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-  -webkit-mask-image:
-    linear-gradient(90deg, transparent, #000 26px, #000 calc(100% - 26px), transparent),
-    linear-gradient(180deg, transparent, #000 10px, #000 calc(100% - 10px), transparent);
-  mask-image:
-    linear-gradient(90deg, transparent, #000 26px, #000 calc(100% - 26px), transparent),
-    linear-gradient(180deg, transparent, #000 10px, #000 calc(100% - 10px), transparent);
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
+      rgba(145, 111, 241, 0.30) 0%,
+      rgba(193, 170, 255, 0.14) 35%,
+      rgba(120, 160, 255, 0.16) 65%,
+      rgba(145, 111, 241, 0.30) 100%),
+    rgba(20, 15, 38, 0.72);
+  box-shadow: var(--holo-vignette);
+  filter: url(#holo-distort-fill);
 }
 
 /* Border lines: the main frame plus two ghost copies. Each is warped by the
@@ -2617,12 +2634,29 @@ body::before {
   transition: border-color 0.2s ease;
 }
 
+:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty) {
+  background: transparent;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  isolation: isolate;
+}
+
+/* the card's fill: same projected surface as the hint panel, warped with the
+   same filter as the border so edge and line bend together */
 :is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty)::after {
-  border: 1px solid rgba(150, 160, 255, 0.28);
-  filter: url(#holo-distort-soft);
-  transform: translate(2px, 1px);
-  -webkit-mask-image: linear-gradient(90deg, transparent 0 8%, #000 14% 40%, transparent 46% 58%, #000 64% 88%, transparent 94%), linear-gradient(#000, #000);
-  mask-image: linear-gradient(90deg, transparent 0 8%, #000 14% 40%, transparent 46% 58%, #000 64% 88%, transparent 94%), linear-gradient(#000, #000);
+  z-index: -1;
+  background: var(--holo-interference), var(--holo-grain), rgba(30, 22, 56, 0.7);
+  box-shadow: var(--holo-vignette);
+  filter: url(#holo-distort-soft-fill);
+  transition: background-color 0.2s ease;
+}
+
+:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty):hover {
+  background: transparent;
+}
+
+:is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty):hover::after {
+  background-color: rgba(48, 36, 88, 0.75);
 }
 
 :is(.setup-page, .expanded-goal-box) .task-row:not(.task-row-empty):hover::before {
