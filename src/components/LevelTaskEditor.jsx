@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import leftArrow from '../assets/icons/leftarrow.svg'
-import rightArrow from '../assets/icons/rightarrow.svg'
 import editIcon from '../assets/icons/EditButton.svg'
 import trashIcon from '../assets/icons/TrashButton.svg'
 
@@ -12,6 +10,20 @@ import trashIcon from '../assets/icons/TrashButton.svg'
 //   onChange(level, tasks) — called on every edit, add and delete
 //   onCommit(level, tasks) — optional; called when an edit is finished (blur)
 //                            and after a delete, so the Goals page can save
+
+// Split-tail arrowhead for the level carousel: a slim tail wedge and a sharp
+// head with a notch between them. `left` mirrors it.
+function NavArrow({ left = false }) {
+  return (
+    <svg
+      className="nav-arrow" viewBox="0 0 48 32" width="44" height="30" aria-hidden="true"
+      style={left ? { transform: 'scaleX(-1)' } : undefined}
+    >
+      <polygon points="2,16 23,10.5 19,16 23,21.5" fill="currentColor" />
+      <polygon points="21,2 46,16 21,30 27.5,16" fill="currentColor" />
+    </svg>
+  )
+}
 
 const TASKS_PER_PAGE = 3
 const MAX_TASKS_PER_LEVEL = 6
@@ -97,10 +109,11 @@ function LevelTaskEditor({
       <div className="tabs-carousel">
         <button
           className="carousel-arrow"
+          aria-label="Previous levels"
           onClick={() => { setTabPage(0); changeLevel(1) }}
           disabled={tabPage === 0}
         >
-          <img src={leftArrow} alt="prev" />
+          <NavArrow left />
         </button>
         <div className="level-tabs">
           {levels.map(level => (
@@ -116,10 +129,11 @@ function LevelTaskEditor({
         </div>
         <button
           className="carousel-arrow"
+          aria-label="Next levels"
           onClick={() => { setTabPage(1); changeLevel(6) }}
           disabled={tabPage === 1}
         >
-          <img src={rightArrow} alt="next" />
+          <NavArrow />
         </button>
       </div>
 
@@ -190,7 +204,7 @@ function LevelTaskEditor({
           onClick={addTask}
           disabled={levelTasks.length >= MAX_TASKS_PER_LEVEL}
         >
-          Add Task
+          <span className="btn-label">Add Task</span>
         </button>
       </div>
     </>

@@ -2516,75 +2516,156 @@ body::before {
   border-color: rgba(193, 170, 255, 0.2);
 }
 
-/* ---- Start / Log out distortion ----
-   The button's own border goes transparent (so the layout doesn't move) and
-   the visible border is redrawn on ::before, where it can be warped by an SVG
-   filter (index.html) and broken by a small gapped mask. */
-.setup-page :is(.start-btn, .setup-logout) {
-  border-color: transparent;
-}
 
-/* positioning context for the redrawn border (log out is already fixed) */
-.setup-page .start-btn {
-  position: relative;
-}
-
-.setup-page :is(.start-btn, .setup-logout)::before {
-  content: '';
-  position: absolute;
-  inset: -1.5px;
-  border-radius: inherit;
-  pointer-events: none;
-  -webkit-mask-composite: source-in;
-  mask-composite: intersect;
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-}
-
-/* Start and Log out: barely-there warp and two tiny gaps, no ghost */
-.setup-page :is(.start-btn, .setup-logout)::before {
-  border: 1.5px solid var(--holo-edge);
-  filter: url(#holo-distort-faint);
-  -webkit-mask-image: linear-gradient(90deg, #000 0 30%, transparent 34% 38%, #000 42% 80%, transparent 84% 87%, #000 91%), linear-gradient(#000, #000);
-  mask-image: linear-gradient(90deg, #000 0 30%, transparent 34% 38%, #000 42% 80%, transparent 84% 87%, #000 91%), linear-gradient(#000, #000);
-  transition: border-color 0.2s ease;
-}
-
-.setup-page :is(.start-btn, .setup-logout):hover:not(:disabled)::before {
-  border-color: var(--holo-edge-bright);
-}
-
-/* ---- ANGLED SHAPING (setup page + Goals pop-up) ----
-   A slight slant on the controls for a sharper, angular menu feel. The look
-   (glass, edges, colours) is unchanged; only the shapes lean. Skewing doesn't
-   change layout size, so nothing moves or reflows. */
-:root {
-  --ui-slant: -8deg;
-  --ui-slant-undo: 8deg;
-}
-
-:is(.setup-page, .expanded-goal-box) :is(.level-tab, .page-dot, .add-task-btn),
-.setup-page :is(.setup-input, .start-btn, .setup-logout) {
-  transform: skewX(var(--ui-slant));
-}
-
-/* tabs lean a touch more, like angled menu entries */
+/* ---- ANGLED SHAPING ----
+   Only the level tabs lean, like angled menu entries; everything else stays
+   square. Skewing doesn't change layout size, so nothing moves. */
 :is(.setup-page, .expanded-goal-box) .level-tab {
   transform: skewX(-10deg);
 }
 
-/* task cards lean too, but their contents are straightened back up so the
-   task text and its input stay easy to read */
-:is(.setup-page, .expanded-goal-box) .task-row {
-  transform: skewX(var(--ui-slant));
+
+/* ---- CAROUSEL ARROWS: split-tail arrowheads ---- */
+.carousel-arrow {
+  color: #C1AAFF;
 }
 
-:is(.setup-page, .expanded-goal-box) .task-row > * {
-  transform: skewX(var(--ui-slant-undo));
+.carousel-arrow:hover:not(:disabled) {
+  color: #FFFFFF;
 }
 
-/* the pop-up's task list clips overflow; give the slanted cards a few pixels
-   of room either side so their angled edges aren't cut off */
-.expanded-goal-box .expanded-task-list {
-  padding: 0 8px;
+/* ---- TWO-TONE BUTTONS (Start, Log out, Add Task) ----
+   A white half and a purple half split on a slant, with a solid purple
+   border. The label is clipped to the inverse split (dark purple over the
+   white half, white over the purple half) so it reads across both. The
+   label is absolutely positioned over the whole button so its colour split
+   lines up exactly with the background's; the buttons get fixed sizes. */
+:root {
+  --split-light: #F4F0FF;
+  --split-purple: #916FF1;
+  --split-ink: #241A40;
+  --split-bg: linear-gradient(110deg, var(--split-light) 0 50%, var(--split-purple) 50% 100%);
+  --split-text: linear-gradient(110deg, var(--split-ink) 0 50%, #FFFFFF 50% 100%);
+}
+
+:is(.setup-page, .expanded-goal-box) .add-task-btn,
+.setup-page :is(.start-btn, .setup-logout),
+:is(.setup-page, .expanded-goal-box) .add-task-btn:hover:not(:disabled),
+.setup-page :is(.start-btn, .setup-logout):hover:not(:disabled) {
+  /* keeps each button's own positioning (log out fixed, add task absolute,
+     start relative) as the anchor for its label */
+  background: var(--split-bg);
+  background-size: 200% 100%;
+  background-position: 50% 0;
+  border: 1.5px solid var(--split-purple);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  transition: background-position 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+:is(.setup-page, .expanded-goal-box) .add-task-btn { width: 132px; height: 44px; padding: 0; }
+.setup-page .setup-logout { width: 112px; height: 40px; padding: 0; }
+
+/* labels: fill the button, take the inverse colour split */
+:is(.setup-page, .expanded-goal-box) .add-task-btn .btn-label,
+.setup-page .setup-logout .btn-label,
+.setup-page .start-btn > span,
+.setup-page .start-btn::after {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--split-text);
+  background-size: 200% 100%;
+  background-position: 50% 0;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  transition: background-position 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.25s ease;
+}
+
+/* hover: the split slides across (Start too, when it's unlocked) */
+:is(.setup-page, .expanded-goal-box) .add-task-btn:hover:not(:disabled),
+.setup-page .setup-logout:hover,
+.setup-page .start-btn:hover:not(:disabled),
+:is(.setup-page, .expanded-goal-box) .add-task-btn:hover:not(:disabled) .btn-label,
+.setup-page .setup-logout:hover .btn-label,
+.setup-page .start-btn:hover:not(:disabled) > span,
+.setup-page .start-btn:hover:not(:disabled)::after {
+  background-position: 25% 0;
+}
+
+/* heavier, upright labels so the two-colour text stays crisp */
+:is(.setup-page, .expanded-goal-box) .add-task-btn .btn-label,
+.setup-page .setup-logout .btn-label {
+  font-size: 22px;
+  font-weight: 700;
+  font-style: italic;
+  letter-spacing: 0;
+}
+
+.setup-page .start-btn > span,
+.setup-page .start-btn::after {
+  font-weight: 700;
+  letter-spacing: -2px;
+}
+
+/* locked Start: dimmed, no split slide */
+.setup-page .start-btn:disabled {
+  opacity: 0.45;
+}
+
+/* ---- START: light beam on hover when ready ----
+   A light purple horizontal beam grows outwards from the button's centre,
+   widening as it goes, then breathes gently while hovered. Only when Start
+   is unlocked. */
+.setup-page .start-btn {
+  isolation: isolate;
+}
+
+.setup-page .start-btn::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: -1;
+  width: 360%;
+  height: 2px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(193, 170, 255, 0.25) 18%,
+    rgba(214, 198, 255, 0.75) 38%,
+    #F4F0FF 50%,
+    rgba(214, 198, 255, 0.75) 62%,
+    rgba(193, 170, 255, 0.25) 82%,
+    transparent 100%);
+  filter: blur(2px);
+  opacity: 0;
+  transform: translate(-50%, -50%) scaleX(0);
+  transition:
+    transform 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    height 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.35s ease;
+}
+
+.setup-page .start-btn:hover:not(:disabled)::before {
+  opacity: 1;
+  height: 20px;
+  transform: translate(-50%, -50%) scaleX(1);
+  animation: start-beam 2.6s ease-in-out 0.8s infinite;
+}
+
+@keyframes start-beam {
+  0%, 100% { height: 20px; opacity: 1; }
+  50% { height: 30px; opacity: 0.85; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .setup-page .start-btn:hover:not(:disabled)::before {
+    animation: none;
+  }
 }

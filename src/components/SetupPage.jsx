@@ -114,7 +114,7 @@ function SetupPage() {
       {/* top-right, where Home keeps its settings/goals buttons, so the centre
           column stays symmetrical */}
       <button className="settings-account-btn setup-logout" type="button" onClick={logout}>
-        Log out
+        <span className="btn-label">Log out</span>
       </button>
 
       <div className="setup-content" ref={contentRef}>
