@@ -2578,17 +2578,31 @@ body::before {
 }
 
 /* ---- AUTH TYPOGRAPHY ----
-   Page titles ("SYSTEM ACCESS", "NEW PLAYER"…) use Bungee: heavier and more
-   aggressive than the pixel font. Buttons use the same pixel font (Silkscreen)
+   Page titles ("SYSTEM ACCESS", "NEW PLAYER"…) use Bowlby One, slanted with
+   letters knocked slightly out of line for a punchier, aggressive feel. Buttons use the same pixel font (Silkscreen)
    as the setup headings. Links keep the regular font. */
 .auth-page .auth-title {
-  font-family: 'Bungee', 'Alumni Sans', sans-serif;
+  font-family: 'Bowlby One', 'Alumni Sans', sans-serif;
   font-style: normal;
   font-weight: 400;
   font-size: clamp(34px, 4.6vw, 52px);
   letter-spacing: 1px;
-  line-height: 1.05;
+  line-height: 1.1;
+  /* slight forward slant */
+  transform: skewX(-8deg);
 }
+
+/* letters knocked slightly out of line: a repeating pattern of small tilts
+   and vertical offsets, fixed (not animated) */
+.auth-title-char {
+  display: inline-block;
+}
+.auth-title-char:nth-child(6n + 1) { transform: rotate(-4deg); }
+.auth-title-char:nth-child(6n + 2) { transform: rotate(3deg) translateY(-2px); }
+.auth-title-char:nth-child(6n + 3) { transform: rotate(-2deg) translateY(1px); }
+.auth-title-char:nth-child(6n + 4) { transform: rotate(5deg) translateY(-1px); }
+.auth-title-char:nth-child(6n + 5) { transform: rotate(-3deg) translateY(2px); }
+.auth-title-char:nth-child(6n + 6) { transform: rotate(2deg); }
 
 .auth-page .auth-btn {
   font-family: 'Silkscreen', 'Alumni Sans', sans-serif;
