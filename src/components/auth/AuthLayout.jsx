@@ -13,14 +13,7 @@ function AuthLayout({ title, subtitle, children }) {
 
       <div className="auth-content">
         <img src={logo} className="setup-logo" alt="Rhabit" />
-        <h1 className="auth-title" aria-label={title}>
-          {/* each letter gets a slight, fixed tilt/offset (see .auth-title-char) */}
-          {[...title].map((char, i) => (
-            <span key={i} className="auth-title-char" aria-hidden="true">
-              {char === ' ' ? ' ' : char}
-            </span>
-          ))}
-        </h1>
+        <h1 className="auth-title">{title}</h1>
         {subtitle && <p className="setup-greeting auth-subtitle">{subtitle}</p>}
         {children}
       </div>
