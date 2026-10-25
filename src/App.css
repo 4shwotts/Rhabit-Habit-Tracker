@@ -3172,21 +3172,21 @@ body::before {
 
 /* ---- HOME HEADER: logo centred in its circle, solid circle edge ---- */
 .home-logo-circle {
-  border: 2.5px solid #A98BFF;
+  border: none;
   background: rgba(20, 14, 40, 0.97);
 }
 
 /* the logo was wider than its circle; fit it inside, nudged down a touch
    because the ears put its visual weight at the top */
 .home-logo {
-  width: 104px;
-  transform: translateY(5px);
+  width: 132px;
+  transform: translateY(-8px);
 }
 
-/* fade out the left end of the main bar where it runs under the corner
-   frame, so its lines don't cross the frame (the bar starts 40px offscreen) */
+/* the main bar's left end runs under the corner frame: dim it there (not
+   hide it) so its lines sit quietly behind the frame */
 .home-main-bar,
 .home-main-bar-bg {
-  -webkit-mask-image: linear-gradient(90deg, transparent 0 100px, #000 230px);
-  mask-image: linear-gradient(90deg, transparent 0 100px, #000 230px);
+  -webkit-mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0 100px, #000 230px);
+  mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0 100px, #000 230px);
 }
