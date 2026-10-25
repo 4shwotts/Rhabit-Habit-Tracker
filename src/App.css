@@ -2818,3 +2818,84 @@ body::before {
 .auth-link { font-size: 20px; }
 .auth-page :is(.auth-subtitle, .auth-label) { font-size: 16px; }
 .auth-page .auth-input { font-size: 20px; }
+
+/* ---- MINIMUM READABLE SIZES FOR THE CUSTOM FONT ----
+   The blocky face only reads well at larger sizes, so small text has an
+   ~18px floor. (Setup still fits any window: it scales itself to fit.) */
+.setup-page :is(.setup-greeting:not(.setup-greeting-name), .setup-label, .setup-priority-label) {
+  font-size: 19px;
+  line-height: 26px;
+  letter-spacing: 1.5px;
+}
+
+:is(.setup-page, .expanded-goal-box) .level-tab {
+  font-size: 17px;
+  letter-spacing: 0.5px;
+  padding: 0 4px;
+}
+
+:is(.setup-page, .expanded-goal-box) .level-tab-badge {
+  font-size: 14px;
+  height: 22px;
+}
+
+.level-info-tab {
+  height: auto;
+  min-height: 96px;
+  width: min(92%, 980px);
+}
+
+.level-info-inner {
+  padding: 10px 26px 12px;
+}
+
+.level-info-line {
+  font-size: 20px;
+  line-height: 28px;
+}
+
+.level-info-line.status {
+  font-size: 18px;
+  line-height: 26px;
+}
+
+:is(.setup-page, .expanded-goal-box) .task-row .task-level-label {
+  font-size: 18px;
+  letter-spacing: 1px;
+}
+
+:is(.setup-page, .expanded-goal-box) .task-row .task-edit-input {
+  font-size: 22px;
+  letter-spacing: 1px;
+}
+
+:is(.setup-page, .expanded-goal-box) .add-task-btn {
+  font-size: 19px;
+}
+
+.setup-page .setup-warning {
+  font-size: 18px;
+  line-height: 26px;
+}
+
+.setup-page .setup-input {
+  font-size: 22px;
+}
+
+.auth-page :is(.auth-subtitle, .auth-label) {
+  font-size: 19px;
+  line-height: 26px;
+}
+
+.auth-page .auth-hint,
+.auth-page :is(.auth-error, .auth-message) {
+  font-size: 19px;
+}
+
+.auth-page .auth-input {
+  font-size: 22px;
+}
+
+.home-task-level {
+  font-size: 18px;
+}

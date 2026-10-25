@@ -18,16 +18,16 @@ const OUT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 's
 
 const UPM = 1000
 const CAP = 520 // cap height: short and flat relative to the em
-const XH = 380 // lowercase (x) height
+const XH = 440 // lowercase (x) height: tall, so small text stays readable
 const ASC = CAP // lowercase ascenders (b d f h k l t) reach cap height
-const DESC = -150 // lowercase descenders (g j p q y)
+const DESC = -160 // lowercase descenders (g j p q y)
 
 // Per-weight settings: stroke thickness, standard letter width, chamfer size
 const WEIGHTS = {
   display: { family: 'Rhabit Display', stroke: 118, width: 900, chamfer: 70, gap: 95 },
-  text: { family: 'Rhabit Text', stroke: 52, width: 640, chamfer: 44, gap: 90 },
-  'text-medium': { family: 'Rhabit Text Medium', stroke: 76, width: 640, chamfer: 48, gap: 92 },
-  'text-bold': { family: 'Rhabit Text Bold', stroke: 104, width: 650, chamfer: 54, gap: 95 }
+  text: { family: 'Rhabit Text', stroke: 56, width: 540, chamfer: 40, gap: 105 },
+  'text-medium': { family: 'Rhabit Text Medium', stroke: 78, width: 550, chamfer: 44, gap: 108 },
+  'text-bold': { family: 'Rhabit Text Bold', stroke: 104, width: 560, chamfer: 50, gap: 110 }
 }
 
 // ---- shape helpers (coordinates: x right, y up from the baseline) ----
@@ -148,7 +148,7 @@ function glyphs({ stroke: t, width: W, chamfer: c }, H = CAP) {
 // descender stems so lower and upper case are clearly distinguishable.
 function lowercase(weight) {
   const t = weight.stroke
-  const w = { ...weight, width: weight.width * 0.86, chamfer: weight.chamfer * 0.8 }
+  const w = { ...weight, width: weight.width * 0.92, chamfer: weight.chamfer * 0.8 }
   const W = w.width
   const S = glyphs(w, XH) // the small (x-height) set
   const right = W - t
