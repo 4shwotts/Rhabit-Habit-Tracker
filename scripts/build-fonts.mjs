@@ -18,6 +18,9 @@ const OUT_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 's
 
 const UPM = 1000
 const CAP = 520 // cap height: short and flat relative to the em
+const XH = 380 // lowercase (x) height
+const ASC = CAP // lowercase ascenders (b d f h k l t) reach cap height
+const DESC = -150 // lowercase descenders (g j p q y)
 
 // Per-weight settings: stroke thickness, standard letter width, chamfer size
 const WEIGHTS = {
@@ -35,8 +38,7 @@ const poly = (...pts) => pts
 const diag = (x1, y1, x2, y2, t) => [[x1, y1], [x1 + t, y1], [x2 + t, y2], [x2, y2]]
 
 // Builds every glyph for one weight. Each entry: [polygons, width]
-function glyphs({ stroke: t, width: W, chamfer: c }) {
-  const H = CAP
+function glyphs({ stroke: t, width: W, chamfer: c }, H = CAP) {
   const m = (H - t) / 2 // y of the middle bar
   const top = H - t
   const right = W - t
@@ -128,8 +130,12 @@ function glyphs({ stroke: t, width: W, chamfer: c }) {
   g['='] = [[rect(0, m - t * 0.9, W * 0.6, t), rect(0, m + t * 0.9, W * 0.6, t)], W * 0.6]
   g['%'] = [[rect(0, H * 0.6, t * 1.4, H * 0.4), rect(W * 0.7 - t * 1.4, 0, t * 1.4, H * 0.4), diag(t * 0.4, 0, W * 0.7 - t * 1.4, H, t)], W * 0.7]
   g['·'] = [[rect(0, m, dot, dot)], dot]
-  g['&'] = g.E
-  g['@'] = g.O
+  // @: an outer ring open at the lower right, with a small inner box joined
+  // to the right side. (& is left out so it falls back to a standard font,
+  // rather than borrowing a letter shape that would misread.)
+  const ia = W * 0.28, ib = W * 0.72, iy0 = H * 0.27, iy1 = H * 0.73
+  g['@'] = [[vl(), hb(top), vr(iy0, H), hb(0, 0, W * 0.85),
+    rect(ia, iy0, t, iy1 - iy0), rect(ia, iy1 - t, ib - ia, t), rect(ib - t, iy0, t, iy1 - iy0), rect(ia, iy0, W - ia, t)], W]
   g['#'] = [[rect(W * 0.15, 0, t, H), rect(W * 0.55 - t, 0, t, H), rect(0, H * 0.25, W * 0.7, t), rect(0, H * 0.65 - t, W * 0.7, t)], W * 0.7]
   g['*'] = [[rect(W * 0.2 - t / 2, H * 0.45, t, H * 0.55), rect(0, H * 0.7, W * 0.4, t)], W * 0.4]
   g['<'] = [[diag(0, m, W * 0.45 - t, H * 0.85, t), diag(W * 0.45 - t, H * 0.15, 0, m, t)], W * 0.45]
@@ -138,15 +144,45 @@ function glyphs({ stroke: t, width: W, chamfer: c }) {
   return g
 }
 
+// Lowercase: the same bar construction at x-height, with ascender and
+// descender stems so lower and upper case are clearly distinguishable.
+function lowercase(weight) {
+  const t = weight.stroke
+  const w = { ...weight, width: weight.width * 0.86, chamfer: weight.chamfer * 0.8 }
+  const W = w.width
+  const S = glyphs(w, XH) // the small (x-height) set
+  const right = W - t
+  const box = [rect(0, 0, t, XH), rect(0, XH - t, W, t), rect(right, 0, t, XH), rect(0, 0, W, t)]
+  const stemUpL = rect(0, 0, t, ASC)
+  const stemUpR = rect(right, 0, t, ASC)
+  const l = {}
+  for (const ch of 'acemnorsuvwxz') l[ch] = S[ch.toUpperCase()]
+  l.b = [[...box, stemUpL], W]
+  l.d = [[...box, stemUpR], W]
+  l.f = [[rect(0, DESC < 0 ? 0 : 0, t, ASC), rect(0, ASC - t, W * 0.7, t), rect(0, XH - t, W * 0.6, t)], W * 0.7]
+  l.g = [[...box.slice(0, 3), rect(0, 0, W, t), rect(right, DESC, t, XH - DESC), rect(0, DESC, W, t)], W]
+  l.h = [[stemUpL, rect(0, XH - t, W, t), rect(right, 0, t, XH)], W]
+  l.i = [[rect(0, 0, t, XH), rect(0, XH + t * 0.9, t, t)], t]
+  l.j = [[rect(t * 0.9, DESC, t, XH - DESC), rect(0, DESC, t * 1.9, t), rect(t * 0.9, XH + t * 0.9, t, t)], t * 1.9]
+  l.k = [[stemUpL, ...S.K[0].slice(1)], W]
+  l.l = [[stemUpL], t]
+  l.p = [[...box, rect(0, DESC, t, -DESC)], W]
+  l.q = [[...box, rect(right, DESC, t, -DESC)], W]
+  l.t = [[rect(W * 0.25, 0, t, ASC), rect(0, XH - t, W * 0.75, t), rect(W * 0.25, 0, W * 0.5, t)], W * 0.75]
+  l.y = [[rect(0, t, t, XH - t), rect(right, DESC, t, XH - DESC), rect(0, 0, W, t), rect(0, DESC, W, t)], W]
+  return l
+}
+
 function buildFont({ family, ...weight }) {
   const G = glyphs(weight)
+  const L = lowercase(weight)
   const notdef = new opentype.Glyph({ name: '.notdef', unicode: 0, advanceWidth: weight.width, path: new opentype.Path() })
   const space = new opentype.Glyph({ name: 'space', unicode: 32, advanceWidth: weight.width * 0.75, path: new opentype.Path() })
   const nbsp = new opentype.Glyph({ name: 'nbsp', unicode: 160, advanceWidth: weight.width * 0.75, path: new opentype.Path() })
   const list = [notdef, space, nbsp]
 
-  const make = (char, unicode) => {
-    const [polys, width] = G[char]
+  const make = (char, unicode, set = G) => {
+    const [polys, width] = set[char]
     const p = new opentype.Path()
     // union the overlapping bars into clean outlines (outer rings
     // counter-clockwise, holes clockwise), so no overlap artefacts render
@@ -168,11 +204,8 @@ function buildFont({ family, ...weight }) {
     })
   }
 
-  for (const char of Object.keys(G)) {
-    list.push(make(char, char.codePointAt(0)))
-    // lowercase letters reuse the capital shapes (unicase, like the logos)
-    if (/[A-Z]/.test(char)) list.push(make(char, char.toLowerCase().codePointAt(0)))
-  }
+  for (const char of Object.keys(G)) list.push(make(char, char.codePointAt(0)))
+  for (const char of Object.keys(L)) list.push(make(char, char.codePointAt(0), L))
 
   return new opentype.Font({
     familyName: family,

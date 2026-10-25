@@ -2739,3 +2739,82 @@ body::before {
 .auth-page :is(.auth-subtitle, .auth-label, .auth-hint) {
   font-weight: 500;
 }
+
+/* ---- AUTH BUTTONS: square glass, matching the inputs and Log out ---- */
+.auth-page .auth-btn {
+  border-radius: 6px;
+  border: 1.5px solid var(--holo-edge);
+  background: var(--holo-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  min-width: 200px;
+  height: 52px;
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+
+.auth-page .auth-btn:hover:not(:disabled),
+.auth-page .auth-btn:focus-visible {
+  background: var(--holo-glass-hover);
+  border-color: var(--holo-edge-bright);
+}
+
+/* ---- SETUP: text sized to fit its elements, info text less cramped ---- */
+:is(.setup-page, .expanded-goal-box) .level-tab {
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  gap: 6px;
+  padding: 0 6px;
+}
+
+:is(.setup-page, .expanded-goal-box) .level-tab-badge {
+  font-size: 12px;
+  min-width: 30px;
+  height: 20px;
+  padding: 0 5px;
+}
+
+.level-info-tab {
+  height: 92px;
+  width: min(86%, 900px);
+}
+
+.level-info-line {
+  font-size: 17px;
+  line-height: 26px;
+  letter-spacing: 1px;
+}
+
+.level-info-line.status {
+  font-size: 15px;
+  line-height: 22px;
+}
+
+:is(.setup-page, .expanded-goal-box) .add-task-btn {
+  font-size: 17px;
+  letter-spacing: 1px;
+  padding: 6px 14px;
+}
+
+.setup-page .start-btn,
+.setup-page .start-btn::after {
+  font-size: 30px;
+  letter-spacing: 2px;
+}
+
+.setup-page .setup-warning {
+  font-size: 15px;
+  line-height: 24px;
+  letter-spacing: 1px;
+}
+
+.setup-page :is(.setup-greeting:not(.setup-greeting-name), .setup-label, .setup-priority-label) {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+/* small body text across the app: this face's lowercase is short, so it
+   needs a slightly larger size than a normal font to read comfortably */
+.auth-link { font-size: 20px; }
+.auth-page :is(.auth-subtitle, .auth-label) { font-size: 16px; }
+.auth-page .auth-input { font-size: 20px; }
