@@ -2902,7 +2902,10 @@ body::before {
 
 /* ---- SETUP: wider level bar, fixed-size hint panel ---- */
 .setup-page .level-nav {
-  width: min(calc(100% + 140px), 96vw);
+  /* wider than the task cards, extending equally on both sides */
+  --level-nav-width: min(calc(100% + 140px), 96vw);
+  width: var(--level-nav-width);
+  margin-left: calc((100% - var(--level-nav-width)) / 2);
 }
 
 /* fixed size, so changing hint text never resizes it (or rescales the page) */
