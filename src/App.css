@@ -3126,3 +3126,46 @@ body::before {
   font-size: 17px;
   line-height: 25px;
 }
+
+/* ---- HOME: same glass treatment as the setup task cards and buttons ----
+   Flat translucent glass, thin lilac edge, small 6px corners, no glow. */
+.home-page .home-task-row {
+  border: 1.5px solid var(--holo-edge);
+  border-radius: 6px;
+  background: var(--holo-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  height: 112px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.home-page .home-task-row:hover {
+  background: var(--holo-glass-hover);
+  border-color: var(--holo-edge-bright);
+}
+
+.home-page .home-task-row.checked {
+  background: var(--holo-glass-hover);
+  border-color: var(--holo-edge-bright);
+}
+
+.home-page .home-task-timer {
+  border: 1.5px solid var(--holo-edge);
+  border-radius: 6px;
+  background: var(--holo-glass);
+}
+
+.home-page .home-start-btn {
+  border: 1.5px solid var(--holo-edge);
+  border-radius: 6px;
+  background: var(--holo-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  height: 64px;
+  padding: 0 32px;
+}
+
+.home-page .home-start-btn:hover:not(.locked) {
+  background: var(--holo-glass-hover);
+  border-color: var(--holo-edge-bright);
+}
