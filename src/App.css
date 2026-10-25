@@ -3080,3 +3080,21 @@ body::before {
   font-size: 14px;
   line-height: 22px;
 }
+
+/* ---- HINT PANEL: final size ---- */
+.level-info-tab {
+  width: min(70%, 760px);
+  height: 70px;
+}
+
+.setup-page .level-info-line,
+.expanded-goal-box .level-info-line {
+  font-size: 18px;
+  line-height: 26px;
+}
+
+.setup-page .level-info-line.status,
+.expanded-goal-box .level-info-line.status {
+  font-size: 16px;
+  line-height: 24px;
+}
