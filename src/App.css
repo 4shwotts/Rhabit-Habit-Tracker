@@ -3173,7 +3173,9 @@ body::before {
 /* ---- HOME HEADER: logo centred in its circle, solid circle edge ---- */
 .home-logo-circle {
   border: none;
-  background: rgba(20, 14, 40, 0.97);
+  background: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 /* the logo was wider than its circle; fit it inside, nudged down a touch
