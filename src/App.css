@@ -2929,9 +2929,9 @@ body::before {
 /* ---- TASK CARD BUTTONS: small soft-rounded squares, no hover motion ---- */
 .task-icon-btn,
 .task-icon-btn:hover {
-  width: 38px;
-  height: 38px;
-  border-radius: 9px;
+  width: 46px;
+  height: 46px;
+  border-radius: 11px;
   border: 1.5px solid var(--holo-edge);
   background: var(--holo-glass);
   color: #C1AAFF;
@@ -2953,3 +2953,33 @@ body::before {
 .task-actions {
   gap: 10px;
 }
+
+/* original icon artwork, centred inside the square buttons */
+.task-icon-btn .task-icon-img,
+.expanded-task-list .task-icon-btn .task-icon-img,
+.setup-page .task-icon-btn .task-icon-img {
+  width: 38px;
+  height: 38px;
+  display: block;
+}
+
+/* ---- HINT PANEL: straight sides, distortion only on top and bottom ----
+   The warped fill is clipped flat at the left and right, and clean
+   vertical edge lines are drawn there instead. */
+.level-info-fill {
+  clip-path: inset(-20px 0 -20px 0);
+}
+
+.level-info-tab::before,
+.level-info-tab::after {
+  content: '';
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: 1.5px;
+  background: rgba(214, 198, 255, 0.85);
+  pointer-events: none;
+}
+
+.level-info-tab::before { left: 0; }
+.level-info-tab::after { right: 0; }
