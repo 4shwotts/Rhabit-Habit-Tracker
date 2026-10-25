@@ -2366,7 +2366,7 @@ body::before {
   animation: holo-flicker 6s infinite steps(1);
 }
 
-/* text layer only; the glass lives on .level-info-fill below */
+/* hint panel content layer */
 .level-info-inner {
   height: 100%;
   display: flex;
@@ -2397,27 +2397,6 @@ body::before {
 
 
 
-.level-info-fill {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  background:
-    var(--holo-interference),
-    var(--holo-grain),
-    linear-gradient(115deg,
-      rgba(145, 111, 241, 0.30) 0%,
-      rgba(193, 170, 255, 0.14) 35%,
-      rgba(120, 160, 255, 0.16) 65%,
-      rgba(145, 111, 241, 0.30) 100%),
-    rgba(20, 15, 38, 0.72);
-  /* a single unbroken edge line, drawn on the fill so it follows the same
-     warp as the fill's edge */
-  box-shadow: var(--holo-vignette), inset 0 0 0 1.5px rgba(214, 198, 255, 0.85);
-  filter: url(#holo-distort-fill);
-
-}
 
 /* the whole panel dips for a single frame now and then */
 @keyframes holo-flicker {
@@ -2958,17 +2937,14 @@ body::before {
 .task-icon-btn .task-icon-img,
 .expanded-task-list .task-icon-btn .task-icon-img,
 .setup-page .task-icon-btn .task-icon-img {
-  width: 38px;
-  height: 38px;
+  width: 28px;
+  height: 30px;
   display: block;
 }
 
 /* ---- HINT PANEL: straight sides, distortion only on top and bottom ----
    The warped fill is clipped flat at the left and right, and clean
    vertical edge lines are drawn there instead. */
-.level-info-fill {
-  clip-path: inset(-20px 0 -20px 0);
-}
 
 .level-info-tab::before,
 .level-info-tab::after {
@@ -2983,3 +2959,59 @@ body::before {
 
 .level-info-tab::before { left: 0; }
 .level-info-tab::after { right: 0; }
+
+/* ---- HINT PANEL: restrained HUD readout ----
+   One flat dark surface, one solid accent bar, labelled left-aligned rows.
+   Replaces the gradient / warp / vignette / flicker layers. */
+.level-info-tab {
+  animation: none;
+  isolation: auto;
+  border-radius: 4px;
+  border: 1px solid rgba(193, 170, 255, 0.28);
+  border-left: 3px solid #916FF1;
+  background: var(--holo-grain), rgba(16, 12, 30, 0.88);
+}
+
+.level-info-tab::before,
+.level-info-tab::after {
+  content: none;
+}
+
+.level-info-inner {
+  display: grid;
+  align-content: center;
+  justify-items: stretch;
+  gap: 8px;
+  padding: 0 28px;
+}
+
+.level-info-row {
+  display: grid;
+  grid-template-columns: 104px 1fr;
+  align-items: baseline;
+  column-gap: 16px;
+  text-align: left;
+}
+
+.level-info-key {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  color: rgba(193, 170, 255, 0.6);
+}
+
+.level-info-line {
+  text-align: left;
+  text-wrap: pretty;
+  color: #ECE6FF;
+}
+
+.level-info-line.status {
+  color: rgba(214, 205, 240, 0.72);
+}
+
+.level-info-line.status.ready {
+  color: #C1AAFF;
+}

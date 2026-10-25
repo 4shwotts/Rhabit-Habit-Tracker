@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import editIcon from '../assets/icons/EditButton.svg'
-import trashIcon from '../assets/icons/TrashButton.svg'
+import editIcon from '../assets/icons/EditGlyph.svg'
+import trashIcon from '../assets/icons/TrashGlyph.svg'
 
 // Shared editor for a goal's per-level task lists, used by the setup page and
 // the expanded goal modal on the Goals page: level tabs (1–5 / 6–10), three
@@ -136,12 +136,19 @@ function LevelTaskEditor({
         </button>
       </div>
 
+      {/* HUD readout: labelled rows rather than centred lines */}
       <div className="level-info-tab">
-        {/* decorative layer: the warped glass fill */}
-        <span className="level-info-fill" aria-hidden="true" />
         <div className="level-info-inner">
-          <span className="level-info-line">⏱ {getWindowDescription(activeLevel)}</span>
-          {infoExtra}
+          <div className="level-info-row">
+            <span className="level-info-key">Window</span>
+            <span className="level-info-line">{getWindowDescription(activeLevel)}</span>
+          </div>
+          {infoExtra && (
+            <div className="level-info-row">
+              <span className="level-info-key">Status</span>
+              {infoExtra}
+            </div>
+          )}
         </div>
       </div>
       </div>
