@@ -6,6 +6,10 @@
 }
 
 :root {
+  /* typography: wide, squared display face for headings (hierarchy level 1),
+     thin geometric face for everything else */
+  --font-display: 'Orbitron', 'Oxanium', sans-serif;
+  --font-body: 'Oxanium', sans-serif;
   --purple-primary: #916FF1;
   --bg-primary: #07070A;
   --text-primary: #FFFFFF;
@@ -16,7 +20,7 @@
 body {
   background-color: #07070A;
   color: #FFFFFF;
-  font-family: 'Alumni Sans', sans-serif;
+  font-family: var(--font-body);
   min-height: 100vh;
   overflow: hidden;
 }

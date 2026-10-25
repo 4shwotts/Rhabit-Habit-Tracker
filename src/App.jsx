@@ -22,10 +22,10 @@ function BootScreen() {
       justifyContent: 'center',
       background: '#07070A',
       color: '#916FF1',
-      fontFamily: 'Alumni Sans, sans-serif',
+      fontFamily: 'var(--font-body)',
       fontSize: '32px',
-      fontStyle: 'italic',
-      letterSpacing: '-1px'
+      fontStyle: 'normal',
+      letterSpacing: '0'
     }}>
       BOOTING SYSTEM...
     </div>

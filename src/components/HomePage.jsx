@@ -407,8 +407,8 @@ function HomePage() {
       width: '100vw', height: '100vh',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       background: '#07070A', color: '#916FF1',
-      fontFamily: 'Alumni Sans, sans-serif', fontSize: '32px',
-      fontStyle: 'italic', letterSpacing: '-1px'
+      fontFamily: 'var(--font-body)', fontSize: '32px',
+      fontStyle: 'normal', letterSpacing: '0'
     }}>
       LOADING...
     </div>
@@ -428,9 +428,9 @@ function HomePage() {
           background: 'rgba(76, 66, 106, 0.95)',
           border: '2px solid #916FF1', borderRadius: '37px',
           padding: '12px 32px',
-          fontFamily: 'Alumni Sans, sans-serif', fontSize: '22px',
-          fontStyle: 'italic', color: '#C1AAFF',
-          zIndex: 50, backdropFilter: 'blur(12px)', letterSpacing: '-0.5px'
+          fontFamily: 'var(--font-body)', fontSize: '22px',
+          fontStyle: 'normal', color: '#C1AAFF',
+          zIndex: 50, backdropFilter: 'blur(12px)', letterSpacing: '0'
         }}>
           ⚡ {levelUpMsg}
         </div>
