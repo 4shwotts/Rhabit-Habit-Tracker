@@ -22,6 +22,7 @@ function SetupPage() {
   const [tasks, setTasks] = useState(emptyLevels)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
+  const [armed, setArmed] = useState(false)
   const contentRef = useRef(null)
 
   // Fit the whole page in the window, never scrolling: the CSS breakpoints cover
@@ -77,8 +78,14 @@ function SetupPage() {
     return { ready: true, text: '✓ Ready to start · Levels 4–10 are optional and can be added later from Goals' }
   }
 
+  // Start needs two clicks: the first only switches the label to "Confirm",
+  // the second actually submits, so nobody starts by accident
   async function handleConfirm() {
     if (!canConfirm || submitting) return
+    if (!armed) {
+      setArmed(true)
+      return
+    }
     setSubmitting(true)
     setError(null)
 
@@ -148,7 +155,6 @@ function SetupPage() {
             onChange={(level, list) => setTasks(prev => ({ ...prev, [level]: list }))}
             padEmptyRows
             placeholder="Task Empty - Edit to add content"
-            iconSize={60}
             renderTabBadge={renderTabBadge}
             infoExtra={
               <span className={`level-info-line status ${status.ready ? 'ready' : ''}`} role="status">
@@ -169,10 +175,11 @@ function SetupPage() {
           <button
             className="start-btn"
             onClick={handleConfirm}
+            onBlur={() => setArmed(false)}
             disabled={!canConfirm || submitting}
             title={canConfirm ? undefined : status.text}
           >
-            <span>{submitting ? 'Saving...' : 'Start'}</span>
+            <span aria-live="polite">{submitting ? 'Saving...' : armed ? 'Confirm' : 'Start'}</span>
           </button>
         </div>
       </div>

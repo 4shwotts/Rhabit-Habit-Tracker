@@ -2899,3 +2899,57 @@ body::before {
 .home-task-level {
   font-size: 18px;
 }
+
+/* ---- SETUP: wider level bar, fixed-size hint panel ---- */
+.setup-page .level-nav {
+  width: min(calc(100% + 140px), 96vw);
+}
+
+/* fixed size, so changing hint text never resizes it (or rescales the page) */
+.level-info-tab {
+  width: min(92%, 980px);
+  height: 108px;
+  min-height: 0;
+}
+
+.level-info-inner {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ---- START: no hover swap; the label changes on the first click ---- */
+.setup-page .start-btn::after {
+  content: none;
+}
+
+.setup-page .start-btn:hover:not(:disabled) span {
+  opacity: 1;
+}
+
+/* ---- TASK CARD BUTTONS: small soft-rounded squares, no hover motion ---- */
+.task-icon-btn,
+.task-icon-btn:hover {
+  width: 38px;
+  height: 38px;
+  border-radius: 9px;
+  border: 1.5px solid var(--holo-edge);
+  background: var(--holo-glass);
+  color: #C1AAFF;
+  transform: none;
+  transition: none;
+}
+
+.task-icon-btn.editing {
+  opacity: 1;
+  background: var(--holo-glass-active);
+  color: #FFFFFF;
+}
+
+.task-icon-btn:focus-visible {
+  outline: 2px solid var(--holo-edge-bright);
+  outline-offset: 2px;
+}
+
+.task-actions {
+  gap: 10px;
+}

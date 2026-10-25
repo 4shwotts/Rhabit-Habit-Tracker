@@ -1,6 +1,4 @@
 import { useState } from 'react'
-import editIcon from '../assets/icons/EditButton.svg'
-import trashIcon from '../assets/icons/TrashButton.svg'
 
 // Shared editor for a goal's per-level task lists, used by the setup page and
 // the expanded goal modal on the Goals page: level tabs (1–5 / 6–10), three
@@ -10,6 +8,29 @@ import trashIcon from '../assets/icons/TrashButton.svg'
 //   onChange(level, tasks) — called on every edit, add and delete
 //   onCommit(level, tasks) — optional; called when an edit is finished (blur)
 //                            and after a delete, so the Goals page can save
+
+// Line icons for the task card buttons, drawn in the HUD's lilac
+function EditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter">
+      <path d="M4 20h4l11-11-4-4L4 16v4z" />
+      <path d="M13 7l4 4" />
+    </svg>
+  )
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter">
+      <path d="M4 7h16" />
+      <path d="M9 7V4h6v3" />
+      <path d="M6 7l1 13h10l1-13" />
+      <path d="M10 11v6M14 11v6" />
+    </svg>
+  )
+}
 
 // Split-tail arrowhead for the level carousel: a slim tail wedge and a sharp
 // head with a notch between them. `left` mirrors it.
@@ -52,7 +73,6 @@ function LevelTaskEditor({
   listClassName = 'task-fixed-area',
   emptyMessage = 'No tasks yet — click Add Task',
   placeholder = 'Click to Edit',
-  iconSize = 60,
   // optional small badge inside a level tab, e.g. setup's "✓" / "1/3" progress
   renderTabBadge,
   // optional second line in the info tab under the level pill (setup's progress)
@@ -174,12 +194,14 @@ function LevelTaskEditor({
                 <div className="task-actions">
                   <button
                     className={`task-icon-btn ${editingIndex === index ? 'editing' : ''}`}
+                    aria-label={editingIndex === index ? 'Finish editing task' : 'Edit task'}
+                    aria-pressed={editingIndex === index}
                     onClick={() => setEditingIndex(editingIndex === index ? null : index)}
                   >
-                    <img src={editIcon} alt="edit" width={iconSize} height={iconSize} />
+                    <EditIcon />
                   </button>
-                  <button className="task-icon-btn" onClick={() => deleteTask(index)}>
-                    <img src={trashIcon} alt="delete" width={iconSize} height={iconSize} />
+                  <button className="task-icon-btn" aria-label="Delete task" onClick={() => deleteTask(index)}>
+                    <TrashIcon />
                   </button>
                 </div>
               </div>

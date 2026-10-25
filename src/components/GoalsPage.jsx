@@ -358,7 +358,6 @@ function GoalsPage() {
                 listClassName="expanded-task-list"
                 emptyMessage="No tasks yet — click Add Task"
                 placeholder="Click to Edit"
-                iconSize={50}
               />
             </div>
           </div>
