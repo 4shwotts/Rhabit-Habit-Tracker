@@ -136,19 +136,12 @@ function LevelTaskEditor({
         </button>
       </div>
 
-      {/* HUD readout: labelled rows rather than centred lines */}
       <div className="level-info-tab">
+        {/* decorative layer: the warped glass fill */}
+        <span className="level-info-fill" aria-hidden="true" />
         <div className="level-info-inner">
-          <div className="level-info-row">
-            <span className="level-info-key">Window</span>
-            <span className="level-info-line">{getWindowDescription(activeLevel)}</span>
-          </div>
-          {infoExtra && (
-            <div className="level-info-row">
-              <span className="level-info-key">Status</span>
-              {infoExtra}
-            </div>
-          )}
+          <span className="level-info-line">⏱ {getWindowDescription(activeLevel)}</span>
+          {infoExtra}
         </div>
       </div>
       </div>
