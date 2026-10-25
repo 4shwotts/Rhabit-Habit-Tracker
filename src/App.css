@@ -3053,3 +3053,30 @@ body::before {
 .setup-page :is(.setup-warning, .level-info-line) {
   text-wrap: balance;
 }
+
+/* ---- HINT PANEL: compact ----
+   Two single-line rows in a smaller fixed box. */
+.level-info-tab {
+  width: min(78%, 820px);
+  height: 74px;
+}
+
+.level-info-inner {
+  padding: 0 22px;
+  gap: 2px;
+}
+
+.setup-page .level-info-line,
+.expanded-goal-box .level-info-line {
+  font-size: 16px;
+  line-height: 24px;
+  letter-spacing: 1px;
+  word-spacing: 2px;
+  white-space: nowrap;
+}
+
+.setup-page .level-info-line.status,
+.expanded-goal-box .level-info-line.status {
+  font-size: 14px;
+  line-height: 22px;
+}

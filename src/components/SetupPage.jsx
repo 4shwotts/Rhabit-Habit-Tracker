@@ -69,13 +69,13 @@ function SetupPage() {
     if (missingLevels.length > 0) {
       return {
         ready: false,
-        text: `Fill Levels 1–3 with ${MIN_TASKS} tasks each to unlock Start · Levels 4–10 are optional and can be added later from Goals`
+        text: `Add ${MIN_TASKS} tasks to Levels 1–⁠3 to unlock Start · Levels 4–⁠10 are optional`
       }
     }
     if (!goalName.trim()) {
-      return { ready: false, text: '✓ Levels 1–3 ready — name your goal pathway to unlock Start' }
+      return { ready: false, text: '✓ Levels 1–⁠3 ready · name your goal pathway to unlock Start' }
     }
-    return { ready: true, text: '✓ Ready to start · Levels 4–10 are optional and can be added later from Goals' }
+    return { ready: true, text: '✓ Ready to start · Levels 4–⁠10 can be added later in Goals' }
   }
 
   // Start needs two clicks: the first only switches the label to "Confirm",
