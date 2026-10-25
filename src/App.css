@@ -2680,3 +2680,62 @@ body::before {
   font-size: 15px;
   line-height: 22px;
 }
+
+/* ---- CUSTOM TYPEFACE ----
+   Both faces have a single weight; stop the browser faking bold/italic
+   versions, which would smear the thin strokes. Account-page titles split
+   like the MAXTAC logo: first word heavy, the rest in the hairline face. */
+* {
+  font-synthesis: none;
+}
+
+/* account-page titles ("SYSTEM ACCESS"…): every word in the same face and
+   weight */
+.auth-page .auth-title {
+  font-family: var(--font-body);
+  font-weight: 400;
+}
+
+/* ---- SIZES FOR THE CUSTOM TYPEFACE ----
+   Very wide letters: titles stay on one line and fit their shapes. */
+.auth-page .auth-title {
+  font-size: clamp(28px, 3.2vw, 40px);
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.home-title {
+  font-size: clamp(26px, 2.3vw, 40px);
+  letter-spacing: 0;
+}
+
+.goals-title-text {
+  font-size: clamp(26px, 2.6vw, 44px);
+  letter-spacing: 0;
+}
+
+.home-start-btn span {
+  font-size: 24px;
+  white-space: nowrap;
+}
+
+.level-info-line.status {
+  font-size: 12px;
+}
+
+/* the warning keeps its colour offsets but drops the warp, which made the
+   thin custom letters unreadable */
+.setup-page .setup-warning {
+  filter: none;
+}
+
+/* links and small body text: medium weight, a touch larger, for legibility */
+.auth-link {
+  font-size: 18px;
+  font-weight: 500;
+  letter-spacing: 1px;
+}
+
+.auth-page :is(.auth-subtitle, .auth-label, .auth-hint) {
+  font-weight: 500;
+}
