@@ -177,8 +177,9 @@ function buildFont({ family, ...weight }) {
   const G = glyphs(weight)
   const L = lowercase(weight)
   const notdef = new opentype.Glyph({ name: '.notdef', unicode: 0, advanceWidth: weight.width, path: new opentype.Path() })
-  const space = new opentype.Glyph({ name: 'space', unicode: 32, advanceWidth: weight.width * 0.75, path: new opentype.Path() })
-  const nbsp = new opentype.Glyph({ name: 'nbsp', unicode: 160, advanceWidth: weight.width * 0.75, path: new opentype.Path() })
+  // word space: about half a letter, so words read as words without big gaps
+  const space = new opentype.Glyph({ name: 'space', unicode: 32, advanceWidth: Math.round(weight.width * 0.5), path: new opentype.Path() })
+  const nbsp = new opentype.Glyph({ name: 'nbsp', unicode: 160, advanceWidth: Math.round(weight.width * 0.5), path: new opentype.Path() })
   const list = [notdef, space, nbsp]
 
   const make = (char, unicode, set = G) => {

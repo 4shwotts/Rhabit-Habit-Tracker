@@ -3098,3 +3098,31 @@ body::before {
   font-size: 16px;
   line-height: 24px;
 }
+
+/* ---- larger logo on login and setup ---- */
+.setup-page .setup-logo {
+  width: 96px;
+}
+
+.auth-page .setup-logo {
+  width: 110px;
+}
+
+/* task card text: no extra word spacing (the font's space is enough) */
+:is(.setup-page, .expanded-goal-box) .task-row .task-edit-input {
+  word-spacing: 0;
+}
+
+/* hint panel text a little larger */
+.setup-page .level-info-line,
+.expanded-goal-box .level-info-line {
+  font-size: 19px;
+  line-height: 27px;
+  word-spacing: 0;
+}
+
+.setup-page .level-info-line.status,
+.expanded-goal-box .level-info-line.status {
+  font-size: 17px;
+  line-height: 25px;
+}
