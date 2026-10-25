@@ -2902,8 +2902,8 @@ body::before {
 
 /* ---- SETUP: wider level bar, fixed-size hint panel ---- */
 .setup-page .level-nav {
-  /* wider than the task cards, extending equally on both sides */
-  --level-nav-width: min(calc(100% + 140px), 96vw);
+  /* slightly wider than the task cards, extending equally on both sides */
+  --level-nav-width: min(calc(100% + 40px), 96vw);
   width: var(--level-nav-width);
   margin-left: calc((100% - var(--level-nav-width)) / 2);
 }
@@ -2986,3 +2986,70 @@ body::before {
 
 .level-info-tab::before { left: 0; }
 .level-info-tab::after { right: 0; }
+
+/* ---- HINT PANEL: styled like the active page pill ----
+   Same fixed size and corners as before; solid purple glass with a bright
+   lilac edge. No warp, flicker or extra edge lines. */
+.level-info-tab {
+  animation: none;
+  border-radius: 6px;
+  border: 1.5px solid var(--holo-edge-bright);
+  background: var(--holo-glass-active);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.level-info-fill,
+.level-info-tab::before,
+.level-info-tab::after {
+  display: none;
+}
+
+.level-info-line,
+.level-info-line.status,
+.level-info-line.status.ready {
+  color: #FFFFFF;
+}
+
+.level-info-line.status {
+  opacity: 0.85;
+}
+
+/* ---- SETUP: more breathing room in the text ---- */
+.setup-page .setup-content {
+  gap: 14px;
+}
+
+.setup-page :is(.setup-greeting, .setup-label, .setup-priority-label, .setup-warning, .level-info-line,
+  .task-level-label, .task-edit-input, .level-tab, .add-task-btn, .setup-input) {
+  letter-spacing: 2px;
+  word-spacing: 6px;
+}
+
+.setup-page :is(.setup-warning, .level-info-line) {
+  line-height: 30px;
+}
+
+.setup-page .task-text {
+  gap: 6px;
+}
+
+/* spacing, tuned: open but not gappy; tabs a little tighter to fit badges */
+.setup-page :is(.setup-greeting, .setup-label, .setup-priority-label, .setup-warning, .level-info-line,
+  .task-level-label, .task-edit-input, .add-task-btn, .setup-input) {
+  letter-spacing: 1.5px;
+  word-spacing: 3px;
+}
+
+.setup-page .level-tab {
+  letter-spacing: 1px;
+  word-spacing: 1px;
+}
+
+.setup-page .setup-warning {
+  font-size: 16px;
+}
+
+.setup-page :is(.setup-warning, .level-info-line) {
+  text-wrap: balance;
+}
