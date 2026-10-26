@@ -3181,8 +3181,11 @@ body::before {
 /* the logo was wider than its circle; fit it inside, nudged down a touch
    because the ears put its visual weight at the top */
 .home-logo {
-  width: 132px;
-  transform: translateY(-8px);
+  width: 200px;
+  max-width: none;
+  flex-shrink: 0;
+  /* head overlaps the start of the welcome card, ears rise above it */
+  transform: translate(0, -18px);
 }
 
 /* the main bar's left end runs under the corner frame: dim it there (not
