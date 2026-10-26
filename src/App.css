@@ -3181,11 +3181,12 @@ body::before {
 /* the logo was wider than its circle; fit it inside, nudged down a touch
    because the ears put its visual weight at the top */
 .home-logo {
-  width: 200px;
+  width: 175px;
   max-width: none;
   flex-shrink: 0;
-  /* head overlaps the start of the welcome card, ears rise above it */
-  transform: translate(0, -18px);
+  /* head overlaps the start of the welcome card, ears rise above it;
+     tilted slightly to the left */
+  transform: translate(0, -12px) rotate(-8deg);
 }
 
 /* the main bar's left end runs under the corner frame: dim it there (not
