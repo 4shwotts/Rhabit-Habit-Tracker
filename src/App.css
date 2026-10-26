@@ -3186,7 +3186,7 @@ body::before {
   flex-shrink: 0;
   /* head overlaps the start of the welcome card, ears rise above it;
      tilted slightly to the left */
-  transform: translate(0, -12px) rotate(-8deg);
+  transform: translate(0, -24px) rotate(-8deg);
 }
 
 /* the main bar's left end runs under the corner frame: dim it there (not
