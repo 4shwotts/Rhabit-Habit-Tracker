@@ -11,6 +11,7 @@ import ForgotPasswordPage from './components/auth/ForgotPasswordPage'
 import ResetPasswordPage from './components/auth/ResetPasswordPage'
 import { AuthProvider, useAuth, stageOf, pathForStage } from './auth/AuthContext'
 import RequireStage from './auth/RequireStage'
+import TextureBackground from './components/TextureBackground'
 
 function BootScreen() {
   return (
@@ -65,6 +66,8 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
+      {/* animated digital-rain background, behind every page */}
+      <TextureBackground />
       <AuthProvider>
         <AppRoutes />
       </AuthProvider>

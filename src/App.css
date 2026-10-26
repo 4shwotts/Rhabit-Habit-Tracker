@@ -49,21 +49,8 @@ body {
   overflow-x: hidden;
 }
 
-/* Background textures on a fixed full-screen layer behind everything, so
-   nothing (page scrolling, scaled content, glass blur) can shift or hide them */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    url('./assets/images/textureABOVE.svg'),
-    url('./assets/images/texture.svg');
-  background-position: top center, bottom center;
-  background-repeat: no-repeat, no-repeat;
-  background-size: 100% 70%, 100% 70%;
-}
+/* The background is Matrix-style digital rain drawn on a canvas:
+   components/TextureBackground.jsx (styles at the end of this file). */
 
 /* ---- SETUP PAGE ---- */
 .setup-page {
@@ -2156,7 +2143,7 @@ body::before {
 
 .setup-page .setup-content {
   gap: 10px;
-  padding: 24px 0 48px;
+  padding: 0 0 120px; /* extra bottom padding sits the content a little above centre */
 }
 
 /* no visible scrollbars on setup/auth pages. Setup never scrolls: it scales
@@ -2218,7 +2205,7 @@ body::before {
 /* auth pages share .setup-page: keep their content vertically centred too */
 .setup-page .auth-content {
   margin: auto 0;
-  padding: 24px 0 48px;
+  padding: 0 0 120px; /* extra bottom padding sits the content a little above centre */
 }
 
 /* keep the corner brackets pinned to the screen while setup/auth pages scroll */
@@ -3195,4 +3182,13 @@ body::before {
 .home-main-bar-bg {
   -webkit-mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0 100px, #000 230px);
   mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0.35) 0 100px, #000 230px);
+}
+
+/* ---- BACKGROUND (components/TextureBackground.jsx) ----
+   Matrix-style digital rain on a fixed canvas behind all content. */
+.matrix-rain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
 }
