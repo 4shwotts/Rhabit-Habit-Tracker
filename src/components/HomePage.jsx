@@ -72,6 +72,11 @@ function HomePage() {
   const timerRef = useRef(null)
   const confirmRef = useRef(null)
   const clockRef = useRef(null)
+  // tick syncing: what the user last chose (updated instantly on click), what
+  // the server last accepted, and which tasks have a request in flight
+  const checkedRef = useRef([false, false, false])
+  const savedCheckedRef = useRef([false, false, false])
+  const checkInFlight = useRef(new Set())
 
   useEffect(() => {
     let lastDate = new Date().toDateString()
@@ -192,7 +197,10 @@ function HomePage() {
           setConfirmUnlock(Math.max(0, ws - confirmUnlockBeforeEnd))
         }
 
-        setChecked(tasks.map(t => !!t.checked))
+        const serverChecked = tasks.map(t => !!t.checked)
+        checkedRef.current = [...serverChecked]
+        savedCheckedRef.current = [...serverChecked]
+        setChecked(serverChecked)
         setRefreshedIndices(tasks.map((t, i) => t.refreshed ? i : null).filter(i => i !== null))
 
       } catch (err) {
@@ -219,7 +227,8 @@ function HomePage() {
       setTimeLeft(prev => {
         if (prev <= 1) {
           clearInterval(timerRef.current)
-          if (!checked.every(Boolean)) handleTriggerPenalty()
+          // read the ref: this interval was set up with an old `checked`
+          if (!checkedRef.current.every(Boolean)) handleTriggerPenalty()
           return 0
         }
         return prev - 1
@@ -254,17 +263,35 @@ function HomePage() {
     }
   }
 
-  async function handleCheck(index) {
+  // Ticks show instantly. Requests for one task are sent one at a time, and
+  // when one finishes the latest choice is sent if it changed meanwhile, so
+  // fast clicks can't arrive out of order and leave the server out of step.
+  function handleCheck(index) {
     if (!dailyState?.started || confirmed) return
-    const task = dailyTasks[index]
-    const newChecked = !checked[index]
-    const updated = [...checked]
-    updated[index] = newChecked
-    setChecked(updated)
-    const result = await checkTask(task.id, newChecked)
-    // the server refuses ticks outside the window — undo the optimistic tick
-    if (result.error) {
-      setChecked(prev => prev.map((c, i) => (i === index ? !newChecked : c)))
+    const next = [...checkedRef.current]
+    next[index] = !next[index]
+    checkedRef.current = next
+    setChecked(next)
+    syncCheck(index)
+  }
+
+  async function syncCheck(index) {
+    if (checkInFlight.current.has(index)) return
+    checkInFlight.current.add(index)
+    try {
+      while (checkedRef.current[index] !== savedCheckedRef.current[index]) {
+        const want = checkedRef.current[index]
+        const result = await checkTask(dailyTasks[index].id, want)
+        if (result.error) {
+          // refused (e.g. the window closed): fall back to what the server has
+          checkedRef.current = checkedRef.current.map((c, i) => (i === index ? savedCheckedRef.current[index] : c))
+          setChecked(checkedRef.current)
+          break
+        }
+        savedCheckedRef.current[index] = want
+      }
+    } finally {
+      checkInFlight.current.delete(index)
     }
   }
 
@@ -557,7 +584,13 @@ function HomePage() {
                 )}
 
                 {settings.timerVisible && timeLeft !== null && (
-                  <div className="home-task-timer">{formatTime(timeLeft)}</div>
+                  // each character sits in a fixed-width slot so the box never
+                  // shifts as the digits change
+                  <div className="home-task-timer" role="timer" aria-label={formatTime(timeLeft)}>
+                    {formatTime(timeLeft).split('').map((ch, i) => (
+                      <span key={i} className={ch === ':' ? 'timer-colon' : 'timer-digit'} aria-hidden="true">{ch}</span>
+                    ))}
+                  </div>
                 )}
               </div>
             ))

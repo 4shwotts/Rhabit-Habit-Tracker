@@ -3279,3 +3279,52 @@ body {
   font-size: 12px;
   letter-spacing: 0.5px;
 }
+
+/* ---- HOME: task cards hold a fixed layout ----
+   The timer box has a set width and each character a fixed slot, and the card
+   a fixed height, so nothing shifts as the countdown ticks. */
+.home-page .home-task-row {
+  min-height: 112px;
+  max-height: 112px;
+  user-select: none; /* fast clicks on the card shouldn't select text */
+}
+
+.home-task-info {
+  min-width: 0;
+}
+
+.home-task-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.home-page .home-task-timer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-task-timer .timer-digit {
+  display: inline-block;
+  width: 0.6em;
+  text-align: center;
+}
+
+.home-task-timer .timer-colon {
+  display: inline-block;
+  width: 0.36em;
+  text-align: center;
+}
+
+/* reroll price tag: larger and higher contrast so it reads at a glance */
+.home-task-refresh-wrap .refresh-badge {
+  top: -16px;
+  padding: 4px 8px;
+  border-color: #D6C6FF;
+  background: #6A50C8;
+  color: #FFFFFF;
+  font-size: 15px;
+  letter-spacing: 1px;
+}
