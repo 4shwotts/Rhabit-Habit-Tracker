@@ -3328,3 +3328,15 @@ body {
   font-size: 15px;
   letter-spacing: 1px;
 }
+
+/* ---- HOME XP BAR: count centred in the bar, level label clear of its end ---- */
+.home-xp-text {
+  left: 50%;
+}
+
+.home-level-text {
+  right: auto;
+  /* the bar ends at 62% of the frame (22% + 40%); on narrow screens stay
+     inside the frame's slanted right end */
+  left: min(calc(62% + 28px), calc(100% - 125px));
+}
