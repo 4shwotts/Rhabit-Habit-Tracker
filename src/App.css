@@ -3192,3 +3192,90 @@ body {
   z-index: -1;
   pointer-events: none;
 }
+
+/* ---- HOME: check box and reroll button in the glass style ----
+   Both match the setup page's edit/delete buttons: translucent glass, thin
+   lilac edge, small rounded corners, no glow. */
+.home-task-check {
+  flex-shrink: 0;
+  width: 54px;
+  height: 54px;
+  margin-left: -4px;
+  border: 1.5px solid var(--holo-edge);
+  border-radius: 11px;
+  background: var(--holo-glass);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.home-task-check svg {
+  width: 34px;
+  height: 34px;
+  display: block;
+}
+
+.home-task-row:hover .home-task-check {
+  border-color: var(--holo-edge-bright);
+}
+
+/* done: filled purple with a white tick drawing itself in */
+.home-task-row.checked .home-task-check {
+  background: var(--holo-glass-active);
+  border-color: var(--holo-edge-bright);
+}
+
+.home-task-check .task-tick-path {
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+}
+
+.home-task-refresh-wrap {
+  width: 54px;
+  height: 54px;
+  margin-right: 4px;
+  padding: 0;
+  border: 1.5px solid var(--holo-edge);
+  border-radius: 11px;
+  background: var(--holo-glass);
+  color: #C1AAFF;
+  font: inherit;
+  transition: opacity 0.4s ease, transform 0.4s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.home-task-refresh-wrap:hover,
+.home-task-refresh-wrap:focus-visible {
+  background: var(--holo-glass-hover);
+  border-color: var(--holo-edge-bright);
+  color: #FFFFFF;
+}
+
+.home-task-refresh-wrap:focus-visible {
+  outline: 2px solid var(--holo-edge-bright);
+  outline-offset: 2px;
+}
+
+.home-task-refresh-wrap:hover .home-task-refresh-icon {
+  opacity: 1;
+}
+
+.home-task-refresh-icon {
+  width: 32px;
+  height: 32px;
+}
+
+/* price tag sitting on the button's top edge */
+.home-task-refresh-wrap .refresh-badge {
+  top: -11px;
+  right: 50%;
+  transform: translateX(50%);
+  min-width: 0;
+  padding: 3px 6px;
+  border: 1px solid var(--holo-edge-bright);
+  border-radius: 4px;
+  background: #4A3A80;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}

@@ -518,18 +518,14 @@ function HomePage() {
                 key={task.id}
                 onClick={() => handleCheck(index)}
               >
-                <div className="home-task-circle">
-                  <svg width="95" height="95" viewBox="0 0 95 95" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      d="M86.6945 35.5136C88.5213 44.4788 87.2194 53.7993 83.006 61.9208C78.7925 70.0423 71.9221 76.4738 63.5406 80.1429C55.1591 83.812 45.7731 84.4968 36.9478 82.0831C28.1225 79.6694 20.3914 74.3032 15.0437 66.8793C9.69607 59.4554 7.05512 50.4226 7.56129 41.2872C8.06746 32.1518 11.6901 23.466 17.8252 16.6783C23.9603 9.89064 32.2369 5.41135 41.2749 3.98744C50.3128 2.56353 59.5657 4.28107 67.4906 8.85363"
-                      stroke="#916FF1" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"
-                    />
+                {/* glass check box: fills purple and draws a tick when done */}
+                <div className="home-task-check" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none">
                     {checked[index] && (
                       <path
                         className="task-tick-path"
-                        d="M30 44 L44 60 L80 18"
-                        stroke="#916FF1" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"
-                        fill="none"
+                        d="M6 12.5 L10.5 17 L18.5 7.5"
+                        stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"
                       />
                     )}
                   </svg>
@@ -541,22 +537,23 @@ function HomePage() {
                 </div>
 
                 {index > 0 && !confirmed && !checked[index] && (
-                  <div
+                  <button
+                    type="button"
                     className={`home-task-refresh-wrap ${refreshedIndices.includes(index) ? 'used' : ''}`}
+                    aria-label={settings.taskRefresh ? 'Reroll task (free)' : `Reroll task (${REFRESH_COST} XP)`}
                     onClick={(e) => { e.stopPropagation(); handleRefresh(index) }}
                   >
-                    <div className="refresh-badge">
+                    <span className="refresh-badge">
                       {settings.taskRefresh ? 'FREE' : `${REFRESH_COST}XP`}
-                    </div>
+                    </span>
                     <svg
                       className={`home-task-refresh-icon ${spinningIndex === index ? 'spinning' : ''}`}
-                      width="57" height="57" viewBox="0 0 57 57" fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 57 57" fill="none" aria-hidden="true"
                     >
                       <path d="M46.6667 46.6702V35.2119H35.2083M10 10.0035V21.4619H21.4583M46.5246 26.0452C46.0449 22.2351 44.381 18.6718 41.7677 15.8579C39.1543 13.0441 35.7235 11.1218 31.9592 10.3622C28.1948 9.60269 24.287 10.0442 20.7871 11.6245C17.2871 13.2049 14.3717 15.8442 12.4521 19.1702M10.1421 30.6285C10.6218 34.4387 12.2857 38.002 14.899 40.8158C17.5123 43.6297 20.9432 45.552 24.7075 46.3115C28.4718 47.0711 32.3796 46.6295 35.8796 45.0492C39.3795 43.4689 42.295 40.8295 44.2146 37.5035"
-                        stroke="#916FF1" strokeWidth="4.58333" strokeLinecap="round" strokeLinejoin="round"/>
+                        stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
-                  </div>
+                  </button>
                 )}
 
                 {settings.timerVisible && timeLeft !== null && (
