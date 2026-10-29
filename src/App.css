@@ -3340,3 +3340,402 @@ body {
      inside the frame's slanted right end */
   left: min(calc(62% + 28px), calc(100% - 125px));
 }
+
+/* ---- PENALTY POP-UP contents in the glass style ----
+   The pop-up keeps its own frame; inside it, a tickable task card like Home's
+   and a glass button. */
+
+.penalty-sub {
+  font-size: clamp(15px, 1.2vw, 19px);
+}
+
+.penalty-task-row {
+  gap: 20px;
+  height: auto;
+  min-height: 100px;
+  margin: 14px 0 6px;
+  padding: 18px 24px;
+  border: 1.5px solid var(--holo-edge);
+  border-radius: var(--holo-radius);
+  background: var(--holo-glass);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.penalty-task-row:hover,
+.penalty-task-row.checked {
+  background: var(--holo-glass-hover);
+  border-color: var(--holo-edge-bright);
+}
+
+.penalty-task-row:focus-visible {
+  outline: 2px solid var(--holo-edge-bright);
+  outline-offset: 2px;
+}
+
+.penalty-task-row:hover .home-task-check {
+  border-color: var(--holo-edge-bright);
+}
+
+.penalty-task-row.checked .home-task-check {
+  background: var(--holo-glass-active);
+  border-color: var(--holo-edge-bright);
+}
+
+.penalty-task-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.penalty-task-level {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.7px;
+  color: #C1AAFF;
+}
+
+.penalty-task-title {
+  font-size: 24px;
+  line-height: 1.25;
+}
+
+.penalty-timer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  font-size: 34px;
+  padding: 6px 18px;
+  border: 1.5px solid var(--holo-edge);
+  border-radius: var(--holo-radius);
+  background: var(--holo-glass);
+}
+
+.penalty-warning {
+  font-size: clamp(13px, 1.1vw, 16px);
+  letter-spacing: 0.5px;
+}
+
+/* sized to fit its longest label, so the countdown never spills out */
+.penalty-confirm-btn,
+.penalty-confirm-btn:hover {
+  width: auto;
+  min-width: 340px;
+  height: 64px;
+  padding: 0 32px;
+  margin: 8px 0 0;
+  font-size: 26px;
+  border: 1.5px solid var(--holo-edge);
+  border-radius: var(--holo-radius);
+  background: var(--holo-glass);
+}
+
+.penalty-confirm-btn:hover:not(:disabled) {
+  background: var(--holo-glass-hover);
+  border-color: var(--holo-edge-bright);
+}
+
+.penalty-confirm-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  font-size: 22px;
+}
+
+.penalty-confirm-btn span {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 700px) {
+  /* less side padding inside the frame so the contents fit a phone */
+  .penalty-content { padding: 64px 26px 40px; }
+  .penalty-task-row { gap: 12px; padding: 14px; flex-wrap: wrap; }
+  .penalty-task-row .penalty-timer { margin-left: auto; }
+  .penalty-confirm-btn, .penalty-confirm-btn:hover, .penalty-confirm-btn:disabled { font-size: 18px; padding: 0 12px; }
+  .penalty-task-title { font-size: 18px; }
+  .penalty-timer { font-size: 24px; padding: 4px 10px; }
+  .penalty-confirm-btn, .penalty-confirm-btn:hover { min-width: 0; width: 100%; }
+}
+
+/* ---- GOAL PREVIEW: clear of the frame's top notch, hint text fits ----
+   The notch reaches ~8.3% of the frame's height (58 of 696), so the content
+   starts below it. The hint panel spans the task list's width and its text
+   may wrap onto a second line instead of being cut off. */
+.expanded-goal-content {
+  padding-top: calc(min(980px, 94vw) * 696 / 1100 * 0.083 + 14px);
+  padding-bottom: 30px;
+  gap: 10px;
+}
+
+.expanded-goal-box .level-info-tab {
+  width: 100%;
+  height: auto;
+  min-height: 56px;
+  margin-top: 4px;
+}
+
+.expanded-goal-box .level-info-inner {
+  padding: 8px 18px;
+}
+
+.expanded-goal-box .level-info-line {
+  white-space: normal;
+  font-size: 17px;
+  line-height: 24px;
+}
+
+/* ---- GOALS PAGE: "YOUR GOALS" hovers a little above the frame line ---- */
+.goals-title-text {
+  padding-bottom: 24px;
+}
+
+/* ---- GOALS PAGE: frosted, less see-through frame, tab and cards ----
+   A backdrop blur clipped to each shape sits under its (more solid) fill. */
+.goals-filebox-wrap,
+.goals-header-card,
+.goal-row-wrap {
+  isolation: isolate;
+}
+
+.goals-filebox-wrap::before,
+.goals-header-card::before,
+.goal-row-wrap::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  pointer-events: none;
+}
+
+/* each blur is clipped to its shape's outline */
+.goals-filebox-wrap::before { clip-path: polygon(0.1% 0.2%, 98.6% 0.2%, 93.4% 97.5%, 0.1% 97.5%); }
+.goals-header-card::before { clip-path: polygon(0.2% 1.3%, 17.8% 1.3%, 90.4% 28.5%, 99.6% 98.7%, 0.2% 98.7%); }
+.goal-row-wrap::before { clip-path: polygon(1.96% 0, 100% 0, 96.23% 100%, 0 100%); }
+
+.goals-filebox-body {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.goals-filebox-inner {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---- GOALS SCROLLBAR: a glass groove with a bevelled lilac thumb ----
+   Same size as before, sitting a little further right. */
+.goals-scrollbar-track {
+  right: 112px;
+  background: linear-gradient(90deg, rgba(8, 6, 16, 0.75), rgba(36, 27, 64, 0.55));
+  border-color: rgba(193, 170, 255, 0.28);
+  box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.6), inset 0 -1px 0 rgba(214, 198, 255, 0.12);
+}
+
+.goals-scrollbar-thumb {
+  box-sizing: border-box; /* its border counts within its height, so it fits the track */
+  background: linear-gradient(90deg, #6B53BF 0%, #9A7BF5 45%, #7E64D6 100%);
+  border-color: #916FF1; /* same purple as the file frame's border */
+  /* top highlight only, so the fill runs right to the bottom of its border */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* ---- GOAL CARD BUTTONS: the same glass squares as the Home buttons ---- */
+.goal-action-btn {
+  border: 1.5px solid var(--holo-edge);
+  border-radius: 11px;
+  background: var(--holo-glass);
+  color: #C1AAFF;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.goal-action-btn:hover,
+.goal-action-btn:focus-visible {
+  transform: none;
+  background: var(--holo-glass-hover);
+  border-color: var(--holo-edge-bright);
+  color: #FFFFFF;
+}
+
+.goal-action-btn:focus-visible {
+  outline: 2px solid var(--holo-edge-bright);
+  outline-offset: 2px;
+}
+
+.goal-action-btn.goal-starred {
+  background: var(--holo-glass-active);
+  border-color: var(--holo-edge-bright);
+  color: #FFFFFF;
+}
+
+.goal-action-btn svg,
+.goal-action-btn .goal-action-glyph {
+  width: 52%;
+  height: 52%;
+}
+
+/* the goal cards' glass hairline sits on the shape's edge; let it draw in full */
+.goal-row-svg {
+  overflow: visible;
+}
+
+/* goal cards: no frost, just their own tint */
+.goal-row-wrap::before {
+  content: none;
+}
+
+/* "YOUR GOALS" tab: lighter frost than the frame so it reads as glass */
+.goals-header-card::before {
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* ---- NAVIGATION BUTTONS: no lift on hover ---- */
+.home-icon-btn:hover,
+.goals-home-btn:hover {
+  transform: none;
+}
+
+/* ---- SETTINGS CONTENTS in the glass style ----
+   The pop-up keeps its own frame; inside it, rows are thin-edged glass cards
+   like the Home task cards, toggles are squared glass switches and the
+   buttons match the other glass buttons. No glow. */
+.setting-row {
+  height: 68px;
+  padding: 0 22px;
+  border: 1.5px solid var(--holo-edge);
+  border-radius: var(--holo-radius);
+  background: var(--holo-glass);
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.setting-row:hover {
+  background: var(--holo-glass-hover);
+  border-color: var(--holo-edge-bright);
+}
+
+.setting-label {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* switch: a squared glass track with a square thumb */
+.settings-toggle {
+  width: 64px;
+  height: 32px;
+  padding: 0;
+  border: 1.5px solid var(--holo-edge);
+  border-radius: 8px;
+  background: rgba(10, 7, 20, 0.6);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.settings-toggle-thumb {
+  top: 3.5px;
+  left: 3.5px;
+  width: 22px;
+  height: 22px;
+  border: 1.5px solid var(--holo-edge);
+  border-radius: 5px;
+  background: rgba(120, 100, 190, 0.35);
+}
+
+.settings-toggle.on {
+  border-color: var(--holo-edge-bright);
+  background: var(--holo-glass-active);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.settings-toggle.on .settings-toggle-thumb {
+  transform: translateX(32px);
+  border-color: #FFFFFF;
+  background: #E4DAFF;
+}
+
+.settings-toggle:focus-visible {
+  outline: 2px solid var(--holo-edge-bright);
+  outline-offset: 2px;
+}
+
+/* buttons */
+.settings-account-btn {
+  font-size: 20px;
+  padding: 8px 22px;
+  border: 1.5px solid var(--holo-edge);
+  border-radius: var(--holo-radius);
+  background: var(--holo-glass);
+}
+
+.settings-account-btn:hover:not(:disabled),
+.settings-account-btn:focus-visible {
+  background: var(--holo-glass-hover);
+  border-color: var(--holo-edge-bright);
+}
+
+.settings-account-btn:focus-visible {
+  outline: 2px solid var(--holo-edge-bright);
+  outline-offset: 2px;
+}
+
+.settings-account-btn.danger {
+  border-color: rgba(255, 120, 120, 0.55);
+  background: rgba(255, 107, 107, 0.06);
+  color: #FFB3B3;
+}
+
+.settings-account-btn.danger:hover:not(:disabled),
+.settings-account-btn.danger:focus-visible {
+  border-color: #FF8A8A;
+  background: rgba(255, 107, 107, 0.14);
+}
+
+/* On/Off tag next to "Two-step sign-in" */
+.twofa-status {
+  margin-left: 12px;
+  padding: 3px 7px;
+  border: 1px solid var(--holo-edge);
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #C1AAFF;
+  background: rgba(10, 7, 20, 0.5);
+}
+
+.twofa-status.on {
+  border-color: #D6C6FF;
+  background: #6A50C8;
+  color: #FFFFFF;
+}
+
+/* two-step sign-in panel */
+.twofa-qr {
+  border: 1.5px solid var(--holo-edge-bright);
+  border-radius: var(--holo-radius);
+}
+
+.twofa-codes {
+  border: 1.5px solid var(--holo-edge);
+  border-radius: var(--holo-radius);
+  background: var(--holo-glass);
+}
+
+/* inputs inside settings (two-step sign-in, delete account): glass fields */
+.settings-box .setup-input {
+  border: 1.5px solid var(--holo-edge);
+  border-radius: var(--holo-radius);
+  background: rgba(10, 7, 20, 0.55);
+}
+
+.settings-box .setup-input:focus {
+  border-color: var(--holo-edge-bright);
+  outline: none;
+}

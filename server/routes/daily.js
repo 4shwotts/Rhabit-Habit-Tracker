@@ -101,6 +101,9 @@ router.post('/confirm', validate(), (req, res) =>
       }]
     }
 
+    // every task must be ticked off; otherwise the window runs out into a penalty
+    if (!tasks.every(t => t.checked)) return conflict('Tick off all your tasks first')
+
     const xpEarned = tasks.filter(t => t.checked).length * XP_PER_TASK
     const { xp, level } = addXp(goal.xp, goal.level, xpEarned)
     await setGoalXp(client, req.user, goal, xp, level)

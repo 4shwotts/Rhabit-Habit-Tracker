@@ -1,3 +1,6 @@
+const config = require('../config')
+const { TEST_TIMER_SECONDS } = require('../lib/game')
+
 // demo mode — shortened timers so visitors can test the penalty system quickly
 // confirm unlocks 1 minute before end for all tasks
 const PENALTY_TASKS = [
@@ -16,7 +19,10 @@ const PENALTY_TASKS = [
 ]
 
 function getRandomPenaltyTask() {
-  return PENALTY_TASKS[Math.floor(Math.random() * PENALTY_TASKS.length)]
+  const task = PENALTY_TASKS[Math.floor(Math.random() * PENALTY_TASKS.length)]
+  // TEST_TIMERS (local only): every penalty lasts 30 seconds
+  if (config.testTimers) return { ...task, timer_seconds: TEST_TIMER_SECONDS }
+  return task
 }
 
 module.exports = { PENALTY_TASKS, getRandomPenaltyTask }

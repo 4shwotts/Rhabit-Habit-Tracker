@@ -69,7 +69,11 @@ const config = {
   // Brevo transactional email. Without a key in dev, emails are logged to the console.
   brevoApiKey: process.env.BREVO_API_KEY || '',
   emailFrom: process.env.EMAIL_FROM || '',
-  emailFromName: process.env.EMAIL_FROM_NAME || 'Rhabit'
+  emailFromName: process.env.EMAIL_FROM_NAME || 'Rhabit',
+
+  // Local testing only: TEST_TIMERS=true shortens every task window and penalty
+  // to 30 seconds, with confirm unlocking 10 seconds in. Ignored in production.
+  testTimers: !isProduction && process.env.TEST_TIMERS === 'true'
 }
 
 if (isProduction && (!config.brevoApiKey || !config.emailFrom)) {

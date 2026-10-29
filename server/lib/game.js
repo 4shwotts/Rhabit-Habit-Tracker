@@ -1,4 +1,5 @@
 // Game rules shared by the daily reset and the routes.
+const config = require('../config')
 //
 // DEMO VALUES: windows, XP amounts and unlock times are shortened so the full
 // flow can be tested quickly. Swap these for the real values before launch.
@@ -6,8 +7,13 @@ const XP_PER_TASK = 5
 const PENALTY_XP = 15
 const REFRESH_COST = 5
 const XP_PER_LEVEL = 100
+// TEST_TIMERS (local only, see config.js): 30-second windows and penalties,
+// confirm unlocking after 10 seconds
+const TEST_TIMER_SECONDS = 30
+const TEST_CONFIRM_AFTER = 10
+
 // confirm button unlocks this many seconds before the window/penalty ends
-const CONFIRM_UNLOCK_BEFORE_END = 60
+const CONFIRM_UNLOCK_BEFORE_END = config.testTimers ? TEST_TIMER_SECONDS - TEST_CONFIRM_AFTER : 60
 // if a session can't fit before midnight, a late penalty is only offered when
 // at least this much of the day is left; otherwise XP is deducted straight away
 const LATE_PENALTY_MIN_SECONDS = 3600
@@ -16,6 +22,7 @@ const TIMING_GRACE_SECONDS = 5
 
 // demo mode — shortened windows so visitors can test the full flow quickly
 function getWindowSeconds(level) {
+  if (config.testTimers) return TEST_TIMER_SECONDS
   if (level <= 3) return 5 * 60
   if (level <= 6) return 4 * 60
   if (level <= 9) return 3 * 60
@@ -142,6 +149,7 @@ module.exports = {
   REFRESH_COST,
   XP_PER_LEVEL,
   CONFIRM_UNLOCK_BEFORE_END,
+  TEST_TIMER_SECONDS,
   LATE_PENALTY_MIN_SECONDS,
   TIMING_GRACE_SECONDS,
   getSecondsUntilMidnight,

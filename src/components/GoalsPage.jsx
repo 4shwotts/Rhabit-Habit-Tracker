@@ -1,12 +1,13 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useRef, useEffect } from 'react'
 import cornerFrame from '../assets/images/cornerframe.svg'
-import trashIcon from '../assets/icons/TrashButton.svg'
+import trashIcon from '../assets/icons/TrashGlyph.svg'
 import LevelTaskEditor from './LevelTaskEditor'
 import {
   getUser, getGoals, createGoal, updateGoalName,
   deleteGoal, starGoal, unstarGoal, saveGoalTasks
 } from '../api'
+import ModalFrame from './ModalFrame'
 
 function GoalsPage() {
   const navigate = useNavigate()
@@ -20,6 +21,7 @@ function GoalsPage() {
   const [scrollThumbHeight, setScrollThumbHeight] = useState(30)
   const [notice, setNotice] = useState(null)
   const scrollRef = useRef(null)
+  const trackRef = useRef(null)
 
   useEffect(() => {
     async function load() {
@@ -43,12 +45,17 @@ function GoalsPage() {
 
   function handleScroll() {
     const el = scrollRef.current
-    if (!el) return
+    const track = trackRef.current
+    if (!el || !track) return
     const { scrollTop, scrollHeight, clientHeight } = el
-    const thumbH = Math.max(30, (clientHeight / scrollHeight) * clientHeight)
-    const thumbTop = (scrollTop / (scrollHeight - clientHeight)) * (clientHeight - thumbH)
+    // size and place the thumb within the track's own inner height (it's
+    // shorter than the scroll area), so it never runs past the track's border
+    const trackH = track.clientHeight
+    const thumbH = Math.min(trackH, Math.max(30, (clientHeight / scrollHeight) * trackH))
+    const scrollable = scrollHeight - clientHeight
+    const progress = scrollable > 0 ? Math.min(1, Math.max(0, scrollTop / scrollable)) : 0
     setScrollThumbHeight(thumbH)
-    setScrollThumbTop(isNaN(thumbTop) ? 0 : thumbTop)
+    setScrollThumbTop(progress * (trackH - thumbH))
   }
 
   // progress bar shows how far through the 10 levels the goal has come
@@ -197,8 +204,17 @@ function GoalsPage() {
           <div className="goals-header-card">
             <svg width="100%" height="100%" viewBox="0 0 858 116" fill="none" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
               <path d="M152.993 1.5L775.594 33.1045L854.458 114.5H1.5V1.5H152.993Z"
-                fill="url(#hcGrad)" fillOpacity="0.2" stroke="#916FF1" strokeWidth="3"/>
+                fill="url(#hcGrad)" fillOpacity="0.22"/>
+              {/* glass sheen: light across the upper part, clear lower down */}
+              <path d="M152.993 1.5L775.594 33.1045L854.458 114.5H1.5V1.5H152.993Z" fill="url(#hcSheen)"/>
+              <path d="M152.993 1.5L775.594 33.1045L854.458 114.5H1.5V1.5H152.993Z"
+                fill="none" stroke="#916FF1" strokeWidth="3"/>
               <defs>
+                <linearGradient id="hcSheen" x1="0" y1="0" x2="0.15" y2="1">
+                  <stop offset="0" stopColor="#FFFFFF" stopOpacity="0.16" />
+                  <stop offset="0.45" stopColor="#FFFFFF" stopOpacity="0.04" />
+                  <stop offset="1" stopColor="#FFFFFF" stopOpacity="0" />
+                </linearGradient>
                 <linearGradient id="hcGrad" x1="0" y1="58" x2="858" y2="58" gradientUnits="userSpaceOnUse">
                   <stop stopColor="#4C4269"/>
                   <stop offset="1" stopColor="#9682CF"/>
@@ -242,6 +258,16 @@ function GoalsPage() {
         </div>
 
         <div className="goals-filebox-wrap">
+          {/* frosted body of the file frame; its outline is drawn on top below */}
+          <svg className="goals-filebox-body" viewBox="0 0 1590 877" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="fbBody" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="rgba(46, 35, 82, 0.52)" />
+                <stop offset="1" stopColor="rgba(20, 15, 38, 0.64)" />
+              </linearGradient>
+            </defs>
+            <path d="M1.5 1.5H1567.66L1485.55 854.71H1.5V1.5Z" fill="url(#fbBody)" />
+          </svg>
           <div className="goals-filebox-inner">
             <div className="goals-filebox-header-zone" />
 
@@ -252,9 +278,37 @@ function GoalsPage() {
                 goals.map(goal => (
                   <div className="goal-row-wrap" key={goal.id}>
                     <svg className="goal-row-svg" viewBox="0 0 1263 109" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+                      {/* glass edge: a hairline that catches the light at the top
+                          corners, fades down the sides and settles faint along the
+                          bottom. The top edge is drawn on its own so it can fade out
+                          across the middle instead of running unbroken. */}
+                      <defs>
+                        <linearGradient id={`edge-${goal.id}`} x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0" stopColor="#E4DAFF" stopOpacity={starred === goal.id ? '0.85' : '0.6'} />
+                          <stop offset="0.5" stopColor="#C1AAFF" stopOpacity="0.22" />
+                          <stop offset="1" stopColor="#C1AAFF" stopOpacity="0.32" />
+                        </linearGradient>
+                        {/* top edge: full strength from each corner, holding for
+                            about a fifth of the width, then fading out before the middle */}
+                        {/* sized in the card's own units: a flat line has no height, so a
+                            gradient sized to its box would not be drawn at all */}
+                        <linearGradient id={`top-${goal.id}`} gradientUnits="userSpaceOnUse" x1="24.7303" y1="0" x2="1263" y2="0">
+                          <stop offset="0" stopColor="#E4DAFF" stopOpacity={starred === goal.id ? '0.85' : '0.6'} />
+                          <stop offset="0.18" stopColor="#E4DAFF" stopOpacity={starred === goal.id ? '0.7' : '0.48'} />
+                          <stop offset="0.4" stopColor="#E4DAFF" stopOpacity="0" />
+                          <stop offset="0.6" stopColor="#E4DAFF" stopOpacity="0" />
+                          <stop offset="0.82" stopColor="#E4DAFF" stopOpacity={starred === goal.id ? '0.7' : '0.48'} />
+                          <stop offset="1" stopColor="#E4DAFF" stopOpacity={starred === goal.id ? '0.85' : '0.6'} />
+                        </linearGradient>
+                      </defs>
                       <path d="M0 109H1215.39L1263 0H24.7303L0 109Z"
-                        fill={starred === goal.id ? "rgba(145,111,241,0.30)" : "rgba(79,66,118,0.20)"}
-                        strokeWidth="0"/>
+                        fill={starred === goal.id ? "rgba(145,111,241,0.30)" : "rgba(79,66,118,0.20)"}/>
+                      {/* sides and bottom */}
+                      <path d="M1263 0L1215.39 109H0L24.7303 0" fill="none"
+                        stroke={`url(#edge-${goal.id})`} strokeWidth="1.25" vectorEffect="non-scaling-stroke"/>
+                      {/* top: the same thin line as the sides, fading out before the middle */}
+                      <path d="M24.7303 0H1263" fill="none"
+                        stroke={`url(#top-${goal.id})`} strokeWidth="1.25" vectorEffect="non-scaling-stroke"/>
                     </svg>
                     <div className="goal-row-content">
                       <div className="goal-name-wrap">
@@ -290,26 +344,21 @@ function GoalsPage() {
                         <button
                           className={`goal-action-btn ${starred === goal.id ? 'goal-starred' : ''}`}
                           onClick={() => handleStarGoal(goal.id)}
+                          aria-label={starred === goal.id ? 'Unstar goal' : 'Star goal'}
+                          aria-pressed={starred === goal.id}
                         >
-                          <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="5" y="5" width="70" height="70" rx="35"
-                              fill="#4C4269" fillOpacity={starred === goal.id ? "0.7" : "0.2"}/>
-                            <rect x="5" y="5" width="70" height="70" rx="35"
-                              stroke={starred === goal.id ? "#C1AAFF" : "#916FF1"}
-                              strokeWidth={starred === goal.id ? "2.5" : "1.5"}/>
+                          <svg viewBox="18 18 44 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                             <path d="M49.4161 37.6L48.9307 39.8H43.3486C43.0267 39.8 42.7181 39.9159 42.4905 40.1222C42.2629 40.3285 42.1351 40.6083 42.1351 40.9C42.1351 41.1917 42.2629 41.4715 42.4905 41.6778C42.7181 41.8841 43.0267 42 43.3486 42H48.4453L46.0183 53H40.9216C40.5997 53 40.2911 53.1159 40.0635 53.3222C39.8359 53.5285 39.7081 53.8083 39.7081 54.1C39.7081 54.3917 39.8359 54.6715 40.0635 54.8778C40.2911 55.0841 40.5997 55.2 40.9216 55.2H45.5329L44.5621 59.6C44.5621 60.767 44.0507 61.8861 43.1404 62.7113C42.2301 63.5364 40.9954 64 39.7081 64C38.4207 64 37.1861 63.5364 36.2757 62.7113C35.3654 61.8861 34.854 60.767 34.854 59.6L32.427 48.6H36.0675C36.3894 48.6 36.698 48.4841 36.9256 48.2778C37.1532 48.0715 37.281 47.7917 37.281 47.5C37.281 47.2083 37.1532 46.9285 36.9256 46.7222C36.698 46.5159 36.3894 46.4 36.0675 46.4H31.9416L30 37.6C30 34.96 32.2571 32.694 35.5579 31.638L32.1843 27.216C32.0033 26.9779 31.876 26.7098 31.8098 26.427C31.7435 26.1441 31.7396 25.8522 31.7982 25.568C31.8569 25.2838 31.9769 25.013 32.1515 24.771C32.326 24.529 32.5516 24.3207 32.8153 24.158C33.3434 23.8262 33.9951 23.6978 34.6275 23.8009C35.2599 23.904 35.8214 24.2302 36.1889 24.708L37.281 26.16V22.2C37.281 21.6165 37.5368 21.0569 37.9919 20.6444C38.4471 20.2318 39.0644 20 39.7081 20C40.3517 20 40.9691 20.2318 41.4242 20.6444C41.8794 21.0569 42.1351 21.6165 42.1351 22.2V27.216L45.7756 23.388C46.5765 22.464 48.1298 22.354 49.1492 23.146C50.1685 23.916 50.2899 25.302 49.4161 26.248L44.2466 31.77C47.3289 32.87 49.4161 35.07 49.4161 37.6Z"
-                              fill={starred === goal.id ? "#C1AAFF" : "#916FF1"}/>
+                              fill="currentColor"/>
                           </svg>
                         </button>
-                        <button className="goal-action-btn" onClick={() => openExpanded(goal)}>
-                          <svg viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="5" y="5" width="70" height="70" rx="35" fill="#4C4269" fillOpacity="0.2"/>
-                            <rect x="5" y="5" width="70" height="70" rx="35" stroke="#916FF1" strokeWidth="1.5"/>
-                            <path d="M40 23V58M30 44.875L40 58L50 44.875" stroke="#C1AAFF" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round"/>
+                        <button className="goal-action-btn" onClick={() => openExpanded(goal)} aria-label="Open goal tasks">
+                          <svg viewBox="18 18 44 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M40 23V58M30 44.875L40 58L50 44.875" stroke="currentColor" strokeWidth="5" strokeLinecap="round" strokeLinejoin="round"/>
                           </svg>
                         </button>
-                        <button className="goal-action-btn" onClick={() => handleDeleteGoal(goal.id)}>
-                          <img src={trashIcon} alt="delete" style={{ width: '100%', height: '100%' }}/>
+                        <button className="goal-action-btn" onClick={() => handleDeleteGoal(goal.id)} aria-label="Delete goal">
+                          <img src={trashIcon} alt="" className="goal-action-glyph"/>
                         </button>
                       </div>
                     </div>
@@ -318,7 +367,7 @@ function GoalsPage() {
               )}
             </div>
 
-            <div className="goals-scrollbar-track">
+            <div className="goals-scrollbar-track" ref={trackRef}>
               <div className="goals-scrollbar-thumb" style={{ height: `${scrollThumbHeight}px`, top: `${scrollThumbTop}px` }}/>
             </div>
           </div>
@@ -333,19 +382,7 @@ function GoalsPage() {
       {expandedGoal && (
         <div className="modal-overlay" onClick={closeExpanded}>
           <div className="expanded-goal-box" onClick={e => e.stopPropagation()}>
-            <svg className="expanded-goal-frame" viewBox="0 0 1100 696" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="14.3869" y="15.3021" width="1070.09" height="661.091" rx="32.0457" fill="#382A60" fillOpacity="0.2" stroke="#916FF1" strokeWidth="3.90864"/>
-              <path d="M32.6047 8.00756C29.6231 8.00968 26.8897 9.67105 25.5134 12.3178L7.96124 46.0714C4.22638 53.2537 12.2915 60.8054 19.2076 56.6017L74.7854 22.821C81.7015 18.6174 78.7218 7.97471 70.6304 7.98048L32.6047 8.00756Z" fill="#1C1927"/>
-              <path d="M32.604 6.50695C29.0634 6.50948 25.8174 8.48246 24.183 11.6253L6.63093 45.3794C2.19595 53.9083 11.7735 62.8755 19.9862 57.8837L75.5636 24.1033C83.7763 19.1115 80.2383 6.47355 70.6301 6.48009L32.604 6.50695Z" stroke="#916FF1" strokeWidth="3"/>
-              <path d="M1066.56 8.00756C1069.54 8.00968 1072.27 9.67105 1073.65 12.3178L1091.2 46.0714C1094.94 53.2537 1086.87 60.8054 1079.96 56.6017L1024.38 22.821C1017.46 18.6174 1020.44 7.97471 1028.53 7.98048L1066.56 8.00756Z" fill="#1C1927"/>
-              <path d="M1066.56 6.50695C1070.1 6.50948 1073.35 8.48246 1074.98 11.6253L1092.53 45.3794C1096.97 53.9083 1087.39 62.8755 1079.18 57.8837L1023.6 24.1033C1015.39 19.1115 1018.93 6.47355 1028.53 6.48009L1066.56 6.50695Z" stroke="#916FF1" strokeWidth="3"/>
-              <path d="M1066.56 684.282C1069.54 684.28 1072.27 682.618 1073.65 679.971L1091.2 646.218C1094.94 639.035 1086.87 631.484 1079.96 635.687L1024.38 669.468C1017.46 673.672 1020.44 684.314 1028.53 684.309L1066.56 684.282Z" fill="#1C1927"/>
-              <path d="M1066.56 685.782C1070.1 685.78 1073.35 683.807 1074.98 680.664L1092.53 646.91C1096.97 638.381 1087.39 629.414 1079.18 634.405L1023.6 668.186C1015.39 673.178 1018.93 685.816 1028.53 685.809L1066.56 685.782Z" stroke="#916FF1" strokeWidth="3"/>
-              <path d="M32.6047 684.282C29.6231 684.28 26.8897 682.618 25.5134 679.971L7.96124 646.218C4.22638 639.035 12.2915 631.484 19.2076 635.687L74.7854 669.468C81.7015 673.672 78.7218 684.314 70.6304 684.309L32.6047 684.282Z" fill="#1C1927"/>
-              <path d="M32.604 685.782C29.0634 685.78 25.8174 683.807 24.183 680.664L6.63093 646.91C2.19595 638.381 11.7735 629.414 19.9862 634.405L75.5636 668.186C83.7763 673.178 80.2383 685.816 70.6301 685.809L32.604 685.782Z" stroke="#916FF1" strokeWidth="3"/>
-              <path d="M553.32 56.0348C550.674 57.7377 547.275 57.731 544.635 56.0175L485.601 17.7102C478.91 13.3684 481.99 2.98411 489.965 3L608.142 3.23555C616.116 3.25144 619.166 13.6479 612.463 17.963L553.32 56.0348Z" fill="#1C1927" fillOpacity="0.2"/>
-              <path d="M554.132 57.2961C550.991 59.3184 546.954 59.3103 543.819 57.2756L484.785 18.9684C476.84 13.8124 480.498 1.4813 489.967 1.50017L608.144 1.73571C617.613 1.75459 621.236 14.1002 613.276 19.2245L554.132 57.2961Z" stroke="#916FF1" strokeWidth="3"/>
-            </svg>
+            <ModalFrame className="expanded-goal-frame" />
 
             <div className="expanded-goal-content">
               <h2 className="expanded-goal-title">{expandedGoal.name}: Level {expandedGoal.level}</h2>

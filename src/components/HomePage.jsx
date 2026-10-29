@@ -296,7 +296,11 @@ function HomePage() {
   }
 
   async function handleConfirm() {
-    if (confirmUnlock > 0 || confirmed || settings.pauseProgression) return
+    if (!canConfirm || settings.pauseProgression) return
+    // let any tick still being saved reach the server first
+    for (let i = 0; i < 60 && checkInFlight.current.size > 0; i++) {
+      await new Promise(r => setTimeout(r, 50))
+    }
     try {
       const result = await confirmDaily()
       if (result.error) return
@@ -425,7 +429,9 @@ function HomePage() {
   const unlockedTier = Math.min(level, 10)
   const emptyTier = !!goal && !(goal.levelTasks?.[unlockedTier] || []).some(t => t.title?.trim())
 
-  const canConfirm = confirmUnlock === 0 && !confirmed
+  // confirming needs every task ticked as well as the unlock time
+  const allTicked = dailyTasks.every((_, i) => checked[i])
+  const canConfirm = confirmUnlock === 0 && !confirmed && allTicked
   const xpPercent = Math.min(xpAnim, 100) / 100
   const started = !!dailyState?.started
 
@@ -614,7 +620,11 @@ function HomePage() {
               onClick={handleConfirm}
               disabled={!canConfirm}
             >
-              <span>{canConfirm ? 'Confirm Tasks Done' : `Confirm in ${formatTime(confirmUnlock)}`}</span>
+              <span>
+                {confirmUnlock > 0
+                  ? `Confirm in ${formatTime(confirmUnlock)}`
+                  : allTicked ? 'Confirm Tasks Done' : 'Tick all tasks to confirm'}
+              </span>
             </button>
           )}
         </div>
