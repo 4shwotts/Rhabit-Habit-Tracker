@@ -3739,3 +3739,21 @@ body {
   border-color: var(--holo-edge-bright);
   outline: none;
 }
+
+/* ---- LEVEL TAB PROGRESS BADGE ("0/3" / "✓"): larger and higher contrast ---- */
+:is(.setup-page, .expanded-goal-box) .level-tab-badge {
+  font-size: 16px;
+  min-width: 42px;
+  height: 26px;
+  padding: 0 7px;
+  letter-spacing: 0.5px;
+  color: #FFFFFF;
+  background: rgba(220, 70, 95, 0.45);
+  border: 1px solid #FF9AAA;
+}
+
+:is(.setup-page, .expanded-goal-box) .level-tab-badge.done {
+  color: #FFFFFF;
+  background: rgba(145, 111, 241, 0.55);
+  border-color: #D6C6FF;
+}
