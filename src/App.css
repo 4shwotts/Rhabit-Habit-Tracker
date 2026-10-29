@@ -3757,3 +3757,36 @@ body {
   background: rgba(145, 111, 241, 0.55);
   border-color: #D6C6FF;
 }
+
+/* level tabs: a more visible resting edge (hover and the active tab still go brighter) */
+:is(.setup-page, .expanded-goal-box) .level-tab:not(.active):not(:hover) {
+  border-color: rgba(193, 170, 255, 0.78);
+}
+
+/* ---- SETUP WARNING: larger and easier to read ----
+   Sentence case, no colour fringing on the letters, key phrases in lilac. */
+.setup-page .setup-warning {
+  font-size: 20px;
+  line-height: 30px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  word-spacing: 2px;
+  color: #FFFFFF;
+  text-shadow: none;
+}
+
+.setup-page .setup-warning strong {
+  font-weight: 700;
+  color: #C1AAFF;
+}
+
+.setup-page .setup-warning-label {
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: #FF9AAA;
+}
+
+/* short laptop screens: still a step up from before, but keeps setup on one screen */
+@media (max-height: 820px) {
+  .setup-page .setup-warning { font-size: 18px; line-height: 26px; }
+}

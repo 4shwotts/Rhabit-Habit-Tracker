@@ -164,9 +164,12 @@ function SetupPage() {
           />
         </div>
 
+        {/* sentence case reads more easily than all caps; the label and the
+            key phrases are picked out instead */}
         <p className="setup-warning">
-          WARNING: THE SYSTEM <strong>DOESN'T TOLERATE FAILURE</strong>. YOU <strong>MUST COMPLETE ALL</strong> DAILY OBJECTIVES
-          <br />IF YOU <strong>FAIL</strong> YOU MUST FACE THE <strong>CONSEQUENCES</strong> OF <strong>YOUR</strong> ACTIONS
+          <span className="setup-warning-label">WARNING:</span> The system <strong>doesn't tolerate failure</strong>.
+          You <strong>must complete all</strong> daily objectives.
+          <br />If you <strong>fail</strong>, you must face the <strong>consequences</strong> of your actions.
         </p>
 
         {error && <p className="auth-error" role="alert">{error}</p>}
