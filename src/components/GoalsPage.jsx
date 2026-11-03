@@ -4,7 +4,7 @@ import cornerFrame from '../assets/images/cornerframe.svg'
 import trashIcon from '../assets/icons/TrashGlyph.svg'
 import LevelTaskEditor from './LevelTaskEditor'
 import {
-  getUser, getGoals, createGoal, updateGoalName,
+  getGoals, createGoal, updateGoalName,
   deleteGoal, starGoal, unstarGoal, saveGoalTasks
 } from '../api'
 import ModalFrame from './ModalFrame'
@@ -13,7 +13,6 @@ function GoalsPage() {
   const navigate = useNavigate()
 
   const [loading, setLoading] = useState(true)
-  const [user, setUser] = useState(null)
   const [goals, setGoals] = useState([])
   const [starred, setStarred] = useState(null)
   const [expandedGoal, setExpandedGoal] = useState(null)
@@ -26,8 +25,7 @@ function GoalsPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [userData, goalsData] = await Promise.all([getUser(), getGoals()])
-        setUser(userData)
+        const goalsData = await getGoals()
         setGoals(goalsData.map(g => ({ ...g, editingName: false })))
         const starredGoal = goalsData.find(g => g.starred)
         if (starredGoal) setStarred(starredGoal.id)

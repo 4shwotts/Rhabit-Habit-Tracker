@@ -10,62 +10,32 @@ function formatTime(seconds) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-function PenaltyModal({ onClose, onConfirm, onPenalty, penaltyData, autoTriggered }) {
-  const [taskTimer, setTaskTimer] = useState(0)
-  const [unlockTimer, setUnlockTimer] = useState(0)
-  const [canConfirm, setCanConfirm] = useState(false)
+function PenaltyModal({ onConfirm, onPenalty, penaltyData, autoTriggered }) {
+  // a clock ticking once a second; both countdowns are worked out from it and
+  // the stored start time, so they survive page refreshes
+  const [now, setNow] = useState(() => Date.now())
   // the player ticks the penalty task off before they can confirm it
   const [ticked, setTicked] = useState(false)
-  const taskRef = useRef(null)
-  const unlockRef = useRef(null)
+  // onPenalty is called once, when the task timer reaches zero
+  const expired = useRef(false)
 
   useEffect(() => {
-    if (!penaltyData) return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
 
-    // calculate remaining time from the stored timestamp so it survives page refreshes
-    const startedAt = new Date(penaltyData.started_at)
-    const now = new Date()
-    const elapsed = Math.floor((now - startedAt) / 1000)
-    const taskRemaining = Math.max(0, penaltyData.task_timer_seconds - elapsed)
+  const elapsed = penaltyData ? Math.floor((now - new Date(penaltyData.started_at)) / 1000) : 0
+  const taskTimer = penaltyData ? Math.max(0, penaltyData.task_timer_seconds - elapsed) : 0
+  // unlock time comes from the server, which also enforces it
+  const unlockAt = penaltyData ? penaltyData.task_timer_seconds - (penaltyData.unlock_before_end ?? 60) : 0
+  const unlockTimer = Math.max(0, unlockAt - elapsed)
+  const canConfirm = !!penaltyData && unlockTimer === 0
 
-    // unlock time comes from the server, which also enforces it
-    const unlockThreshold = penaltyData.task_timer_seconds - (penaltyData.unlock_before_end ?? 60)
-    const unlockRemaining = Math.max(0, unlockThreshold - elapsed)
-
-    setTaskTimer(taskRemaining)
-    setUnlockTimer(unlockRemaining)
-    if (unlockRemaining === 0) setCanConfirm(true)
-
-    taskRef.current = setInterval(() => {
-      setTaskTimer(prev => {
-        if (prev <= 1) {
-          clearInterval(taskRef.current)
-          clearInterval(unlockRef.current)
-          onPenalty()
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    if (unlockRemaining > 0) {
-      unlockRef.current = setInterval(() => {
-        setUnlockTimer(prev => {
-          if (prev <= 1) {
-            clearInterval(unlockRef.current)
-            setCanConfirm(true)
-            return 0
-          }
-          return prev - 1
-        })
-      }, 1000)
-    }
-
-    return () => {
-      clearInterval(taskRef.current)
-      clearInterval(unlockRef.current)
-    }
-  }, [penaltyData])
+  useEffect(() => {
+    if (!penaltyData?.active || taskTimer > 0 || expired.current) return
+    expired.current = true
+    onPenalty()
+  }, [penaltyData, taskTimer, onPenalty])
 
   const ready = canConfirm && ticked
 

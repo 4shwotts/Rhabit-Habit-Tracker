@@ -1,6 +1,8 @@
 // Central place for reading environment variables, so every module agrees on
 // defaults and production fails fast if something essential is missing.
-require('dotenv').config()
+// Tests never read server/.env: it points at the real database, so the test
+// setup (tests/setup-env.js) provides everything instead.
+if (process.env.NODE_ENV !== 'test') require('dotenv').config()
 
 const isProduction = process.env.NODE_ENV === 'production'
 

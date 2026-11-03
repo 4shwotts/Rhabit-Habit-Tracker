@@ -37,7 +37,9 @@ function getMaxTaskLevel(userLevel) {
 // as the user levels up, easier tasks are phased out to keep difficulty appropriate
 function getMinTaskLevel(userLevel) {
   if (userLevel <= 3) return 1
-  if (userLevel === 10) return 10
+  // from level 10 on only the top tier is left (tiers stop at 10, so going on
+  // with `level - 2` would ask for tiers that don't exist)
+  if (userLevel >= 10) return 10
   return userLevel - 2
 }
 
@@ -82,23 +84,34 @@ function windowForTasks(tasks) {
   return getWindowSeconds(taskLevel)
 }
 
+// Most XP a single action can add or remove: one level's worth. The largest
+// real change is 15 (three tasks, or a penalty), so this only stops a bug from
+// awarding or wiping a huge amount in one go.
+const MAX_XP_PER_ACTION = XP_PER_LEVEL
+
+// XP amounts must be whole numbers of 0 or more. Anything else is a bug in the
+// caller, so fail loudly (the request rolls back) rather than store NaN or
+// negative XP.
+function checkAmount(amount) {
+  if (!Number.isInteger(amount) || amount < 0) {
+    throw new RangeError(`XP amount must be a whole number of 0 or more, got ${amount}`)
+  }
+  return Math.min(amount, MAX_XP_PER_ACTION)
+}
+
+// Levels are worked out from the total XP earned since level 1, with division
+// rather than a loop, so the cost is the same whatever the amount.
+const totalXp = (xp, level) => (level - 1) * XP_PER_LEVEL + xp
+const fromTotal = total => ({ xp: total % XP_PER_LEVEL, level: Math.floor(total / XP_PER_LEVEL) + 1 })
+
 // Removes `amount` XP, dropping levels as needed but never below level 1 / 0 XP.
 function deductXp(xp, level, amount) {
-  let newXp = xp - amount
-  let newLevel = level
-  while (newXp < 0) {
-    if (newLevel > 1) { newLevel -= 1; newXp = XP_PER_LEVEL + newXp }
-    else { newXp = 0; break }
-  }
-  return { xp: newXp, level: newLevel }
+  return fromTotal(Math.max(0, totalXp(xp, level) - checkAmount(amount)))
 }
 
 // Adds `amount` XP, rolling over into new levels.
 function addXp(xp, level, amount) {
-  let newXp = xp + amount
-  let newLevel = level
-  while (newXp >= XP_PER_LEVEL) { newXp -= XP_PER_LEVEL; newLevel++ }
-  return { xp: newXp, level: newLevel }
+  return fromTotal(totalXp(xp, level) + checkAmount(amount))
 }
 
 // always guarantee one task from the highest unlocked tier so progression feels meaningful,
@@ -148,6 +161,7 @@ module.exports = {
   PENALTY_XP,
   REFRESH_COST,
   XP_PER_LEVEL,
+  MAX_XP_PER_ACTION,
   CONFIRM_UNLOCK_BEFORE_END,
   TEST_TIMER_SECONDS,
   LATE_PENALTY_MIN_SECONDS,

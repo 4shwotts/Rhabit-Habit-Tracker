@@ -6,7 +6,7 @@
 const express = require('express')
 const bcrypt = require('bcrypt')
 const router = express.Router()
-const { query, withTransaction } = require('../db')
+const { withTransaction } = require('../db')
 const { requireAuth, requireVerified } = require('../middleware/requireAuth')
 const limits = require('../middleware/rateLimits')
 const { validate, z, fields } = require('../lib/validate')

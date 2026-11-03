@@ -12,11 +12,13 @@ import PenaltyModal from './PenaltyModal'
 import {
   getUser, getGoals, getDaily, startDaily, checkTask,
   confirmDaily, refreshTask, triggerPenalty,
-  failPenalty, confirmPenalty, updateSettings
+  failPenalty, updateSettings
 } from '../api'
 
 // display only — the server decides what a refresh actually costs
 const REFRESH_COST = 5
+// how long to wait before asking for the penalty again if a request failed
+const PENALTY_RETRY_MS = 5000
 
 function formatTime(seconds) {
   const h = Math.floor(seconds / 3600)
@@ -41,7 +43,6 @@ function HomePage() {
   const [dailyTasks, setDailyTasks] = useState([])
   const [dailyState, setDailyState] = useState(null)
   const [penaltyState, setPenaltyState] = useState(null)
-  const [windowSeconds, setWindowSeconds] = useState(10800)
   const [dissolvingIndices, setDissolvingIndices] = useState([])
   const [showTasksDone, setShowTasksDone] = useState(false)
   const [endMessage, setEndMessage] = useState(null)
@@ -62,6 +63,8 @@ function HomePage() {
   const [level, setLevel] = useState(1)
   const [xpAnim, setXpAnim] = useState(0)
   const [timeLeft, setTimeLeft] = useState(null)
+  // when today's window ends (ms since 1970), once it has started
+  const [windowEndsAt, setWindowEndsAt] = useState(null)
   const [confirmUnlock, setConfirmUnlock] = useState(null)
   const [checked, setChecked] = useState([false, false, false])
   const [confirmed, setConfirmed] = useState(false)
@@ -77,6 +80,9 @@ function HomePage() {
   const checkedRef = useRef([false, false, false])
   const savedCheckedRef = useRef([false, false, false])
   const checkInFlight = useRef(new Set())
+  // asking for the penalty: never while a request is in flight or once it has
+  // started, and a refused request is retried every few seconds, not every tick
+  const penaltyRequest = useRef({ busy: false, started: false, last: 0 })
 
   useEffect(() => {
     let lastDate = new Date().toDateString()
@@ -131,7 +137,6 @@ function HomePage() {
         setDailyTasks(tasks)
         setDailyState(state)
         setPenaltyState(penalty)
-        setWindowSeconds(ws)
 
         let activeGoal = null
         if (userData.active_goal_id) {
@@ -189,6 +194,7 @@ function HomePage() {
           const elapsed = Math.floor((Date.now() - new Date(state.window_start)) / 1000)
           const remaining = Math.max(0, ws - elapsed)
           setTimeLeft(remaining)
+          setWindowEndsAt(new Date(state.window_start).getTime() + ws * 1000)
           const confirmUnlockAt = ws - confirmUnlockBeforeEnd
           const confirmRemaining = Math.max(0, confirmUnlockAt - elapsed)
           setConfirmUnlock(confirmRemaining)
@@ -212,31 +218,13 @@ function HomePage() {
     load()
   }, [navigate])
 
+  // the XP bar eases towards the real value, snapping to it once close enough
   useEffect(() => {
+    if (xpAnim === xp) return
     const diff = xp - xpAnim
-    if (Math.abs(diff) < 0.5) { setXpAnim(xp); return }
-    const t = setTimeout(() => setXpAnim(p => p + diff * 0.1), 16)
+    const t = setTimeout(() => setXpAnim(Math.abs(diff) < 0.5 ? xp : xpAnim + diff * 0.1), 16)
     return () => clearTimeout(t)
   }, [xp, xpAnim])
-
-  useEffect(() => {
-    if (!dailyState?.started || confirmed || timeLeft === null || timeLeft <= 0) return
-    if (timerRef.current) clearInterval(timerRef.current)
-
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current)
-          // read the ref: this interval was set up with an old `checked`
-          if (!checkedRef.current.every(Boolean)) handleTriggerPenalty()
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(timerRef.current)
-  }, [dailyState?.started, confirmed, timeLeft === null])
 
   useEffect(() => {
     if (!dailyState?.started || confirmed || confirmUnlock === null) return
@@ -257,6 +245,8 @@ function HomePage() {
     if (settings.pauseProgression) return
     try {
       const result = await startDaily()
+      if (result.error) return
+      setWindowEndsAt(Date.now() + (result.windowSeconds ?? timeLeft) * 1000)
       setDailyState(prev => ({ ...prev, started: 1, window_start: result.window_start }))
     } catch (err) {
       console.error('Failed to start:', err)
@@ -341,9 +331,18 @@ function HomePage() {
   }
 
   async function handleTriggerPenalty() {
+    const req = penaltyRequest.current
+    req.busy = true
+    req.last = Date.now()
     try {
-      await triggerPenalty()
+      const result = await triggerPenalty()
       const fresh = await getDaily()
+      // refused or failed: keep the pop-up closed; the window timer asks again
+      if (!fresh.penalty?.active) {
+        console.error('Penalty did not start:', result.error || 'no active penalty')
+        return
+      }
+      req.started = true
       setPenaltyState(fresh.penalty)
       setPenaltyTriggeredByTimer(true)
       setConfirmed(true)
@@ -353,8 +352,29 @@ function HomePage() {
       setTimeout(() => setShowPenalty(true), 500)
     } catch (err) {
       console.error('Failed to trigger penalty:', err)
+    } finally {
+      req.busy = false
     }
   }
+
+  // The window timer. Each second it works out what's left from the stored end
+  // time, so it can't drift and still notices a window that ended while the
+  // page was loading. Once time is up with tasks unticked it asks for the
+  // penalty (reading the ref, as `checked` may not have re-rendered yet).
+  useEffect(() => {
+    if (!dailyState?.started || confirmed || windowEndsAt === null) return
+
+    timerRef.current = setInterval(() => {
+      const left = Math.max(0, Math.ceil((windowEndsAt - Date.now()) / 1000))
+      setTimeLeft(left)
+      if (left > 0 || checkedRef.current.every(Boolean)) return
+      const req = penaltyRequest.current
+      if (req.busy || req.started || Date.now() - req.last < PENALTY_RETRY_MS) return
+      handleTriggerPenalty()
+    }, 1000)
+
+    return () => clearInterval(timerRef.current)
+  }, [dailyState?.started, confirmed, windowEndsAt])
 
   async function handlePenaltyFail() {
     try {
@@ -639,7 +659,6 @@ function HomePage() {
       )}
       {showPenalty && (
         <PenaltyModal
-          onClose={() => setShowPenalty(false)}
           onConfirm={handlePenaltySuccess}
           onPenalty={handlePenaltyFail}
           penaltyData={penaltyState}
