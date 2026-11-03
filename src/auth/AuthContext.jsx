@@ -43,12 +43,13 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  // initial check on page load: a fresh visit drops any leftover session and
-  // starts at login; a refresh of an already-logged-in tab carries on
+  // initial check on page load: a fresh visit drops this browser's leftover
+  // cookie and starts at login (without signing out other devices); a refresh
+  // of an already-logged-in tab carries on
   useEffect(() => {
     const check = visitIsLoggedIn()
       ? getMe()
-      : apiLogout().catch(() => {}).then(() => null)
+      : apiLogout({ thisBrowserOnly: true }).catch(() => {}).then(() => null)
     check
       .then(me => setUser(me))
       .catch(() => setUser(null))

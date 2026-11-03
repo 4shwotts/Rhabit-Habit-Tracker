@@ -8,7 +8,8 @@ export default defineConfig({
     // mirror the Vercel rewrite in development: the browser only ever talks to
     // the frontend origin, so the session cookie is first-party
     proxy: {
-      '/api': 'http://localhost:3001'
+      // API_PROXY_TARGET lets the end-to-end tests point at their own test API
+      '/api': process.env.API_PROXY_TARGET || 'http://localhost:3001'
     }
   }
 })

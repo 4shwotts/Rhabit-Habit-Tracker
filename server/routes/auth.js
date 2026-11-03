@@ -14,8 +14,9 @@ const { createFormToken, checkSignup } = require('../lib/botCheck')
 const { isAcceptableEmail } = require('../lib/emailDomain')
 const { setChallengeCookie, checkSecondFactor } = require('../lib/twoFactor')
 const {
-  setSessionCookie, clearSessionCookie, createOneTimeToken, hashToken
+  setSessionCookie, clearSessionCookie, readSessionToken, createOneTimeToken, hashToken
 } = require('../lib/auth')
+const config = require('../config')
 const {
   sendVerificationEmail, sendPasswordResetEmail, sendAccountExistsEmail
 } = require('../lib/email')
@@ -215,7 +216,24 @@ router.post('/login',
   }
 )
 
-router.post('/logout', validate(), (req, res) => {
+// Log out ends the session on the server as well as in the browser: bumping
+// token_version makes every session cookie issued so far invalid (on every
+// device), so a copied cookie stops working too. Signing in again issues a new
+// one. With no valid session there is nothing to revoke; the cookie is still cleared.
+//
+// `this_browser_only` is for the app's own clean-up when a new visit starts
+// (see AuthContext): it only drops this browser's cookie, so opening Rhabit in
+// a new tab or on another device doesn't sign you out everywhere else.
+const logoutBody = z.strictObject({ this_browser_only: z.boolean().optional() })
+
+router.post('/logout', validate({ body: logoutBody }), async (req, res) => {
+  const payload = readSessionToken(req.cookies?.[config.cookieName])
+  if (payload && !req.body.this_browser_only) {
+    await query(
+      'UPDATE users SET token_version = token_version + 1 WHERE id = $1 AND token_version = $2',
+      [parseInt(payload.sub, 10), payload.tv]
+    )
+  }
   clearSessionCookie(res)
   res.json({ success: true })
 })

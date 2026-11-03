@@ -6,15 +6,22 @@
 // Counters are kept in memory, which is fine for a single Render instance.
 // If the backend is ever scaled to several instances, switch to a shared store
 // (e.g. rate-limit-postgresql or Redis).
-const { rateLimit, ipKeyGenerator } = require('express-rate-limit')
+const { rateLimit, ipKeyGenerator, MemoryStore } = require('express-rate-limit')
+const config = require('../config')
 
 const MINUTE = 60 * 1000
 const HOUR = 60 * MINUTE
 
+// every limiter's counters, so automated tests can start each test afresh
+const stores = []
+
 function limiter({ windowMs, limit, message, keyGenerator, skipSuccessfulRequests = false }) {
+  const store = new MemoryStore()
+  stores.push(store)
   return rateLimit({
     windowMs,
     limit,
+    store,
     standardHeaders: 'draft-8',
     legacyHeaders: false,
     skipSuccessfulRequests,
@@ -36,7 +43,16 @@ function byEmail(prefix) {
 
 const TOO_MANY_ATTEMPTS = 'Too many attempts. Please wait a while and try again.'
 
+// Clears every counter. Throws outside tests, so limits can't be lifted in
+// production.
+async function resetRateLimitsForTests() {
+  if (!config.isTest) throw new Error('Rate limits can only be reset when NODE_ENV=test')
+  await Promise.all(stores.map(store => store.resetAll()))
+}
+
 module.exports = {
+  resetRateLimitsForTests,
+
   // whole API, per IP
   general: limiter({ windowMs: 15 * MINUTE, limit: 300 }),
 

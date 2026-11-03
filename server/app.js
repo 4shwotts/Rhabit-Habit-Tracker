@@ -39,6 +39,10 @@ app.use((req, res, next) => {
 app.use(express.json({ limit: '10kb' }))
 app.use(cookieParser())
 
+// end-to-end test helpers: only exist when NODE_ENV=test, and sit before the
+// general rate limit so resetting it is never itself limited
+if (config.isTest) app.use('/api/test', require('./routes/testSupport'))
+
 app.use('/api', limits.general)
 
 const authRoutes = require('./routes/auth')

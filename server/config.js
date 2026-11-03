@@ -5,6 +5,9 @@
 if (process.env.NODE_ENV !== 'test') require('dotenv').config()
 
 const isProduction = process.env.NODE_ENV === 'production'
+// automated tests only: switches on the test seams (email outbox, fake DNS,
+// rate limit reset). Can never be true at the same time as isProduction.
+const isTest = process.env.NODE_ENV === 'test'
 
 // Throws if the variable is missing in production, or in development when
 // there is no sensible dev fallback (e.g. DATABASE_URL).
@@ -27,6 +30,7 @@ function parseTrustProxy(value, production) {
 
 const config = {
   isProduction,
+  isTest,
   port: parseInt(process.env.PORT, 10) || 3001,
 
   // Neon Postgres connection string (use a separate Neon branch for local dev)

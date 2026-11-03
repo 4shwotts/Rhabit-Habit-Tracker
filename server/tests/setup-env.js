@@ -15,7 +15,7 @@ process.env.BREVO_API_KEY = ''
 // default (CI sets it); DATABASE_URL itself is ignored on purpose, as it may be
 // the live one.
 const testDatabaseUrl = process.env.TEST_DATABASE_URL ||
-  'postgres://postgres:postgres@localhost:5433/rhabit_test'
+  'postgres://postgres:postgres@localhost:5434/rhabit_test'
 
 // refuse anything that looks like a hosted (production) database
 if (/neon\.tech|render\.com|amazonaws\.com/i.test(testDatabaseUrl)) {

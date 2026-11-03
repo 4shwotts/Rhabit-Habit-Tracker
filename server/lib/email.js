@@ -33,7 +33,22 @@ function button(url, label) {
 <p style="font-size:12px;color:#A89BC2;word-break:break-all;">Or paste this link into your browser:<br>${escapeHtml(url)}</p>`
 }
 
+// Automated tests only (NODE_ENV=test): emails are kept here instead of being
+// sent or printed, so tests can read the links in them.
+const testOutbox = []
+
+// Returns the test outbox. Throws outside tests, so it can't be used to read
+// real users' emails.
+function getTestOutbox() {
+  if (!config.isTest) throw new Error('The email outbox only exists when NODE_ENV=test')
+  return testOutbox
+}
+
 async function sendEmail({ to, subject, html, text }) {
+  if (config.isTest) {
+    testOutbox.push({ to, subject, text })
+    return
+  }
   if (!config.brevoApiKey) {
     // dev fallback — never reached in production (config.js refuses to start)
     console.log(`\n[email:dev] To: ${to}\n[email:dev] Subject: ${subject}\n${text}\n`)
@@ -103,4 +118,4 @@ function sendAccountExistsEmail(to) {
   })
 }
 
-module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendAccountExistsEmail }
+module.exports = { sendVerificationEmail, sendPasswordResetEmail, sendAccountExistsEmail, getTestOutbox }

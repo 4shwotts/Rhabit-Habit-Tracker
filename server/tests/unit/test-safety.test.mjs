@@ -5,6 +5,7 @@ import { describe, it, expect } from 'vitest'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
+import os from 'node:os'
 
 const serverDir = fileURLToPath(new URL('../..', import.meta.url))
 const NEON_URL = 'postgres://owner:s3cret@ep-quiet-wave-123456.eu-west-2.aws.neon.tech/neondb?sslmode=require'
@@ -37,7 +38,7 @@ describe('test database guard', () => {
       { DATABASE_URL: NEON_URL }
     )
     expect(r.status).toBe(0)
-    expect(r.out).toContain('URL=postgres://postgres:postgres@localhost:5433/rhabit_test')
+    expect(r.out).toContain('URL=postgres://postgres:postgres@localhost:5434/rhabit_test')
     expect(r.out).not.toContain('neon.tech')
   })
 
@@ -49,6 +50,35 @@ describe('test database guard', () => {
     expect(r.status).not.toBe(0)
     expect(r.stdout + r.stderr).toContain('Refusing to run tests against a hosted database')
     expect(r.stdout + r.stderr).not.toMatch(/Tests\s+\d+ passed/)
+  })
+})
+
+describe('test-only routes', () => {
+  // starts the real app in its own process (from a folder with no .env) and
+  // asks for a test route
+  function statusOfTestRoute(env) {
+    const appPath = JSON.stringify(path.join(serverDir, 'app.js'))
+    const code = `
+      const app = require(${appPath})
+      const server = app.listen(0, async () => {
+        const res = await fetch('http://127.0.0.1:' + server.address().port + '/api/test/emails?to=a@b.com')
+        console.log('STATUS=' + res.status)
+        process.exit(0)
+      })`
+    const r = spawnSync(process.execPath, ['-e', code], {
+      cwd: os.tmpdir(), env: cleanEnv({ DATABASE_URL: 'postgres://nobody@127.0.0.1:1/none', ...env }), encoding: 'utf8'
+    })
+    return r.stdout.match(/STATUS=(\d+)/)?.[1]
+  }
+
+  it.each([
+    ['development', { NODE_ENV: 'development' }],
+    ['production', {
+      NODE_ENV: 'production', JWT_SECRET: 'x'.repeat(40), TOTP_ENCRYPTION_KEY: 'y'.repeat(40),
+      BREVO_API_KEY: 'not-used', EMAIL_FROM: 'noreply@rhabit-tests.com'
+    }]
+  ])('do not exist in %s', (_, env) => {
+    expect(statusOfTestRoute(env)).toBe('404')
   })
 })
 

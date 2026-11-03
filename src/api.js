@@ -60,8 +60,10 @@ export function login(email, password) {
   return request('/auth/login', { method: 'POST', body: { email, password } })
 }
 
-export function logout() {
-  return request('/auth/logout', { method: 'POST' })
+// Log out ends the session everywhere; `thisBrowserOnly` just drops this
+// browser's cookie (used when a new visit starts, see AuthContext)
+export function logout({ thisBrowserOnly = false } = {}) {
+  return request('/auth/logout', { method: 'POST', body: thisBrowserOnly ? { this_browser_only: true } : undefined })
 }
 
 export function verifyEmail(token) {

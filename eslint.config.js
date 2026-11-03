@@ -25,6 +25,12 @@ export default defineConfig([
     extends: [js.configs.recommended],
     languageOptions: { globals: globals.node },
   },
+  // end-to-end tests and their test stack (Node, ES modules)
+  {
+    files: ['e2e/**/*.{js,mjs}'],
+    extends: [js.configs.recommended],
+    languageOptions: { globals: globals.node },
+  },
   // the Express API (Node, CommonJS)
   {
     files: ['server/**/*.js'],

@@ -1,6 +1,16 @@
 // Sign-up email check: refuses throwaway inboxes and domains that can't receive
 // mail, so every account has an address we can actually verify.
 const dns = require('dns').promises
+const config = require('../config')
+
+// Automated tests (NODE_ENV=test) use a fake MX lookup so they never depend on
+// the network: every domain has a mail server except ones starting "nomail.".
+// Anywhere else it is always the real DNS.
+async function fakeResolveMx(domain) {
+  if (domain.startsWith('nomail.')) throw Object.assign(new Error('not found'), { code: 'ENOTFOUND' })
+  return [{ exchange: `mx.${domain}`, priority: 10 }]
+}
+const resolveMx = config.isTest ? fakeResolveMx : domain => dns.resolveMx(domain)
 
 // ~134,000 known disposable-email domains (mailinator, 10minutemail, …),
 // from the regularly updated `disposable-domains` package
@@ -21,7 +31,7 @@ function isDisposable(domain) {
 // true if the domain publishes at least one real mail server (MX record).
 // A "null MX" (exchange ".") explicitly means the domain accepts no mail.
 async function receivesMail(domain) {
-  const lookup = dns.resolveMx(domain)
+  const lookup = resolveMx(domain)
   const timeout = new Promise((_, reject) =>
     setTimeout(() => reject(Object.assign(new Error('timeout'), { code: 'ETIMEOUT' })), DNS_TIMEOUT_MS)
   )
