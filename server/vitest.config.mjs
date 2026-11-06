@@ -13,7 +13,8 @@ export default defineConfig({
     projects: [
       {
         extends: true,
-        test: { name: 'unit', include: ['tests/unit/**/*.test.mjs'] },
+        // the safety tests start separate Node processes, which is slower on CI
+        test: { name: 'unit', include: ['tests/unit/**/*.test.mjs'], testTimeout: 30_000 },
       },
       {
         extends: true,

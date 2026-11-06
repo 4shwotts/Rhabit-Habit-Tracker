@@ -13,7 +13,8 @@ export default defineConfig({
   forbidOnly: isCI,
   // the penalty journey waits through a 30-second window and penalty
   timeout: 180_000,
-  expect: { timeout: 10_000 },
+  // CI machines are slower, especially Vite's first page load
+  expect: { timeout: isCI ? 20_000 : 10_000 },
   reporter: [['list'], ['html', { open: 'never' }]],
   use: {
     baseURL: 'http://localhost:5181',
