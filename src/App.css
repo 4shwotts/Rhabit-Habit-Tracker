@@ -3800,6 +3800,7 @@ body {
 .setting-note {
   margin: 0;
   padding: 0 22px;
+  text-align: center;
   font-family: var(--font-body);
   font-size: clamp(15px, 1.2vw, 18px);
   font-weight: 500;
