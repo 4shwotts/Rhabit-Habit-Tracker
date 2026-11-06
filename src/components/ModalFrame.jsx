@@ -18,6 +18,37 @@ const PIECES = [
   'M554.132 57.2963C550.991 59.3185 546.954 59.3104 543.819 57.2757L484.785 18.9685C476.84 13.8125 480.498 1.48142 489.967 1.50029L608.144 1.73584C617.613 1.75471 621.236 14.1003 613.276 19.2246L554.132 57.2963Z'
 ]
 
+// what each piece covers in that viewBox, for the small-screen frame
+const PIECE_BOXES = ['0 0 88 66', '1012 0 88 66', '1012 626 88 66', '0 626 88 66', '476 0 148 64']
+
+// The full frame stretches to fit its pop-up, which squashes these pieces on a
+// tall, narrow screen. On small screens each one is drawn at its own fixed size
+// instead, around a plain frame line.
+function CompactFrame() {
+  const id = useId().replace(/:/g, '')
+
+  return (
+    <div className="modal-frame-compact" aria-hidden="true">
+      <div className="modal-frame-line" />
+      {PIECES.map((d, i) => (
+        <svg className={`modal-piece modal-piece-${i}`} viewBox={PIECE_BOXES[i]} key={i}>
+          <defs>
+            <linearGradient id={`${id}-fill${i}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" stopColor="#D6C6FF" stopOpacity="0.34" />
+              <stop offset="0.5" stopColor="#916FF1" stopOpacity="0.16" />
+              <stop offset="1" stopColor="#24183F" stopOpacity="0.5" />
+            </linearGradient>
+          </defs>
+          {/* solid underneath, so the frame line doesn't show through the glass */}
+          <path d={d} fill="#15101F" />
+          <path d={d} fill={`url(#${id}-fill${i})`} />
+          <path d={d} fill="none" stroke="#916FF1" strokeWidth="4" />
+        </svg>
+      ))}
+    </div>
+  )
+}
+
 function ModalFrame({ className }) {
   // unique ids, so two frames on one page never share gradients or clips
   const id = useId().replace(/:/g, '')
@@ -26,6 +57,8 @@ function ModalFrame({ className }) {
   const mask = `${id}-mask`
 
   return (
+    <>
+    <CompactFrame />
     <svg className={className} viewBox="0 0 1100 696" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
         {/* glass body: lighter at the top, deeper towards the bottom */}
@@ -66,6 +99,7 @@ function ModalFrame({ className }) {
         </g>
       ))}
     </svg>
+    </>
   )
 }
 

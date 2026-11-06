@@ -121,7 +121,8 @@ function LevelTaskEditor({
               className={`level-tab${activeLevel === level ? ' active' : ''}`}
               onClick={() => changeLevel(level)}
             >
-              <span>Level {level}<span className="level-tab-word"> Tasks</span></span>
+              {/* small screens show just the number; screen readers still hear it all */}
+              <span><span className="level-tab-prefix">Level </span>{level}<span className="level-tab-word"> Tasks</span></span>
               {renderTabBadge?.(level, tasksByLevel[level] || [])}
             </button>
           ))}

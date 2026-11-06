@@ -30,6 +30,12 @@ async function expectNothingOffScreen(page, where) {
   expect(sideways, `${where} scrolls sideways`).toBeLessThanOrEqual(0)
 }
 
+// the page itself doesn't scroll, which keeps Safari's toolbars and the corners still
+async function expectNoScrolling(page, selector) {
+  const extra = await page.locator(selector).evaluate(el => el.scrollHeight - el.clientHeight)
+  expect(extra, `${selector} scrolls`).toBeLessThanOrEqual(0)
+}
+
 for (const { name, width, height } of SCREENS) {
   test.describe(name, () => {
     test.use({ viewport: { width, height }, isMobile: true, hasTouch: true })
@@ -51,9 +57,10 @@ for (const { name, width, height } of SCREENS) {
       await completeSetup(page)
       await expectNothingOffScreen(page, 'home')
 
-      // big enough to tap
+      // upright, Home fits the screen, as it does on desktop
+      if (height >= width) await expectNoScrolling(page, '.home-page')
+
       const settingsButton = page.locator('.home-icon-btn').first()
-      expect((await settingsButton.boundingBox()).height).toBeGreaterThanOrEqual(44)
 
       await settingsButton.click()
       await expect(page.locator('.settings-box')).toBeVisible()
@@ -66,14 +73,17 @@ for (const { name, width, height } of SCREENS) {
       await expect(page.locator('.goal-name')).toHaveCount(1)
       await expectNothingOffScreen(page, 'goals')
 
-      // the frame grows with the list: no goal may spill out of the bottom of it
-      for (let goals = 2; goals <= 5; goals++) {
+      // however long the list gets, it scrolls inside the file frame
+      for (let goals = 2; goals <= 8; goals++) {
         await page.getByRole('button', { name: /add goal/i }).click()
         await expect(page.locator('.goal-row-wrap')).toHaveCount(goals)
       }
-      await expectNothingOffScreen(page, 'goals with five pathways')
+      await expectNothingOffScreen(page, 'goals with eight pathways')
+      if (height >= width) await expectNoScrolling(page, '.goals-page')
+      const lastRow = page.locator('.goal-row-wrap').last()
+      await lastRow.scrollIntoViewIfNeeded()
       const frame = await page.locator('.goals-filebox-wrap').boundingBox()
-      const lastGoal = await page.locator('.goal-row-wrap').last().boundingBox()
+      const lastGoal = await lastRow.boundingBox()
       expect(lastGoal.y + lastGoal.height).toBeLessThanOrEqual(frame.y + frame.height)
 
       await page.getByRole('button', { name: 'Open goal tasks' }).first().click()

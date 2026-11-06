@@ -3857,23 +3857,57 @@ body {
   display: none;
 }
 
-/* ---- PHONES AND SMALL TABLETS, UPRIGHT OR SIDEWAYS ----
-   The desktop pages are fixed to the window's height with bars placed by
-   exact position, which can't shrink to a phone. Here every page becomes a
-   single scrolling column instead. This block stays last in the file so it
-   wins over everything above, and SetupPage.jsx uses the same screen sizes. */
-@media (max-width: 1023px), (max-height: 500px) {
-  /* dragging past the end of a page doesn't pull it away from the background.
-     No background on html: the body's has to reach the page's root for the
-     animated dots, which sit behind the body, to show */
-  html {
-    overscroll-behavior-y: none;
-  }
+/* the pop-up frame for small screens (see ModalFrame.jsx) */
+.modal-frame-compact {
+  display: none;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
 
+.modal-frame-line {
+  position: absolute;
+  inset: 6px;
+  box-sizing: border-box;
+  border: 2px solid #916FF1;
+  border-radius: 14px;
+  background: rgba(22, 16, 38, 0.94);
+}
+
+.modal-piece {
+  position: absolute;
+  width: 40px;
+  height: 30px;
+  overflow: visible;
+}
+
+.modal-piece-0 { top: 0; left: 0; }
+.modal-piece-1 { top: 0; right: 0; }
+.modal-piece-2 { bottom: 0; right: 0; }
+.modal-piece-3 { bottom: 0; left: 0; }
+
+.modal-piece-4 {
+  top: 0;
+  left: 50%;
+  width: 66px;
+  height: 29px;
+  margin-left: -33px;
+}
+
+/* ---- PHONES AND SMALL TABLETS, UPRIGHT OR SIDEWAYS ----
+   The same design as desktop, drawn smaller. Pages don't scroll as a whole,
+   which keeps Safari's toolbars still and so keeps the corner pieces and the
+   background still: anything too long scrolls inside its own page or frame.
+   This block stays last in the file so it wins over everything above, and
+   SetupPage.jsx uses the same screen sizes. */
+@media (max-width: 1023px), (max-height: 500px) {
+  html,
   body {
-    overflow-x: hidden;
-    overflow-y: auto;
-    overscroll-behavior-y: none;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    overscroll-behavior: none;
   }
 
   /* no double-tap zoom delay or grey flash on tap */
@@ -3884,40 +3918,39 @@ body {
     -webkit-tap-highlight-color: transparent;
   }
 
-  /* the corners stay in the screen's corners, clear of the content */
   .corner,
   .setup-page .corner {
     position: fixed;
-    width: min(30vw, 170px);
+    width: min(20vw, 92px);
   }
 
-  /* ---- whole pages ---- */
+  /* ---- whole pages: each fills the screen and scrolls itself if it must ---- */
   .home-page,
   .goals-page,
+  .setup-page,
   .setup-page:not(.auth-page) {
-    height: auto;
-    min-height: 100vh;
-    min-height: 100dvh;
-    justify-content: flex-start;
-    padding: 24px 18px 44px;
-    overflow: visible;
-  }
-
-  .setup-page.auth-page {
     height: 100vh;
     height: 100dvh;
+    min-height: 0;
+    justify-content: flex-start;
+    padding: 18px 14px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
   }
 
-  .home-content,
-  .goals-layout {
-    width: 100%;
-    max-width: 640px;
-    margin: 0 auto;
+  .home-page::-webkit-scrollbar,
+  .goals-page::-webkit-scrollbar {
+    display: none;
   }
 
-  /* ---- home: header ---- */
+  /* ---- home: the desktop header, smaller ---- */
   .home-content {
-    gap: 18px;
+    width: 100%;
+    max-width: 560px;
+    margin: auto;
+    gap: 10px;
   }
 
   .home-main-bar,
@@ -3926,9 +3959,9 @@ body {
     display: none;
   }
 
-  /* The desktop bars are stretched images that can't reshape to a phone, so
-     the same angled panels are cut here: ::before is the purple edge, and
-     ::after is the fill, set in from it by the edge's thickness. */
+  /* The desktop bars are images that can't reshape to a phone, so the same
+     angled panels are cut here: ::before is the purple edge, and ::after is
+     the fill, set in from it by the edge's thickness. */
   .home-greetings-content::before,
   .home-greetings-content::after,
   .home-main-bar-bg::before,
@@ -3948,7 +3981,7 @@ body {
 
   .home-greetings-content::after,
   .home-main-bar-bg::after {
-    inset: 2px;
+    inset: 1.5px;
     z-index: -1;
     background: #191329;
   }
@@ -3959,23 +3992,24 @@ body {
     aspect-ratio: auto;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    column-gap: 12px;
+    align-items: end;
+    column-gap: 8px;
   }
 
   .home-greetings-content {
-    --panel-shape: polygon(0 16%, 12% 0, 100% 26%, 91% 100%, 0 100%);
+    --panel-shape: polygon(0 16%, 10% 0, 100% 24%, 92% 100%, 0 100%);
     position: relative;
     isolation: isolate;
     grid-column: 1;
     grid-row: 1;
+    justify-self: start;
     left: 0;
     bottom: auto;
-    width: auto;
+    width: min(100%, 240px);
     height: auto;
-    min-height: 62px;
-    margin: 0 0 14px 4px;
-    padding: 12px 30px 8px 70px;
+    min-height: 42px;
+    margin: 0 0 -1px 4px;
+    padding: 9px 24px 5px 50px;
     gap: 0;
   }
 
@@ -3983,20 +4017,43 @@ body {
   .home-logo-circle {
     position: absolute;
     top: auto;
-    left: -6px;
-    bottom: 2px;
+    left: -8px;
+    bottom: 1px;
     transform: none;
-    width: 70px;
+    width: 54px;
     height: auto;
   }
 
   .home-logo {
-    width: 70px;
+    width: 54px;
     transform: rotate(-8deg);
   }
 
+  .home-header-text {
+    min-width: 0;
+  }
+
+  .home-welcome {
+    font-size: 14px;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .home-icon-btns {
+    position: static;
+    grid-column: 2;
+    grid-row: 1;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .home-icon-btn img {
+    width: 36px;
+    height: 36px;
+  }
+
   .home-main-bar-bg {
-    --panel-shape: polygon(0 0, 100% 0, 100% 56%, 94% 100%, 6% 100%, 0 76%);
+    --panel-shape: polygon(0 0, 100% 0, 100% 42%, 95% 100%, 7% 100%, 6% 74%, 1% 42%, 0 42%);
     position: relative;
     isolation: isolate;
     display: block;
@@ -4012,41 +4069,18 @@ body {
     mask-image: none;
   }
 
-  .home-header-text {
-    min-width: 0;
-  }
-
-  .home-welcome {
-    font-size: 20px;
-    line-height: 1.2;
-    overflow-wrap: anywhere;
-  }
-
-  .home-icon-btns {
-    position: static;
-    grid-column: 2;
-    grid-row: 1;
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-
-  .home-icon-btn img {
-    width: 48px;
-    height: 48px;
-  }
-
   .home-title-content {
     position: relative;
     grid-column: 1 / -1;
     grid-row: 2;
     left: 0;
     height: auto;
-    padding: 18px 10px 12px;
+    padding: 11px 8px 6px;
     justify-content: center;
   }
 
   .home-title {
-    font-size: min(5vw, 32px);
+    font-size: min(4.6vw, 24px);
     letter-spacing: 0;
   }
 
@@ -4058,8 +4092,8 @@ body {
     bottom: auto;
     width: 100%;
     height: auto;
-    gap: 14px;
-    padding: 0 24px 18px;
+    gap: 10px;
+    padding: 0 26px 10px 30px;
   }
 
   .home-xp-inner-wrap {
@@ -4069,7 +4103,7 @@ body {
     transform: none;
     flex: 1;
     width: auto;
-    height: 30px;
+    height: 20px;
     /* the bar's own track is too dark to see when empty on this narrow bar */
     background: rgba(145, 111, 241, 0.28);
     clip-path: polygon(0 100%, 96% 100%, 100% 0, 2% 0);
@@ -4077,7 +4111,7 @@ body {
 
   /* normal weight: this font's letters fill in when thickened at small sizes */
   .home-xp-text {
-    font-size: 16px;
+    font-size: 12px;
     font-weight: 500;
   }
 
@@ -4085,7 +4119,7 @@ body {
     position: static;
     transform: none;
     flex-shrink: 0;
-    font-size: 18px;
+    font-size: 13px;
   }
 
   .home-clock {
@@ -4093,17 +4127,17 @@ body {
     transform: none;
     order: -1;
     text-align: center;
-    font-size: 18px;
+    font-size: 13px;
   }
 
   .home-banner {
-    top: 12px;
-    width: calc(100% - 32px);
-    max-width: 608px;
+    top: 10px;
+    width: calc(100% - 28px);
+    max-width: 532px;
     box-sizing: border-box;
-    padding: 10px 16px;
+    padding: 8px 12px;
     border-radius: 6px;
-    font-size: 16px;
+    font-size: 13px;
     line-height: 1.35;
     text-align: center;
   }
@@ -4111,67 +4145,79 @@ body {
   .home-tier-notice {
     max-width: 100%;
     margin-top: 0;
+    font-size: 13px;
   }
 
-  /* ---- home: tasks ---- */
+  /* ---- home: the desktop task card, smaller ---- */
   .home-task-list {
-    gap: 16px;
+    gap: 8px;
     margin-top: 0;
     padding: 0;
   }
 
-  /* the check box runs down the left, the reroll button sits top right, and
-     the timer goes under the task so a long title has room to wrap */
   .home-page .home-task-row {
-    display: grid;
-    grid-template-columns: 46px minmax(0, 1fr) auto;
-    grid-template-areas:
-      'check info reroll'
-      'check timer timer';
-    gap: 10px 14px;
-    align-items: center;
+    gap: 8px;
     height: auto;
-    min-height: 0;
+    min-height: 58px;
     max-height: none;
-    padding: 18px 16px;
+    padding: 8px 10px;
   }
 
   .home-task-check {
-    grid-area: check;
-    width: 46px;
-    height: 46px;
+    width: 30px;
+    height: 30px;
     margin-left: 0;
+    border-radius: 8px;
+  }
+
+  .home-task-check svg {
+    width: 20px;
+    height: 20px;
   }
 
   .home-task-info {
-    grid-area: info;
+    gap: 2px;
   }
 
   .home-task-level {
-    font-size: 14px;
+    font-size: 11px;
     letter-spacing: 0;
   }
 
+  /* wraps to a second line rather than losing the end of a long task */
   .home-task-title {
-    font-size: 18px;
-    line-height: 1.3;
+    display: -webkit-box;
+    font-size: 13px;
+    line-height: 1.25;
     white-space: normal;
-    overflow: visible;
     overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
   }
 
   .home-task-refresh-wrap {
-    grid-area: reroll;
-    width: 46px;
-    height: 46px;
-    margin: 12px 0 0;
+    width: 30px;
+    height: 30px;
+    margin: 6px 0 0;
+    border-radius: 8px;
+  }
+
+  .home-task-refresh-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .home-task-refresh-wrap .refresh-badge {
+    top: -9px;
+    padding: 1px 3px;
+    font-size: 10px;
+    letter-spacing: 0;
   }
 
   .home-page .home-task-timer {
-    grid-area: timer;
-    justify-self: start;
-    padding: 3px 10px;
-    font-size: 22px;
+    padding: 2px 6px;
+    font-size: 14px;
   }
 
   .home-action-area {
@@ -4180,149 +4226,166 @@ body {
   }
 
   .home-page .home-start-btn {
-    width: 100%;
-    min-width: 0;
-    height: 58px;
-    padding: 0 12px;
+    width: auto;
+    min-width: 190px;
+    max-width: 100%;
+    height: 42px;
+    padding: 0 16px;
   }
 
   .home-start-btn span {
-    font-size: min(5vw, 24px);
+    font-size: 14px;
   }
 
   .home-end-message,
   .home-tasks-done {
     padding: 0 6px;
-    font-size: 20px;
+    font-size: 15px;
   }
 
   .home-tasks-done {
     height: auto;
-    min-height: 240px;
+    min-height: 180px;
   }
 
   .home-pathway-title {
-    font-size: min(7vw, 40px);
+    font-size: min(5.6vw, 30px);
     white-space: normal;
   }
 
-  /* ---- goals ---- */
-  .goals-top-bar {
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 14px 12px;
-    margin-bottom: 0;
+  /* ---- goals: the desktop file frame, smaller, scrolling inside itself ---- */
+  .goals-page {
+    padding: 14px 14px 18px;
   }
 
-  .goals-top-spacer,
-  .goals-header-card::before,
-  .goals-filebox-body,
-  .goals-filebox-wrap > svg,
-  .goals-filebox-header-zone,
-  .goals-scrollbar-track {
-    display: none;
+  .goals-layout {
+    flex: 1;
+    width: 100%;
+    max-width: 640px;
+    min-height: 0;
+    margin: 0 auto;
+  }
+
+  .goals-top-bar {
+    flex-shrink: 0;
+    align-items: flex-end;
+    gap: 0;
+    padding-top: 8px;
   }
 
   .goals-header-card {
-    flex: 1 1 calc(100% - 64px);
-    width: auto;
-    min-width: 0;
-    height: 66px;
-    margin: 0;
-    order: 1;
+    width: min(58%, 300px);
+    height: 50px;
+    margin-bottom: -1px;
   }
 
   .goals-title-text {
     height: 100%;
-    padding: 0 0 12px 14px;
-    font-size: min(6vw, 38px);
+    padding: 0 0 8px 10px;
+    font-size: min(4.8vw, 26px);
+    letter-spacing: 1px;
   }
 
-  .goals-home-btn {
-    top: 0;
-    order: 2;
-    width: 52px;
-    height: 52px;
-    margin: 0;
-  }
-
-  /* a tab on the file frame's top edge, as on desktop */
+  /* Add Goal sits on the frame's top edge, and Home above it, as on desktop */
   .add-goal-btn {
-    order: 3;
-    width: 190px;
-    height: 54px;
-    margin: 0 8px -2px auto;
+    width: 112px;
+    height: 34px;
+    margin: 0 10px -18px 0;
   }
 
   .add-goal-btn-text {
     height: 100%;
-    padding: 0;
-    font-size: 18px;
+    padding: 4px 0 0 10px;
+    font-size: 12px;
+  }
+
+  .goals-home-btn {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 40px;
+    height: 40px;
+    margin: 0;
   }
 
   .goals-filebox-wrap {
+    flex: 1;
+    min-height: 240px;
     height: auto;
-    overflow: visible;
-    clip-path: none;
-    border: 1.5px solid #916FF1;
-    border-radius: 6px;
-    background: rgba(32, 24, 58, 0.6);
-  }
-
-  .goals-filebox-wrap::before {
-    border-radius: 6px;
-    clip-path: none;
   }
 
   .goals-filebox-inner {
+    position: absolute;
+    inset: 0;
     height: auto;
-    overflow: visible;
   }
 
+  .goals-filebox-header-zone {
+    height: 26px;
+    border-bottom-width: 1.5px;
+  }
+
+  /* the frame's right edge slants in by 6.6% of its width by the bottom, so the
+     cards and the scrollbar stay clear of that */
   .goals-scroll-area {
     max-height: none;
-    overflow: visible;
-    padding: 14px 12px;
-    gap: 14px;
+    padding: 10px calc(6.6% + 16px) 12px 8px;
+    gap: 8px;
+  }
+
+  .goals-scrollbar-track {
+    top: 36px;
+    right: calc(6.6% + 3px);
+    bottom: 16px;
+    width: 8px;
+    border-width: 1px;
+    border-radius: 4px;
+  }
+
+  .goals-scrollbar-thumb {
+    border-width: 1px;
+    border-radius: 3px;
   }
 
   .goal-row-wrap {
     width: 100%;
-    height: auto;
+    height: 60px;
   }
 
   .goal-row-content {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-columns: 56px minmax(0, 1fr) auto;
     grid-template-areas:
-      'name actions'
-      'bar progress';
-    gap: 12px;
-    height: auto;
-    padding: 16px 22px;
+      'name name actions'
+      'bar progress actions';
+    align-content: center;
+    gap: 5px 8px;
+    padding: 0 12px 0 14px;
   }
 
   .goal-name-wrap {
     grid-area: name;
     min-width: 0;
     padding-left: 0;
+    overflow: hidden;
   }
 
   .goal-name {
-    font-size: 18px;
-    white-space: normal;
-    overflow-wrap: anywhere;
+    display: block;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .goal-name-input {
     width: 100%;
-    font-size: 18px;
+    font-size: 16px;
   }
 
   .goal-progress-bar-wrap {
     grid-area: bar;
     max-width: none;
-    height: 20px;
+    height: 9px;
   }
 
   /* so an empty bar can still be seen */
@@ -4333,63 +4396,70 @@ body {
   .goal-progress-text {
     grid-area: progress;
     min-width: 0;
-    font-size: 15px;
+    font-size: 11px;
   }
 
   .goal-actions {
     grid-area: actions;
-    gap: 6px;
+    gap: 4px;
   }
 
   .goal-action-btn {
-    width: 44px;
-    height: 44px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
   }
 
   /* ---- setup ---- */
   .setup-logout {
     position: absolute;
-    top: 24px;
-    right: 18px;
+    top: 16px;
+    right: 14px;
   }
 
   .setup-page .setup-content {
     width: 100%;
-    max-width: 640px;
+    max-width: 560px;
     margin: 0 auto;
-    padding: 52px 0 0;
-    gap: 16px;
+    padding: 34px 0 12px;
+    gap: 10px;
+    transform: none;
   }
 
   .setup-page .setup-logo {
-    width: 72px;
+    width: 50px;
   }
 
-  .setup-page .setup-field {
+  .setup-page .setup-field,
+  .setup-page .setup-task-panel {
     width: 100%;
   }
 
   .setup-page .setup-input {
     width: 100%;
-    height: 46px;
+    height: 40px;
   }
 
-  .setup-page .setup-task-panel {
-    width: 100%;
-  }
-
-  .setup-page :is(.setup-greeting, .setup-label, .setup-priority-label) {
+  .setup-page :is(.setup-greeting:not(.setup-greeting-name), .setup-label, .setup-priority-label) {
+    font-size: 12px;
+    line-height: 18px;
+    letter-spacing: 1px;
+    word-spacing: 1px;
     text-align: center;
     white-space: normal;
   }
 
   .setup-page .setup-greeting-name {
-    font-size: 22px;
+    font-size: 17px;
+    line-height: 22px;
   }
 
   .setup-page .setup-warning {
-    font-size: 16px;
-    line-height: 24px;
+    margin-top: 4px;
+    font-size: 12px;
+    line-height: 18px;
+    letter-spacing: 0;
+    word-spacing: 0;
     text-align: center;
     filter: none;
   }
@@ -4398,6 +4468,16 @@ body {
     width: 100%;
     display: flex;
     justify-content: center;
+  }
+
+  .setup-page .start-btn,
+  .setup-page .start-btn::after {
+    height: 42px;
+    font-size: 18px;
+  }
+
+  .auth-content {
+    text-align: center;
   }
 
   /* ---- the task editor, on setup and in the goal pop-up ---- */
@@ -4411,48 +4491,54 @@ body {
   }
 
   :is(.setup-page, .expanded-goal-box) .tabs-carousel {
-    height: auto;
-    padding: 6px 2px;
+    height: 38px;
+    padding: 0 2px;
     gap: 2px;
+  }
+
+  .carousel-arrow {
+    width: 24px;
+    padding: 0;
   }
 
   .carousel-arrow img,
   .carousel-arrow svg {
-    width: 34px;
-    height: 34px;
+    width: 20px;
+    height: 20px;
   }
 
-  .carousel-arrow {
-    min-height: 44px;
-  }
-
-  /* the five tabs share two rows, and drop the word "Tasks" to fit */
+  /* five tabs in one row: just the level's number, so 1-5 and 6-10 both fit */
   .level-tabs {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
+    gap: 3px;
     min-width: 0;
   }
 
+  .level-tab-prefix,
   .level-tab-word {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   :is(.setup-page, .expanded-goal-box) .level-tab {
-    height: 42px;
-    padding: 0 2px;
-    gap: 4px;
-    font-size: 14px;
+    min-width: 0;
+    height: 28px;
+    padding: 0;
+    gap: 3px;
+    font-size: 13px;
     letter-spacing: 0;
     word-spacing: 0;
-    transform: none;
   }
 
   :is(.setup-page, .expanded-goal-box) .level-tab-badge {
     min-width: 0;
-    height: 20px;
-    padding: 0 4px;
-    font-size: 12px;
+    height: 15px;
+    padding: 0 2px;
+    font-size: 10px;
+    letter-spacing: 0;
   }
 
   .level-info-tab,
@@ -4460,18 +4546,19 @@ body {
     width: 100%;
     height: auto;
     min-height: 0;
+    margin-top: 6px;
   }
 
   .level-info-inner,
   .expanded-goal-box .level-info-inner {
     height: auto;
-    padding: 8px 12px;
+    padding: 5px 10px;
   }
 
   .setup-page .level-info-line,
   .expanded-goal-box .level-info-line {
-    font-size: 15px;
-    line-height: 21px;
+    font-size: 12px;
+    line-height: 17px;
     letter-spacing: 0;
     word-spacing: 0;
     white-space: normal;
@@ -4479,38 +4566,47 @@ body {
 
   .setup-page .level-info-line.status,
   .expanded-goal-box .level-info-line.status {
-    font-size: 14px;
-    line-height: 20px;
+    font-size: 11px;
+    line-height: 16px;
   }
 
   :is(.setup-page, .expanded-goal-box) .task-row {
     height: auto;
-    min-height: 68px;
-    padding: 8px 10px 8px 14px;
-    gap: 8px;
+    min-height: 46px;
+    padding: 4px 6px 4px 10px;
+    gap: 6px;
   }
 
-  .setup-page .task-text,
-  .task-text {
+  .setup-page .task-row-empty::after {
+    font-size: 20px;
+  }
+
+  .task-text,
+  .setup-page .task-text {
     flex: 1;
     min-width: 0;
-    gap: 2px;
+    gap: 1px;
   }
 
   :is(.setup-page, .expanded-goal-box) .task-row .task-level-label {
-    font-size: 13px;
+    font-size: 10px;
     letter-spacing: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  /* 16px or larger, or iPhones zoom the page in when a field is tapped */
   :is(.setup-page, .expanded-goal-box) .task-row .task-edit-input {
     width: 100%;
-    font-size: 16px;
+    height: auto;
+    font-size: 13px;
     letter-spacing: 0;
     text-overflow: ellipsis;
+  }
+
+  /* 16px while typing, or iPhones zoom the page in */
+  :is(.setup-page, .expanded-goal-box) .task-row .task-edit-input:not([readonly]) {
+    font-size: 16px;
   }
 
   .task-actions {
@@ -4519,43 +4615,51 @@ body {
   }
 
   .task-icon-btn {
-    width: 44px;
-    height: 44px;
+    width: 30px;
+    height: 30px;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
   }
 
+  .task-icon-btn .task-icon-img,
+  .setup-page .task-icon-btn .task-icon-img,
+  .expanded-task-list .task-icon-btn .task-icon-img {
+    width: 16px;
+    height: 17px;
+  }
+
   .expanded-task-list {
     height: auto;
     min-height: 0;
     max-height: none;
+    gap: 6px;
     overflow: visible;
   }
 
   .task-add-row,
   .setup-page .task-add-row {
     justify-content: space-between;
-    margin-top: 12px;
-    min-height: 44px;
+    margin-top: 6px;
+    min-height: 30px;
   }
 
   .page-dot.active,
   .page-dot.inactive {
-    width: 52px;
-    height: 30px;
+    width: 32px;
+    height: 14px;
   }
 
   :is(.setup-page, .expanded-goal-box) .add-task-btn {
     position: static;
-    min-height: 44px;
-    padding: 6px 16px;
-    font-size: 16px;
+    height: 30px;
+    padding: 0 10px;
+    font-size: 12px;
     letter-spacing: 0;
   }
 
-  /* ---- pop-ups: long ones scroll, and stay reachable ---- */
+  /* ---- pop-ups ---- */
   .modal-overlay {
     width: 100%;
     height: 100vh;
@@ -4564,140 +4668,247 @@ body {
     box-sizing: border-box;
     padding: 12px 0;
     overflow-y: auto;
+    overscroll-behavior: contain;
   }
 
   .settings-box,
   .penalty-box,
   .expanded-goal-box {
     flex-shrink: 0;
-    width: min(94vw, 640px);
+    width: min(92vw, 430px);
     margin: auto;
+  }
+
+  /* the stretched frame is swapped for pieces that keep their shape */
+  .penalty-frame,
+  .expanded-goal-frame {
+    display: none;
+  }
+
+  .modal-frame-compact {
+    display: block;
   }
 
   .modal-close {
     position: absolute;
-    top: 22px;
-    right: 26px;
+    top: 18px;
+    right: 16px;
     z-index: 3;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 44px;
-    height: 44px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
     border: 1.5px solid var(--holo-edge);
-    border-radius: 11px;
+    border-radius: 7px;
     background: rgba(20, 14, 40, 0.9);
     color: #FFFFFF;
     font-family: var(--font-body);
-    font-size: 26px;
+    font-size: 15px;
     line-height: 1;
     cursor: pointer;
   }
 
+  /* small to look at, easier to hit */
+  .modal-close::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+
   .settings-content {
     min-height: 0;
-    gap: 12px;
-    padding: 76px 22px 44px;
+    gap: 8px;
+    padding: 48px 20px 26px;
   }
 
   .setting-row {
     height: auto;
-    min-height: 60px;
-    gap: 12px;
-    padding: 8px 14px;
+    min-height: 42px;
+    gap: 10px;
+    padding: 4px 12px;
   }
 
   .setting-label {
     flex-wrap: wrap;
-    gap: 4px 8px;
-    font-size: 18px;
+    gap: 2px 6px;
+    font-size: 13px;
     line-height: 1.25;
+  }
+
+  .settings-toggle {
+    width: 46px;
+    height: 24px;
+  }
+
+  .settings-toggle-thumb {
+    top: 2.5px;
+    left: 2.5px;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+  }
+
+  .settings-toggle.on .settings-toggle-thumb {
+    transform: translateX(22px);
   }
 
   .twofa-status {
     margin-left: 0;
+    padding: 1px 6px;
+    font-size: 10px;
   }
 
   .setting-note {
-    padding: 0 4px;
-    font-size: 15px;
+    padding: 0 2px;
+    font-size: 11px;
+  }
+
+  .settings-account {
+    gap: 8px;
   }
 
   .settings-account-btn {
-    min-height: 44px;
-    padding: 8px 14px;
-    font-size: 17px;
+    padding: 5px 12px;
+    font-size: 13px;
     white-space: nowrap;
+  }
+
+  .settings-account-btn.setup-logout {
+    font-size: 12px;
   }
 
   .settings-box .setup-input {
     width: 100%;
     min-width: 0;
     max-width: 100%;
+    height: 38px;
     box-sizing: border-box;
   }
 
-  .settings-account-btn.setup-logout {
-    min-height: 40px;
-    font-size: 16px;
+  .settings-delete-warning {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.4;
   }
 
   .twofa-title {
-    max-width: calc(100% - 56px);
-    font-size: min(5vw, 30px);
+    max-width: calc(100% - 40px);
+    font-size: min(4.2vw, 20px);
     letter-spacing: 0;
     text-align: center;
   }
 
+  .twofa-panel,
+  .twofa-form {
+    gap: 8px;
+  }
+
+  .twofa-text {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .twofa-text.small {
+    font-size: 11px;
+  }
+
   .twofa-key {
+    font-size: 12px;
     overflow-wrap: anywhere;
+  }
+
+  .twofa-qr {
+    width: 130px;
+    height: 130px;
   }
 
   .penalty-content {
     min-height: 0;
-    padding: 64px 22px 40px;
+    gap: 6px;
+    padding: 40px 18px 24px;
+  }
+
+  .penalty-title {
+    font-size: 15px;
+    line-height: 1.3;
+    letter-spacing: 1px;
+  }
+
+  .penalty-sub {
+    margin: 0;
+    font-size: 11px;
   }
 
   .penalty-task-row {
-    padding: 14px;
+    flex-wrap: nowrap;
+    gap: 8px;
+    min-height: 0;
+    margin: 6px 0 2px;
+    padding: 8px 10px;
   }
 
-  /* the timer drops under the task so the task's text isn't squeezed */
-  .penalty-task-info {
-    flex-basis: calc(100% - 70px);
+  .penalty-task-row .penalty-timer {
+    margin-left: 0;
+    flex-shrink: 0;
+  }
+
+  .penalty-task-level {
+    font-size: 11px;
+    letter-spacing: 0;
+  }
+
+  .penalty-task-title {
+    font-size: 13px;
+  }
+
+  .penalty-timer {
+    padding: 2px 6px;
+    font-size: 14px;
+  }
+
+  .penalty-warning {
+    margin: 2px 0;
+    font-size: 10px;
+    line-height: 1.4;
+    letter-spacing: 0.5px;
+  }
+
+  .penalty-confirm-btn,
+  .penalty-confirm-btn:hover,
+  .penalty-confirm-btn:disabled {
+    width: auto;
+    min-width: 190px;
+    height: 38px;
+    font-size: 14px;
   }
 
   .expanded-goal-content {
     height: auto;
-    gap: 10px;
-    padding: 70px 22px 42px;
+    gap: 6px;
+    padding: 36px 16px 22px;
   }
 
   .expanded-goal-title {
-    max-width: calc(100% - 60px);
-    font-size: 20px;
-  }
-
-  .auth-content {
-    text-align: center;
+    max-width: calc(100% - 40px);
+    font-size: 15px;
+    line-height: 1.25;
   }
 }
 
-/* the smallest phones: fewer tabs to a row, and a goal's name gets its own line */
+/* the smallest phones: a shorter bar leaves room for the progress text */
 @media (max-width: 360px) {
-  .level-tabs {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .goal-row-content {
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-areas:
-      'name name'
-      'actions actions'
-      'bar progress';
+    grid-template-columns: 26px minmax(0, 1fr) auto;
+    column-gap: 6px;
   }
 
-  .goal-actions {
-    margin-left: 0;
+  .goal-progress-text {
+    font-size: 10px;
+  }
+
+  .expanded-goal-title {
+    font-size: 13px;
   }
 }

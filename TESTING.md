@@ -45,7 +45,7 @@ The game's rules are enforced on the server, so most tests sit there. A rule suc
   4. a started day left unfinished, and the XP loss shown on the next visit
   5. the longest confirm label fits inside its button
   6. add, rename and delete a goal
-- **Phone sizes:** every main page is opened at 320 by 568, 390 by 844, 844 by 390 and 768 by 1024 with touch on, in Chromium and in WebKit, the engine behind Safari. Nothing may run off the sides of the screen, and five goals must stay inside the Goals frame.
+- **Phone sizes:** every main page is opened at 320 by 568, 390 by 844, 844 by 390 and 768 by 1024 with touch on, in Chromium and in WebKit, the engine behind Safari. Nothing may run off the sides of the screen, Home and Goals must fit an upright screen without scrolling, and a long list of goals must scroll inside the Goals frame.
 - **Accessibility:** axe scans login, sign-up, setup, Home and Goals against WCAG 2.1 A and AA. Any violation fails the run.
 - **Image sizes:** every image and icon must stay under 200 kB, so a heavy file can't quietly slow the first load again.
 

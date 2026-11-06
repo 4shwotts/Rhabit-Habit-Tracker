@@ -17,6 +17,8 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 | 11 | [Phones got the desktop layout](#11-phones-got-the-desktop-layout) | Manual check | Fixed |
 | 12 | [Safari lost the Add Goal button's shape](#12-safari-lost-the-add-goal-buttons-shape) | Real iPhone | Fixed |
 | 13 | [Goals spilled out of their frame on phones](#13-goals-spilled-out-of-their-frame-on-phones) | Real iPhone | Fixed |
+| 14 | [Pop-up corners were squashed on phones](#14-pop-up-corners-were-squashed-on-phones) | Real iPhone | Fixed |
+| 15 | [Corners and background moved while scrolling](#15-corners-and-background-moved-while-scrolling) | Real iPhone | Fixed |
 
 ---
 
@@ -225,7 +227,7 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 
 **Root cause:** the pages were fixed to the window's height, with bars placed at exact pixel positions and the page's scrolling turned off.
 
-**Fix:** screens narrower than 1024 pixels or shorter than 500 pixels get a single scrolling column. Setup no longer shrinks there, and pop-ups scroll and have a close button, because a tall pop-up can leave nothing outside it to tap. The first version removed Home's angled panels to make things fit. A check on a real iPhone showed the page had lost its look, so they were rebuilt as shapes that fit a phone.
+**Fix:** screens narrower than 1024 pixels or shorter than 500 pixels get the desktop design drawn smaller. Setup no longer shrinks there, and pop-ups have a close button, because a tall pop-up can leave nothing outside it to tap. The first version stacked everything into a tall column and removed Home's angled panels. A check on a real iPhone showed it had lost the design, so it was rebuilt with the same cards, panels and file frame as desktop.
 
 **Preventing test:** `e2e/phones.spec.js` checks every main page at four screen sizes. It was shown to fail on the old styles.
 
@@ -257,8 +259,40 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 
 **Actual:** the frame stopped after the fourth goal.
 
-**Root cause:** the desktop list has a maximum height so it can scroll inside the frame. The phone layout let the page scroll instead, but kept that limit. The first phone test only used one goal.
+**Root cause:** the desktop list has a maximum height so it can scroll inside the frame. The first phone layout let the page scroll instead, but kept that limit, and its test only used one goal.
 
-**Fix:** the limit is removed on small screens.
+**Fix:** the list now scrolls inside the file frame, as on desktop, and the frame fills the space left on the screen.
 
-**Preventing test:** `every main page fits` in `e2e/phones.spec.js` now adds five goals and checks that the last one is inside the frame.
+**Preventing test:** `every main page fits` in `e2e/phones.spec.js` adds eight goals, then checks that the last one can be scrolled to inside the frame.
+
+## 14. Pop-up corners were squashed on phones
+
+**Summary:** the corner pieces and notch on the pop-ups looked stretched on a phone.
+
+**Steps to reproduce:** open Settings on a phone.
+
+**Expected:** the same shapes as on desktop.
+
+**Actual:** the pieces were tall and narrow.
+
+**Root cause:** the whole frame was one drawing, stretched to fit its pop-up. A tall, narrow pop-up stretched it the wrong way.
+
+**Fix:** on small screens each piece is drawn on its own at a fixed size, around a plain frame line.
+
+**Preventing test:** none. The tests check where things are, not how they're drawn.
+
+## 15. Corners and background moved while scrolling
+
+**Summary:** on an iPhone, the corner pieces and background shifted as the page scrolled.
+
+**Steps to reproduce:** scroll a long page in Safari on an iPhone.
+
+**Expected:** the corners and background stay still.
+
+**Actual:** Safari's toolbars collapsed as the page moved, which changed the screen's size under them.
+
+**Root cause:** the first phone layout scrolled the whole document, which is what makes Safari collapse its toolbars.
+
+**Fix:** the document no longer scrolls on small screens. Home and Goals fit the screen, and anything longer scrolls inside its own page or frame.
+
+**Preventing test:** `every main page fits` in `e2e/phones.spec.js` checks that Home and Goals don't scroll on an upright screen. The toolbars themselves can only be checked on a real iPhone.
