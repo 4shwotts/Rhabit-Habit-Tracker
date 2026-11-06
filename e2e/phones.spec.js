@@ -66,7 +66,17 @@ for (const { name, width, height } of SCREENS) {
       await expect(page.locator('.goal-name')).toHaveCount(1)
       await expectNothingOffScreen(page, 'goals')
 
-      await page.getByRole('button', { name: 'Open goal tasks' }).click()
+      // the frame grows with the list: no goal may spill out of the bottom of it
+      for (let goals = 2; goals <= 5; goals++) {
+        await page.getByRole('button', { name: /add goal/i }).click()
+        await expect(page.locator('.goal-row-wrap')).toHaveCount(goals)
+      }
+      await expectNothingOffScreen(page, 'goals with five pathways')
+      const frame = await page.locator('.goals-filebox-wrap').boundingBox()
+      const lastGoal = await page.locator('.goal-row-wrap').last().boundingBox()
+      expect(lastGoal.y + lastGoal.height).toBeLessThanOrEqual(frame.y + frame.height)
+
+      await page.getByRole('button', { name: 'Open goal tasks' }).first().click()
       await expect(page.locator('.expanded-goal-box .task-row').first()).toBeVisible()
       await expectNothingOffScreen(page, 'goal tasks')
       await page.getByRole('button', { name: 'Close goal tasks' }).click()

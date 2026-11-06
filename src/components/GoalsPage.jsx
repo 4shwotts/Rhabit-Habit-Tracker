@@ -184,16 +184,7 @@ function GoalsPage() {
 
       {/* same toast style as the HomePage "SYSTEM UPDATE" message */}
       {notice && (
-        <div role="alert" style={{
-          position: 'fixed', top: '20px', left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(76, 66, 106, 0.95)',
-          border: '2px solid #916FF1', borderRadius: '37px',
-          padding: '12px 32px',
-          fontFamily: 'var(--font-body)', fontSize: '22px',
-          fontStyle: 'normal', color: '#C1AAFF',
-          zIndex: 50, backdropFilter: 'blur(12px)', letterSpacing: '0'
-        }}>
+        <div className="home-banner" role="alert">
           ⚠ {notice}
         </div>
       )}
@@ -232,7 +223,7 @@ function GoalsPage() {
                 <path d="M268.434 3.78371L250.074 64.7837L249.752 65.8511H7.99854L11.0112 63.2212L61.603 19.0484L61.9751 18.7241L62.4663 18.6841L266.875 1.85598L269.068 1.67532L268.434 3.78371Z" stroke="#916FF1" strokeWidth="3"/>
               </g>
               <defs>
-                <filter id="agFilter" x="0" y="0" width="275.139" height="75.3511">
+                <filter id="agFilter" x="0" y="0" width="275.139" height="75.3511" filterUnits="userSpaceOnUse" colorInterpolationFilters="sRGB">
                   <feFlood floodOpacity="0" result="BackgroundImageFix"/>
                   <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
                   <feOffset dy="4"/>

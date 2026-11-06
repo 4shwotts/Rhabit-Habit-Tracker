@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/4shwotts/Rhabit-Habit-Tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/4shwotts/Rhabit-Habit-Tracker/actions/workflows/ci.yml)
 ![Server coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/4shwotts/Rhabit-Habit-Tracker/badges/coverage.json)
-![Tests: 323](https://img.shields.io/badge/tests-323-brightgreen)
+![Tests: 327](https://img.shields.io/badge/tests-327-brightgreen)
 
 A gamified daily habit tracker inspired by isekai game menus, including a penalty system modelled after Solo Levelling. Built as a portfolio project demonstrating full-stack development with React, Node.js, Express and PostgreSQL.
 
@@ -94,7 +94,7 @@ Rhabit/
 
 ## Testing
 
-The project has 323 automated tests: unit, component, API integration and end-to-end, plus an accessibility scan. They run on every push and pull request, and server code is at 90% line coverage.
+The project has 327 automated tests: unit, component, API integration and end-to-end, plus an accessibility scan. They run on every push and pull request, and server code is at 90% line coverage.
 
 ```powershell
 npm test              # component, unit and API tests
@@ -116,7 +116,7 @@ No Postgres install is needed; the tests start their own throwaway database and 
 - **The first request can be slow,** because the hosted backend can go to sleep when idle.
 - **Countdowns use the device's clock,** so a badly wrong clock shows the wrong time left. The server stays in charge of what's allowed, with a 5-second allowance.
 - **Clock-change days are slightly off early in the day.** Time left until midnight assumes a 24-hour day, so it's an hour out before the clocks change. It's correct near midnight, when it matters.
-- **Frontend pages rely on end-to-end tests,** so component coverage is low. Testing is Chromium only, so phone layouts are checked at phone sizes rather than on real phones.
+- **Frontend pages rely on end-to-end tests,** so component coverage is low. Automated tests use Chromium, plus WebKit for phone layouts. Real iPhones are checked by hand.
 
 ---
 

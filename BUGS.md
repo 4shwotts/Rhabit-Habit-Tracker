@@ -15,6 +15,8 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 | 9 | [The midnight reset erased punishments](#9-the-midnight-reset-erased-punishments) | Code review | Fixed |
 | 10 | [Level-up message could give the wrong window](#10-level-up-message-could-give-the-wrong-window) | Code review | Fixed |
 | 11 | [Phones got the desktop layout](#11-phones-got-the-desktop-layout) | Manual check | Fixed |
+| 12 | [Safari lost the Add Goal button's shape](#12-safari-lost-the-add-goal-buttons-shape) | Real iPhone | Fixed |
+| 13 | [Goals spilled out of their frame on phones](#13-goals-spilled-out-of-their-frame-on-phones) | Real iPhone | Fixed |
 
 ---
 
@@ -223,6 +225,40 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 
 **Root cause:** the pages were fixed to the window's height, with bars placed at exact pixel positions and the page's scrolling turned off.
 
-**Fix:** screens narrower than 1024 pixels or shorter than 500 pixels get a single scrolling column. Setup no longer shrinks there, and pop-ups scroll and have a close button, because a tall pop-up can leave nothing outside it to tap.
+**Fix:** screens narrower than 1024 pixels or shorter than 500 pixels get a single scrolling column. Setup no longer shrinks there, and pop-ups scroll and have a close button, because a tall pop-up can leave nothing outside it to tap. The first version removed Home's angled panels to make things fit. A check on a real iPhone showed the page had lost its look, so they were rebuilt as shapes that fit a phone.
 
 **Preventing test:** `e2e/phones.spec.js` checks every main page at four screen sizes. It was shown to fail on the old styles.
+
+## 12. Safari lost the Add Goal button's shape
+
+**Summary:** in Safari, Add Goal was floating text with no button behind it.
+
+**Steps to reproduce:** open Goals in Safari, or in WebKit.
+
+**Expected:** the angled purple button.
+
+**Actual:** only the words showed. Chromium drew it correctly, so the Chromium tests couldn't see this.
+
+**Root cause:** the button's SVG shadow filter gave its area in the shape's own pixels without saying so. The default reading of those numbers is fractions of the shape, which Safari follows strictly.
+
+**Fix:** the filter now states its units, as the project's other SVG filters do.
+
+**Preventing test:** none. The tests check where things are, not how they're drawn. WebKit now runs the phone checks, and the fix was confirmed by eye in WebKit.
+
+## 13. Goals spilled out of their frame on phones
+
+**Summary:** with five goals, the last one sat below the bottom of the Goals frame.
+
+**Steps to reproduce:**
+1. Open Goals on a phone.
+2. Add goals until there are five.
+
+**Expected:** the frame grows to hold them all.
+
+**Actual:** the frame stopped after the fourth goal.
+
+**Root cause:** the desktop list has a maximum height so it can scroll inside the frame. The phone layout let the page scroll instead, but kept that limit. The first phone test only used one goal.
+
+**Fix:** the limit is removed on small screens.
+
+**Preventing test:** `every main page fits` in `e2e/phones.spec.js` now adds five goals and checks that the last one is inside the frame.

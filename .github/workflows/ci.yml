@@ -1,5 +1,5 @@
 # Runs on every push and pull request: install, lint, unit and API tests with
-# coverage, build, then the end-to-end tests in Chromium.
+# coverage, build, then the end-to-end tests in Chromium, with WebKit for phones.
 #
 # Everything runs against the throwaway Postgres service below, never Neon or
 # the live site. Secrets are optional: each one only replaces a test-only value,
@@ -85,8 +85,8 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
 
       - name: End-to-end tests
         run: npm run test:e2e

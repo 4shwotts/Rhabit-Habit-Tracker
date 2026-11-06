@@ -22,7 +22,11 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     viewport: { width: 1600, height: 900 }
   },
-  projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1600, height: 900 } } }],
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'], viewport: { width: 1600, height: 900 } } },
+    // the closest thing to an iPhone's Safari: it has caught what Chromium let through
+    { name: 'webkit', testMatch: /phones\.spec/, use: { ...devices['iPhone 13'] } }
+  ],
   webServer: {
     command: 'node e2e/stack.mjs',
     url: 'http://localhost:5181',

@@ -10,8 +10,8 @@ Rhabit is tested at four levels, from fast checks of single functions up to a re
 | Frontend component | Vitest, Testing Library | `src/components/*.test.jsx` | 17 | seconds |
 | Image sizes | Vitest | `src/assets/assets.test.js` | 32 | seconds |
 | API integration | Vitest, Supertest | `server/tests/api/` | 174 | about 30s |
-| End-to-end, phone sizes and accessibility | Playwright, axe | `e2e/` | 11 | about 3 minutes |
-| **Total** | | | **323** | |
+| End-to-end, phone sizes and accessibility | Playwright, axe | `e2e/` | 15 | about 4 minutes |
+| **Total** | | | **327** | |
 
 | Coverage | Statements | Branches | Functions | Lines |
 |---|---|---|---|---|
@@ -45,7 +45,7 @@ The game's rules are enforced on the server, so most tests sit there. A rule suc
   4. a started day left unfinished, and the XP loss shown on the next visit
   5. the longest confirm label fits inside its button
   6. add, rename and delete a goal
-- **Phone sizes:** every main page is opened at 320 by 568, 390 by 844, 844 by 390 and 768 by 1024 with touch on, and nothing may run off the sides of the screen.
+- **Phone sizes:** every main page is opened at 320 by 568, 390 by 844, 844 by 390 and 768 by 1024 with touch on, in Chromium and in WebKit, the engine behind Safari. Nothing may run off the sides of the screen, and five goals must stay inside the Goals frame.
 - **Accessibility:** axe scans login, sign-up, setup, Home and Goals against WCAG 2.1 A and AA. Any violation fails the run.
 - **Image sizes:** every image and icon must stay under 200 kB, so a heavy file can't quietly slow the first load again.
 
@@ -61,7 +61,7 @@ The game's rules are enforced on the server, so most tests sit there. A rule suc
 | Not tested | Why |
 |---|---|
 | How pages look | There's no visual regression testing, because the animated background and glass effects would make screenshots unreliable. Only one layout rule, the confirm button label, has a test. |
-| Other browsers and real phones | Chromium only, to keep the suite fast. Phone layouts run in Chromium at phone sizes with touch on, which isn't the same as Safari on an iPhone. |
+| Other browsers and real phones | Chromium runs everything, and WebKit runs the phone checks, to keep the suite fast. Neither is a real phone, and the tests check where things are rather than how they look, so real iPhones are checked by hand. |
 | Real email delivery | Sending through Brevo would need a live account and could spam real inboxes. Tests read an in-memory outbox instead. |
 | Real mail-server (MX) lookups | The lookup is faked so tests never depend on the network. |
 | Production hosting | Vercel rewrites, security headers set by Vercel, and the Render and Neon setup aren't covered. |
@@ -78,7 +78,7 @@ First time only:
 ```powershell
 npm install
 npm install --prefix server
-npx playwright install chromium
+npx playwright install chromium webkit
 ```
 
 Then:
