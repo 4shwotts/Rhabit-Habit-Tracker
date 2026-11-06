@@ -1,8 +1,8 @@
 # Rhabit
 
 [![CI](https://github.com/4shwotts/Rhabit-Habit-Tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/4shwotts/Rhabit-Habit-Tracker/actions/workflows/ci.yml)
-![Server coverage: 88%](https://img.shields.io/badge/server%20coverage-88%25-brightgreen)
-![Tests: 268](https://img.shields.io/badge/tests-268-brightgreen)
+![Server coverage: 90%](https://img.shields.io/badge/server%20coverage-90%25-brightgreen)
+![Tests: 314](https://img.shields.io/badge/tests-314-brightgreen)
 
 A gamified daily habit tracker inspired by isekai game menus, including a penalty system modelled after Solo Levelling. Built as a portfolio project demonstrating full-stack development with React, Node.js, Express and PostgreSQL.
 
@@ -93,7 +93,7 @@ Rhabit/
 
 ## Testing
 
-The project has 268 automated tests: unit, component, API integration and end-to-end, plus an accessibility scan. They run on every push and pull request, and server code is at 88% line coverage.
+The project has 314 automated tests: unit, component, API integration and end-to-end, plus an accessibility scan. They run on every push and pull request, and server code is at 90% line coverage.
 
 ```powershell
 npm test              # component, unit and API tests
@@ -112,11 +112,6 @@ No Postgres install is needed; the tests start their own throwaway database and 
 
 - **Rate limits are kept in memory.** They reset when the server restarts and wouldn't be shared across several server instances.
 - **Logging out signs you out on every device.** There's no per-device session list, so one logout ends them all.
-- **Accessibility issues are still open.** The axe scan reports three:
-  - critical: the Goals back-to-Home button has no accessible name
-  - critical: the Setup page dots have no accessible names
-  - serious: the Home reroll buttons' spoken name doesn't contain their visible "5XP"
-- **The logo file is 1.44 MB,** which slows the first load. See [BUGS.md](BUGS.md#8-logo-file-is-144-mb).
 - **The first request can be slow,** because the hosted backend can go to sleep when idle.
 - **Countdowns use the device's clock,** so a badly wrong clock shows the wrong time left. The server stays in charge of what's allowed, with a 5-second allowance.
 - **Clock-change days are slightly off early in the day.** Time left until midnight assumes a 24-hour day, so it's an hour out before the clocks change. It's correct near midnight, when it matters.
@@ -186,7 +181,8 @@ After signing up and verifying your email you will be taken to the setup page, w
 - 3 tasks per day = 45 XP maximum per day
 - 100 XP to level up
 - Level 10 is the top level, and its bar stops at 100/100 XP
-- Rerolling a task costs 5 XP, unless free rerolls are turned on
+- A full bar at level 10 completes the pathway: its tasks and XP losses stop, and you can move on to another pathway
+- Rerolling a task costs 10 XP, unless free rerolls are turned on
 - Penalty deduction = 45 XP (capped so you cannot go below 0 on level 1)
 
 ### Task Level Unlock System

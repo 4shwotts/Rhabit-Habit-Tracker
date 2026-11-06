@@ -6,16 +6,17 @@ Rhabit is tested at four levels, from fast checks of single functions up to a re
 
 | Level | Tool | Where | Tests | Time |
 |---|---|---|---|---|
-| Unit | Vitest | `server/tests/unit/` | 82 | seconds |
-| Frontend component | Vitest, Testing Library | `src/components/*.test.jsx` | 12 | seconds |
-| API integration | Vitest, Supertest | `server/tests/api/` | 167 | about 30s |
+| Unit | Vitest | `server/tests/unit/` | 89 | seconds |
+| Frontend component | Vitest, Testing Library | `src/components/*.test.jsx` | 15 | seconds |
+| Image sizes | Vitest | `src/assets/assets.test.js` | 32 | seconds |
+| API integration | Vitest, Supertest | `server/tests/api/` | 171 | about 30s |
 | End-to-end and accessibility | Playwright, axe | `e2e/` | 7 | about 3 minutes |
-| **Total** | | | **268** | |
+| **Total** | | | **314** | |
 
 | Coverage | Statements | Branches | Functions | Lines |
 |---|---|---|---|---|
-| Server (unit and API tests) | 85.66% | 66.73% | 89.94% | 88.14% |
-| Frontend (component tests only) | 21.36% | 21.91% | 17.06% | 22.08% |
+| Server (unit and API tests) | 87.32% | 68.43% | 89.55% | 90.01% |
+| Frontend (component tests only) | 23.78% | 24.96% | 18.77% | 24.62% |
 
 The frontend figure counts component tests only. The end-to-end journeys use most of the frontend, but they run in a real browser and aren't included in that number.
 
@@ -34,7 +35,7 @@ The game's rules are enforced on the server, so most tests sit there. A rule suc
   | `validation` | 23 | bad input gets a clean 400, never a stack trace |
   | `two-factor` | 20 | setup, sign-in, replayed codes, backup codes, bypass attempts |
   | `authorisation` | 17 | one player against another's data always gets a 404 |
-  | `game` | 42 | window, ticks, XP, level cap, penalties, rerolls, late-day rules, missed days, pausing, midnight reset by time zone |
+  | `game` | 46 | window, ticks, XP, level cap, finished pathways, penalties, rerolls, late-day rules, missed days, pausing, midnight reset by time zone |
   | `rate-limits` | 6 | 429 on repeated logins, sign-ups, reset emails and overall traffic |
 
 - **End-to-end tests** drive Chromium through the main journeys, on a stack that uses 30-second windows so a full day fits in a test:
@@ -44,7 +45,8 @@ The game's rules are enforced on the server, so most tests sit there. A rule suc
   4. a started day left unfinished, and the XP loss shown on the next visit
   5. the longest confirm label fits inside its button
   6. add, rename and delete a goal
-- **Accessibility:** axe scans login, sign-up, setup, Home and Goals against WCAG 2.1 A and AA. It reports violations without failing the run. The open ones are listed in the [README](README.md#known-limitations).
+- **Accessibility:** axe scans login, sign-up, setup, Home and Goals against WCAG 2.1 A and AA. Any violation fails the run.
+- **Image sizes:** every image and icon must stay under 200 kB, so a heavy file can't quietly slow the first load again.
 
 ## Keeping tests away from real data
 

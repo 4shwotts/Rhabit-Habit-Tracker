@@ -9,7 +9,7 @@ const game = require('../../lib/game')
 const {
   addXp, deductXp, getMinTaskLevel, getMaxTaskLevel, getWindowSeconds, windowForTasks,
   getTodayInTimezone, getYesterdayInTimezone, daysBetween, getSecondsUntilMidnight, generateTasks, rollDailyTasks,
-  XP_PER_LEVEL, MAX_XP_PER_ACTION
+  isPathwayComplete, XP_PER_LEVEL, MAX_XP_PER_ACTION
 } = game
 
 // freeze the clock at a moment in UTC
@@ -123,6 +123,18 @@ describe('deductXp', () => {
         }
       }
     }
+  })
+})
+
+describe('isPathwayComplete', () => {
+  it.each([
+    [0, 1, false], [99, 9, false], [0, 10, false], [99, 10, false], [100, 10, true]
+  ])('%i XP at level %i is %s', (xp, level, complete) => {
+    expect(isPathwayComplete({ xp, level })).toBe(complete)
+  })
+
+  it('is reached by the final award', () => {
+    expect(isPathwayComplete(addXp(90, 10, 45))).toBe(true)
   })
 })
 
@@ -369,5 +381,11 @@ describe('rollDailyTasks', () => {
     const db = fakeDb([task(1, 10), task(2, 10), task(3, 10)])
     await rollDailyTasks(db, 7, { id: 42, level: 13 })
     expect(db.calls[1].params).toEqual([42, 7, 10, 10]) // tiers 10 to 10, not 11 to 10
+  })
+
+  it('gives a finished pathway no tasks', async () => {
+    const db = fakeDb([task(1, 10), task(2, 10), task(3, 10)])
+    await rollDailyTasks(db, 7, { id: 42, xp: 100, level: 10 })
+    expect(db.calls).toHaveLength(1) // only the delete of yesterday's tasks
   })
 })

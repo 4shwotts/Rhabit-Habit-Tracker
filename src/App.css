@@ -3795,3 +3795,40 @@ body {
 @media (max-height: 820px) {
   .setup-page .setup-warning { font-size: 18px; line-height: 26px; }
 }
+
+/* ---- explains the missed-day rule under Pause Progression ---- */
+.setting-note {
+  margin: 0;
+  padding: 0 22px;
+  font-family: var(--font-body);
+  font-size: clamp(15px, 1.2vw, 18px);
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0;
+  color: #C0AAFF;
+}
+
+/* ---- the ending shown on a finished pathway ---- */
+.home-pathway-complete {
+  flex-direction: column;
+  gap: 16px;
+  height: auto;
+  min-height: 300px;
+  padding: 0 12px;
+}
+
+.home-pathway-complete p {
+  margin: 0;
+}
+
+.home-pathway-title {
+  font-family: var(--font-display);
+  font-size: clamp(30px, 3.4vw, 52px);
+  color: #FFFFFF;
+}
+
+@media (min-width: 900px) {
+  .home-pathway-title {
+    white-space: nowrap;
+  }
+}

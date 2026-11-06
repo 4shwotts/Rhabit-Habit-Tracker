@@ -193,10 +193,12 @@ function LevelTaskEditor({
         <div className="task-pagination">
           <button
             className={`page-dot ${taskPage === 0 ? 'active' : 'inactive'}`}
+            aria-label="Previous page of tasks"
             onClick={() => { setTaskPage(p => Math.max(0, p - 1)); setEditingIndex(null) }}
           />
           <button
             className={`page-dot ${taskPage > 0 ? 'active' : 'inactive'}`}
+            aria-label="Next page of tasks"
             onClick={() => { setTaskPage(p => Math.min(totalPages - 1, p + 1)); setEditingIndex(null) }}
           />
         </div>

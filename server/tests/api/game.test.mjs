@@ -184,9 +184,9 @@ describe('the penalty timer', () => {
 })
 
 describe('rerolling a task', () => {
-  it('costs 5 XP, works once per task and never on the first task', async () => {
+  it('costs 10 XP, works once per task and never on the first task', async () => {
     const player = await createPlayer()
-    await setGoalXp(player, 20, 1)
+    await setGoalXp(player, 25, 1)
     const [first, second] = await dailyTasksOf(player)
 
     expect((await as(player).post(`/api/daily/tasks/${first.id}/refresh`)).status).toBe(403)
@@ -203,6 +203,54 @@ describe('rerolling a task', () => {
     const res = await as(player).post(`/api/daily/tasks/${second.id}/refresh`)
     expect(res.status).toBe(403)
     expect(res.body.error).toBe('Not enough XP to refresh')
+  })
+})
+
+describe('a finished pathway', () => {
+  const finish = player => setGoalXp(player, 100, 10)
+  const finishedAndConfirmed = async player => {
+    await finish(player)
+    await query('UPDATE daily_state SET started = TRUE, confirmed = TRUE WHERE user_id = $1', [player.id])
+  }
+
+  it('gets no new tasks at the next reset', async () => {
+    const player = await createPlayer()
+    await finishedAndConfirmed(player)
+    setClock('2026-07-15T09:00:00Z')
+    const res = await as(player).get('/api/daily')
+    expect(res.body.tasks).toEqual([])
+    expect(await dayOf(player)).toMatchObject({ last_reset: '2026-07-15', confirmed: false })
+  })
+
+  it('never loses XP for days away', async () => {
+    const player = await createPlayer()
+    await finishedAndConfirmed(player)
+    setClock('2026-07-20T09:00:00Z') // days away, including the reset after finishing
+    const res = await as(player).get('/api/daily')
+    expect(res.body.xpLoss).toBeNull()
+    expect(await goalOf(player)).toMatchObject({ xp: 100, level: 10 })
+    setClock('2026-07-25T09:00:00Z') // and again once its tasks have gone
+    await as(player).get('/api/daily')
+    expect(await goalOf(player)).toMatchObject({ xp: 100, level: 10 })
+  })
+
+  it('gets no tasks when a player switches back to it', async () => {
+    const player = await createPlayer()
+    const { body: other } = await as(player).post('/api/goals').send({ name: 'Second' })
+    await finish(player)
+    await as(player).patch(`/api/goals/${other.id}/star`)
+    await query('DELETE FROM goal_daily_snapshot WHERE user_id = $1', [player.id])
+    await as(player).patch(`/api/goals/${player.active_goal_id}/star`)
+    expect(await dailyTasksOf(player)).toEqual([])
+  })
+
+  it('still gives tasks at level 10 until the bar is full', async () => {
+    const player = await createPlayer()
+    await setGoalXp(player, 99, 10)
+    await query('UPDATE goal_tasks SET level = 10 WHERE user_id = $1', [player.id])
+    await query('UPDATE daily_state SET started = TRUE, confirmed = TRUE WHERE user_id = $1', [player.id])
+    setClock('2026-07-15T09:00:00Z')
+    expect((await as(player).get('/api/daily')).body.tasks).toHaveLength(3)
   })
 })
 

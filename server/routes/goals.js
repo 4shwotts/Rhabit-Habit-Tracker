@@ -3,7 +3,7 @@ const router = express.Router()
 const { query, withTransaction } = require('../db')
 const config = require('../config')
 const { validate, z, idParam, fields } = require('../lib/validate')
-const { getTodayInTimezone, generateTasks, getMinTaskLevel, getMaxTaskLevel } = require('../lib/game')
+const { getTodayInTimezone, tasksForGoal } = require('../lib/game')
 
 const goalIdParams = z.strictObject({ id: idParam })
 
@@ -137,9 +137,7 @@ router.patch('/:id/star', validate({ params: goalIdParams }), async (req, res) =
           )
         }
       } else {
-        const tasks = await generateTasks(
-          client, userId, goal.id, getMinTaskLevel(goal.level), getMaxTaskLevel(goal.level)
-        )
+        const tasks = await tasksForGoal(client, userId, goal)
         for (const task of tasks) {
           await client.query(
             `INSERT INTO daily_tasks (user_id, goal_task_id, title, level, checked, refreshed)

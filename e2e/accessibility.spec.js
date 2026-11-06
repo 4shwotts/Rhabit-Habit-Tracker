@@ -1,6 +1,6 @@
-// Accessibility scan (axe-core, WCAG 2.1 A and AA) of the main pages. This
-// reports what it finds rather than failing: the list is in the HTML report
-// and in test-results/accessibility.json, to be fixed separately.
+// Accessibility scan (axe-core, WCAG 2.1 A and AA) of the main pages. Any
+// violation fails the test. The list is in the HTML report and in
+// test-results/accessibility.json.
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import fs from 'node:fs'
@@ -51,4 +51,5 @@ test('accessibility scan of login, sign-up, setup, Home and Goals', async ({ pag
   fs.writeFileSync('test-results/accessibility.json', JSON.stringify(results, null, 2))
   console.log(`\nAccessibility: ${results.length} violation(s)`)
   for (const r of results) console.log(`  [${r.impact}] ${r.page}: ${r.rule} (${r.elements}) - ${r.description}`)
+  expect(results).toEqual([])
 })

@@ -5,7 +5,7 @@
 const { getRandomPenaltyTask } = require('../data/penaltyTasks')
 const {
   PENALTY_XP, PENALTY_SECONDS, TIMING_GRACE_SECONDS,
-  getSecondsUntilMidnight, windowForTasks, deductXp, totalXp, daysBetween
+  getSecondsUntilMidnight, windowForTasks, deductXp, totalXp, daysBetween, isPathwayComplete
 } = require('./game')
 
 function secondsSince(timestamp) {
@@ -129,11 +129,13 @@ async function penaliseMissedWindow(client, user, day, startedAt) {
 // Called at the daily reset, before the old day is cleared. Every missed day
 // costs the same XP as a failed penalty, so closing the site can't dodge it:
 // the last day if it was never confirmed (ticks alone don't count), plus each
-// day the app wasn't opened at all. Paused players don't reach this.
+// day the app wasn't opened at all. Paused players don't reach this, and a
+// finished pathway has nothing left to lose.
 async function settleMissedDays(client, user, today) {
   const day = await loadDay(client, user)
   const { state, penalty, tasks } = day
   if (!state || !penalty || !day.goal || tasks.length === 0) return
+  if (isPathwayComplete(day.goal)) return
 
   const neverOpened = Math.max(0, daysBetween(state.last_reset, today) - 1)
   const missed = neverOpened + (state.confirmed ? 0 : 1)

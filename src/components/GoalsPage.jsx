@@ -56,10 +56,11 @@ function GoalsPage() {
     setScrollThumbTop(progress * (trackH - thumbH))
   }
 
-  // progress bar shows how far through the 10 levels the goal has come
+  // progress bar shows how much of the pathway's 1000 XP has been earned, so
+  // 100% only ever means it's finished
   const progressPercent = (goal) => {
   const cappedLevel = Math.min(goal.level, 10)
-  return Math.round((cappedLevel - 1) / 9 * 100)
+  return Math.floor(((cappedLevel - 1) * 100 + goal.xp) / 10)
   }
 
   async function addGoal() {
@@ -246,7 +247,7 @@ function GoalsPage() {
             <span className="add-goal-btn-text">Add GOAL</span>
           </button>
 
-          <button className="goals-home-btn" onClick={() => navigate('/home')}>
+          <button className="goals-home-btn" aria-label="Back to Home" onClick={() => navigate('/home')}>
             <svg width="100%" height="100%" viewBox="0 0 89 89" fill="none" xmlns="http://www.w3.org/2000/svg">
               <rect x="9.3" y="9.3" width="70" height="70" rx="6" fill="#D9D9D9" fillOpacity="0.2"/>
               <rect x="9.8" y="9.8" width="69" height="69" rx="5.5" stroke="#916FF1"/>

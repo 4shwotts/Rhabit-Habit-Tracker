@@ -11,7 +11,7 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 | 5 | [Goals at level 13 and above got no tasks](#5-goals-at-level-13-and-above-got-no-tasks) | Unit tests | Fixed |
 | 6 | [Logout left the session working](#6-logout-left-the-session-working) | API test review | Fixed |
 | 7 | [Confirm label overflowed its button](#7-confirm-label-overflowed-its-button) | Manual play-through | Fixed |
-| 8 | [Logo file is 1.44 MB](#8-logo-file-is-144-mb) | Build output | Open |
+| 8 | [Logo file is 1.44 MB](#8-logo-file-is-144-mb) | Build output | Fixed |
 | 9 | [The midnight reset erased punishments](#9-the-midnight-reset-erased-punishments) | Code review | Fixed |
 
 ---
@@ -162,11 +162,11 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 
 **Actual:** `Rhabit Logo.svg` is 1,440 kB, or 1,074 kB gzipped, about ten times the size of all the app's JavaScript when gzipped.
 
-**Root cause:** not investigated yet. An SVG that barely compresses often contains embedded image data.
+**Root cause:** the SVG was a wrapper around one embedded 1024×1536 PNG, so it held pixels rather than vector shapes.
 
-**Fix:** not fixed yet. It's planned for after the testing work.
+**Fix:** the flat logo was traced into a single vector path, keeping the same shape, size and shadow. It's now 1.95 kB and stays sharp at any size.
 
-**Preventing test:** none yet. A size limit on built assets would stop this coming back.
+**Preventing test:** `src/assets/assets.test.js` fails if any image or icon reaches 200 kB. It was shown to fail on the old logo.
 
 ## 9. The midnight reset erased punishments
 

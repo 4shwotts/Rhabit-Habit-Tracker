@@ -16,10 +16,11 @@ import {
 } from '../api'
 
 // display only — the server decides what a refresh actually costs
-const REFRESH_COST = 5
+const REFRESH_COST = 10
 // how long to wait before asking for the penalty again if a request failed
 const PENALTY_RETRY_MS = 5000
 const XP_PER_LEVEL = 100
+const MAX_LEVEL = 10
 const NO_TIME_MESSAGE = 'You did not have enough time to save yourself at all, [username]'
 const FAILED_MESSAGE = `You failed to do the tasks and you failed on the penalty task, you aren't worthy of this XP.`
 
@@ -461,8 +462,12 @@ function HomePage() {
 
   // levels 4–10 are optional at setup, so the newest unlocked task level can be
   // empty — point the user to Goals to fill it in
-  const unlockedTier = Math.min(level, 10)
+  const unlockedTier = Math.min(level, MAX_LEVEL)
   const emptyTier = !!goal && !(goal.levelTasks?.[unlockedTier] || []).some(t => t.title?.trim())
+
+  // a full bar at the top level ends the pathway, once today's tasks are done
+  const pathwayComplete = level >= MAX_LEVEL && xp >= XP_PER_LEVEL
+  const showPathwayEnd = pathwayComplete && (showTasksDone || dailyTasks.length === 0)
 
   // confirming needs every task ticked as well as the unlock time
   const allTicked = dailyTasks.every((_, i) => checked[i])
@@ -566,7 +571,7 @@ function HomePage() {
           {formatClock(currentTime, user?.timezone || 'UTC')}
         </div>
 
-        {emptyTier && (
+        {emptyTier && !pathwayComplete && (
           <button className="home-tier-notice" type="button" onClick={() => navigate('/goals')}>
             Level {unlockedTier} tasks unlocked — add some in Goals
           </button>
@@ -575,6 +580,11 @@ function HomePage() {
         <div className="home-task-list">
           {endMessage ? (
             <p className="home-end-message">{endMessage}</p>
+          ) : showPathwayEnd ? (
+            <div className="home-tasks-done home-pathway-complete">
+              <p className="home-pathway-title">PATHWAY COMPLETE</p>
+              <p>You have mastered {goal?.name}, {user?.username}. Choose another pathway in Goals to keep climbing.</p>
+            </div>
           ) : showTasksDone ? (
             <p className="home-tasks-done">No more tasks left, new tasks will be provided on reset for the next day</p>
           ) : dailyTasks.length === 0 ? (
@@ -608,7 +618,7 @@ function HomePage() {
                   <button
                     type="button"
                     className={`home-task-refresh-wrap ${refreshedIndices.includes(index) ? 'used' : ''}`}
-                    aria-label={settings.taskRefresh ? 'Reroll task (free)' : `Reroll task (${REFRESH_COST} XP)`}
+                    aria-label={settings.taskRefresh ? 'Reroll task, free' : `Reroll task, ${REFRESH_COST}XP`}
                     onClick={(e) => { e.stopPropagation(); handleRefresh(index) }}
                   >
                     <span className="refresh-badge">
@@ -641,7 +651,7 @@ function HomePage() {
         <div className="home-action-area">
           {xpEarnedText ? (
             <span className="xp-earned-anim">{xpEarnedText}</span>
-          ) : endMessage || showTasksDone ? (
+          ) : endMessage || showTasksDone || showPathwayEnd ? (
             null
           ) : !started ? (
             <button className="home-start-btn" onClick={handleStart}>

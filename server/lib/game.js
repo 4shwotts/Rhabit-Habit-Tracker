@@ -4,7 +4,7 @@ const config = require('../config')
 const XP_PER_TASK = 15
 // a whole day's worth of XP (three tasks)
 const PENALTY_XP = 45
-const REFRESH_COST = 5
+const REFRESH_COST = 10
 const XP_PER_LEVEL = 100
 // levels stop here; the final level's bar fills to 100/100 XP and stays full
 const MAX_LEVEL = 10
@@ -133,6 +133,12 @@ function addXp(xp, level, amount) {
   return fromTotal(totalXp(xp, level) + checkAmount(amount))
 }
 
+// A full bar at the top level ends the pathway: no more tasks, and no more
+// XP to win or lose on it.
+function isPathwayComplete(goal) {
+  return goal.level >= MAX_LEVEL && goal.xp >= XP_PER_LEVEL
+}
+
 // always guarantee one task from the highest unlocked tier so progression feels meaningful,
 // then fill the rest randomly from the full unlocked pool.
 // `db` is either the shared query interface or a transaction client.
@@ -158,14 +164,18 @@ async function generateTasks(db, userId, goalId, minLevel, maxLevel) {
   return selected
 }
 
+// Today's tasks for a goal at its current level (none once it's finished).
+function tasksForGoal(db, userId, goal) {
+  if (isPathwayComplete(goal)) return []
+  return generateTasks(db, userId, goal.id, getMinTaskLevel(goal.level), getMaxTaskLevel(goal.level))
+}
+
 // Replaces the user's daily tasks with a freshly rolled set for the given goal.
 async function rollDailyTasks(db, userId, goal) {
   await db.query('DELETE FROM daily_tasks WHERE user_id = $1', [userId])
   if (!goal) return
 
-  const tasks = await generateTasks(
-    db, userId, goal.id, getMinTaskLevel(goal.level), getMaxTaskLevel(goal.level)
-  )
+  const tasks = await tasksForGoal(db, userId, goal)
   for (const task of tasks) {
     await db.query(
       `INSERT INTO daily_tasks (user_id, goal_task_id, title, level, checked, refreshed)
@@ -181,6 +191,8 @@ module.exports = {
   REFRESH_COST,
   XP_PER_LEVEL,
   MAX_LEVEL,
+  isPathwayComplete,
+  tasksForGoal,
   MAX_XP_PER_ACTION,
   CONFIRM_UNLOCK_BEFORE_END,
   PENALTY_CONFIRM_UNLOCK_BEFORE_END,

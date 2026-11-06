@@ -85,6 +85,9 @@ function SettingsModal({ onClose, settings, onToggle }) {
               <span className="settings-toggle-thumb" />
             </button>
           </div>
+          <p className="setting-note">
+            Every missed day costs 45 XP. Pause Progression stops this, from the next day if you have already started your tasks.
+          </p>
 
           <div className="setting-row">
             <span className="setting-label">

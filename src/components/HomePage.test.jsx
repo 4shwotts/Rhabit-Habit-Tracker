@@ -29,20 +29,21 @@ const activePenalty = startedAt => ({
 // window started (null = not started yet). The server side is simulated just
 // enough: triggerPenalty starts a penalty that later getDaily calls return.
 function serveDay({
-  started = null, ticked = false, triggerResults = [{ success: true }], xpLoss = null, noTimeForPenalty = false
+  started = null, ticked = false, triggerResults = [{ success: true }], xpLoss = null, noTimeForPenalty = false,
+  goal = { xp: 40, level: 1 }, tasks = [1, 2, 3].map(task)
 } = {}) {
   let penalty = { active: false, unlock_before_end: 20 }
   const results = [...triggerResults]
   api.getUser.mockResolvedValue({
     username: 'tester', timer_visible: 1, task_refresh: 0, pause_progression: 0, active_goal_id: 1
   })
-  api.getGoals.mockResolvedValue([{ id: 1, name: 'Fitness', xp: 40, level: 1 }])
+  api.getGoals.mockResolvedValue([{ id: 1, name: 'Fitness', ...goal }])
   api.getDaily.mockImplementation(async () => ({
     state: {
       started: started === null ? 0 : 1, confirmed: 0, penalty_shown: penalty.active ? 1 : 0,
       window_start: started === null ? null : secondsAgo(started)
     },
-    tasks: [1, 2, 3].map(id => ({ ...task(id), checked: ticked ? 1 : 0 })),
+    tasks: tasks.map(t => ({ ...t, checked: ticked ? 1 : 0 })),
     penalty,
     windowSeconds: WINDOW,
     confirmUnlockBeforeEnd: 20,
@@ -151,6 +152,34 @@ describe('Home window timer', () => {
     expect(view.container.textContent).toMatch(/failed on the penalty task/)
     await wait(10_000)
     expect(api.failPenalty).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('finishing a pathway', () => {
+  it('shows the ending instead of tasks, with no start button', async () => {
+    serveDay({ goal: { xp: 100, level: 10 }, tasks: [] })
+    const view = await renderHome()
+    expect(view.container.textContent).toMatch(/PATHWAY COMPLETE/)
+    expect(view.container.textContent).toMatch(/Fitness/)
+    expect(view.container.textContent).not.toMatch(/No tasks added yet/)
+    expect(view.container.querySelector('.home-start-btn')).toBeNull()
+    expect(view.container.querySelector('.home-tier-notice')).toBeNull()
+  })
+
+  it('shows the ending once the final day is confirmed', async () => {
+    serveDay({ goal: { xp: 70, level: 10 }, started: 25, ticked: true })
+    api.confirmDaily.mockResolvedValue({ success: true, xp: 100, level: 10, xp_earned: 45 })
+    const view = await renderHome()
+    await act(async () => { fireEvent.click(view.container.querySelector('.home-start-btn')) })
+    await wait(3000)
+    expect(view.container.textContent).toMatch(/PATHWAY COMPLETE/)
+  })
+
+  it('leaves a level 10 pathway with room left alone', async () => {
+    serveDay({ goal: { xp: 40, level: 10 } })
+    const view = await renderHome()
+    expect(view.container.textContent).not.toMatch(/PATHWAY COMPLETE/)
+    expect(view.container.querySelectorAll('.home-task-row')).toHaveLength(3)
   })
 })
 
