@@ -155,6 +155,27 @@ describe('Home window timer', () => {
   })
 })
 
+describe('levelling up', () => {
+  async function confirmWith(result) {
+    serveDay({ goal: { xp: 90, level: 3 }, started: 25, ticked: true })
+    api.confirmDaily.mockResolvedValue({ success: true, xp_earned: 45, ...result })
+    const view = await renderHome()
+    await act(async () => { fireEvent.click(view.container.querySelector('.home-start-btn')) })
+    await wait(3100)
+    return view
+  }
+
+  it('announces the window the server says is coming', async () => {
+    const view = await confirmWith({ xp: 35, level: 4, new_window_seconds: 5400 })
+    expect(view.container.textContent).toMatch(/daily window is now 1\.5 hours/)
+  })
+
+  it('stays quiet when the server says the window is not changing', async () => {
+    const view = await confirmWith({ xp: 35, level: 4, new_window_seconds: null })
+    expect(view.container.textContent).not.toMatch(/daily window/)
+  })
+})
+
 describe('finishing a pathway', () => {
   it('shows the ending instead of tasks, with no start button', async () => {
     serveDay({ goal: { xp: 100, level: 10 }, tasks: [] })

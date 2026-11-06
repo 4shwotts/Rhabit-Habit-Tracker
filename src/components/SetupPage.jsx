@@ -12,6 +12,9 @@ import { useAuth } from '../auth/AuthContext'
 const REQUIRED_LEVELS = [1, 2, 3]
 const MIN_TASKS = 3
 
+// matches the small-screen block at the end of App.css
+const SMALL_SCREEN = '(max-width: 1023px), (max-height: 500px)'
+
 const emptyLevels = () => ({ 1: [], 2: [], 3: [], 4: [], 5: [], 6: [], 7: [], 8: [], 9: [], 10: [] })
 const filledCount = list => list.filter(t => t.title.trim() !== '').length
 
@@ -25,16 +28,18 @@ function SetupPage() {
   const [armed, setArmed] = useState(false)
   const contentRef = useRef(null)
 
-  // Fit the whole page in the window, never scrolling: the CSS breakpoints cover
-  // common screen sizes, and if the content is still taller than the window it's
-  // scaled down just enough to fit.
+  // Laptops and desktops fit the whole page in the window, never scrolling: the
+  // CSS breakpoints cover common screen sizes, and if the content is still taller
+  // than the window it's scaled down just enough to fit. Small screens scroll
+  // instead, because scaling would make the page too small to read or tap.
   useLayoutEffect(() => {
     const el = contentRef.current
     if (!el) return
     const PAGE_PADDING = 40 // .setup-page has 20px top and bottom
     const fit = () => {
       const available = window.innerHeight - PAGE_PADDING
-      const scale = Math.min(1, available / el.offsetHeight)
+      const small = window.matchMedia(SMALL_SCREEN).matches
+      const scale = small ? 1 : Math.min(1, available / el.offsetHeight)
       el.style.transform = scale < 1 ? `scale(${scale})` : ''
     }
     fit()

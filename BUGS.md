@@ -13,6 +13,8 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 | 7 | [Confirm label overflowed its button](#7-confirm-label-overflowed-its-button) | Manual play-through | Fixed |
 | 8 | [Logo file is 1.44 MB](#8-logo-file-is-144-mb) | Build output | Fixed |
 | 9 | [The midnight reset erased punishments](#9-the-midnight-reset-erased-punishments) | Code review | Fixed |
+| 10 | [Level-up message could give the wrong window](#10-level-up-message-could-give-the-wrong-window) | Code review | Fixed |
+| 11 | [Phones got the desktop layout](#11-phones-got-the-desktop-layout) | Manual check | Fixed |
 
 ---
 
@@ -190,3 +192,37 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 - Pause Progression freezes losses, so paused days aren't charged. A day already started before pausing still is.
 
 **Preventing test:** the `leaving a day unfinished` and `too late in the day` groups in `server/tests/api/game.test.mjs`, `XP lost while away` in `src/components/HomePage.test.jsx`, and `leaving a started day unfinished still costs XP on the next visit` in `e2e/journeys.spec.js`.
+
+## 10. Level-up message could give the wrong window
+
+**Summary:** after a level-up, Home could announce a window length the player wouldn't get.
+
+**Steps to reproduce:**
+1. Take a goal from level 3 to level 4 with no level 4 tasks added.
+2. Read the message after confirming.
+
+**Expected:** no message, because tomorrow's tasks still come from levels 2 and 3, so the window stays at 3 hours.
+
+**Actual:** "Your daily window is now 2 hours".
+
+**Root cause:** Home worked out the length from the goal's level, but the server uses the hardest task rolled.
+
+**Fix:** the server now says whether the window is changing when it answers a confirm, and Home only repeats that. It checks that the new tier has tasks, because the first task always comes from the top tier when it can.
+
+**Preventing test:** the `the window after a level-up` group in `server/tests/api/game.test.mjs` and `levelling up` in `src/components/HomePage.test.jsx`.
+
+## 11. Phones got the desktop layout
+
+**Summary:** Home, Goals, Setup and the pop-ups couldn't be used properly on a phone.
+
+**Steps to reproduce:** open Home at 390 by 844 pixels.
+
+**Expected:** every control is on screen and the page scrolls downwards.
+
+**Actual:** Home was 810 pixels wide, with its timers, XP bar and buttons off the side of the screen. The Goals buttons and Setup's level tabs ran off the edge too, Setup shrank itself to fit the window height, and the goal pop-up cut off its task list.
+
+**Root cause:** the pages were fixed to the window's height, with bars placed at exact pixel positions and the page's scrolling turned off.
+
+**Fix:** screens narrower than 1024 pixels or shorter than 500 pixels get a single scrolling column. Setup no longer shrinks there, and pop-ups scroll and have a close button, because a tall pop-up can leave nothing outside it to tap.
+
+**Preventing test:** `e2e/phones.spec.js` checks every main page at four screen sizes. It was shown to fail on the old styles.

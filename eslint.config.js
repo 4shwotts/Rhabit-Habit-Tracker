@@ -19,9 +19,9 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
-  // build and tooling config at the repo root (Node, ES modules)
+  // build and tooling config at the repo root, and CI's scripts (Node, ES modules)
   {
-    files: ['*.js'],
+    files: ['*.js', 'scripts/**/*.mjs'],
     extends: [js.configs.recommended],
     languageOptions: { globals: globals.node },
   },

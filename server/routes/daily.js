@@ -9,7 +9,7 @@ const { settleDay, penaliseMissedWindow, failPenalty, setGoalXp, secondsSince } 
 const {
   XP_PER_TASK, REFRESH_COST, CONFIRM_UNLOCK_BEFORE_END, PENALTY_CONFIRM_UNLOCK_BEFORE_END,
   TIMING_GRACE_SECONDS,
-  getMaxTaskLevel, getMinTaskLevel, addXp, deductXp
+  getMaxTaskLevel, getMinTaskLevel, addXp, deductXp, windowAfterLevelUp
 } = require('../lib/game')
 
 const taskIdParams = z.strictObject({ id: idParam })
@@ -130,11 +130,16 @@ router.post('/confirm', validate(), (req, res) =>
     if (!tasks.every(t => t.checked)) return conflict('Tick off all your tasks first')
 
     const xpEarned = tasks.filter(t => t.checked).length * XP_PER_TASK
+    const previousLevel = goal.level
     const { xp, level } = addXp(goal.xp, goal.level, xpEarned)
     await setGoalXp(client, req.user, goal, xp, level)
     await client.query('UPDATE daily_state SET confirmed = TRUE WHERE user_id = $1', [req.user.id])
 
-    return [200, { success: true, xp, level, xp_earned: xpEarned }]
+    const newWindowSeconds = level > previousLevel
+      ? await windowAfterLevelUp(client, req.user.id, goal, day.windowSeconds)
+      : null
+
+    return [200, { success: true, xp, level, xp_earned: xpEarned, new_window_seconds: newWindowSeconds }]
   })
 )
 

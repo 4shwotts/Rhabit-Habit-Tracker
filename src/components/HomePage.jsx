@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useEffectEvent, useRef } from 'react'
 import logo from '../assets/icons/Rhabit Logo.svg'
 import settingsIcon from '../assets/icons/SettingsButton.svg'
 import goalsIcon from '../assets/icons/GoalsButton.svg'
@@ -31,11 +31,10 @@ function formatTime(seconds) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-function getWindowLabel(level) {
-  if (level <= 3) return '3 hours'
-  if (level <= 6) return '2 hours'
-  if (level <= 9) return '1.5 hours'
-  return '1 hour'
+// 5400 -> "1.5 hours"
+function formatWindow(seconds) {
+  const hours = seconds / 3600
+  return `${hours} ${hours === 1 ? 'hour' : 'hours'}`
 }
 
 function HomePage() {
@@ -77,7 +76,6 @@ function HomePage() {
   const [spinningIndex, setSpinningIndex] = useState(null)
 
   const timerRef = useRef(null)
-  const confirmRef = useRef(null)
   const clockRef = useRef(null)
   // tick syncing: what the user last chose (updated instantly on click), what
   // the server last accepted, and which tasks have a request in flight
@@ -236,20 +234,13 @@ function HomePage() {
     return () => clearTimeout(t)
   }, [xp, xpAnim])
 
+  // counts down to the confirm button unlocking, once that time is known
+  const confirmCountdownReady = confirmUnlock !== null
   useEffect(() => {
-    if (!dailyState?.started || confirmed || confirmUnlock === null) return
-    if (confirmRef.current) clearInterval(confirmRef.current)
-    if (confirmUnlock <= 0) return
-
-    confirmRef.current = setInterval(() => {
-      setConfirmUnlock(prev => {
-        if (prev <= 1) { clearInterval(confirmRef.current); return 0 }
-        return prev - 1
-      })
-    }, 1000)
-
-    return () => clearInterval(confirmRef.current)
-  }, [dailyState?.started, confirmed, confirmUnlock === null])
+    if (!dailyState?.started || confirmed || !confirmCountdownReady) return
+    const countdown = setInterval(() => setConfirmUnlock(prev => Math.max(0, prev - 1)), 1000)
+    return () => clearInterval(countdown)
+  }, [dailyState?.started, confirmed, confirmCountdownReady])
 
   async function handleStart() {
     if (settings.pauseProgression) return
@@ -305,14 +296,10 @@ function HomePage() {
       const result = await confirmDaily()
       if (result.error) return
 
-      const oldWindowLabel = getWindowLabel(level)
-      const newWindowLabel = getWindowLabel(result.level)
-
       setXp(result.xp)
       setLevel(result.level)
       setConfirmed(true)
       clearInterval(timerRef.current)
-      clearInterval(confirmRef.current)
 
       if (!penaltyTriggeredByTimer) {
         setXpEarnedText(`+${result.xp_earned}XP`)
@@ -328,9 +315,10 @@ function HomePage() {
       setTimeout(() => setDissolvingIndices([0, 1]), 200)
       setTimeout(() => setDissolvingIndices([0, 1, 2]), 400)
 
-      if (result.level !== level && oldWindowLabel !== newWindowLabel) {
+      // only the server knows the tasks that set the window, so it says if it's changing
+      if (result.new_window_seconds) {
         setTimeout(() => {
-          setLevelUpMsg(`SYSTEM UPDATE — Your daily window is now ${newWindowLabel}`)
+          setLevelUpMsg(`SYSTEM UPDATE — Your daily window is now ${formatWindow(result.new_window_seconds)}`)
           setTimeout(() => setLevelUpMsg(null), 5000)
         }, 3000)
       }
@@ -376,6 +364,9 @@ function HomePage() {
     }
   }
 
+  // always the latest version, without restarting the timer on every render
+  const askForPenalty = useEffectEvent(handleTriggerPenalty)
+
   // The window timer. Each second it works out what's left from the stored end
   // time, so it can't drift and still notices a window that ended while the
   // page was loading. Once time is up without a confirm it asks for the penalty:
@@ -389,7 +380,7 @@ function HomePage() {
       if (left > 0) return
       const req = penaltyRequest.current
       if (req.busy || req.started || Date.now() - req.last < PENALTY_RETRY_MS) return
-      handleTriggerPenalty()
+      askForPenalty()
     }, 1000)
 
     return () => clearInterval(timerRef.current)
@@ -494,20 +485,7 @@ function HomePage() {
       <img src={cornerFrame} className="corner bottom-left" alt="" />
       <img src={cornerFrame} className="corner bottom-right" alt="" />
 
-      {levelUpMsg && (
-        <div style={{
-          position: 'fixed', top: '20px', left: '50%',
-          transform: 'translateX(-50%)',
-          background: 'rgba(76, 66, 106, 0.95)',
-          border: '2px solid #916FF1', borderRadius: '37px',
-          padding: '12px 32px',
-          fontFamily: 'var(--font-body)', fontSize: '22px',
-          fontStyle: 'normal', color: '#C1AAFF',
-          zIndex: 50, backdropFilter: 'blur(12px)', letterSpacing: '0'
-        }}>
-          ⚡ {levelUpMsg}
-        </div>
-      )}
+      {levelUpMsg && <div className="home-banner" role="status">⚡ {levelUpMsg}</div>}
 
       <div className="home-content">
         <div className="home-header-bar">

@@ -8,6 +8,8 @@ name: CI
 
 on:
   push:
+    # the badges branch only holds the coverage badge's numbers
+    branches-ignore: [badges]
   pull_request:
 
 permissions:
@@ -107,3 +109,37 @@ jobs:
           path: test-results/
           if-no-files-found: ignore
           retention-days: 14
+
+  # Keeps the README's coverage badge true. It runs apart from the job above
+  # because it's the only part allowed to write to the repository, and it only
+  # touches the badges branch, which is replaced each time.
+  coverage-badge:
+    name: Update the coverage badge
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: coverage
+
+      - name: Work out the badge
+        run: node scripts/coverage-badge.mjs server/coverage/coverage-summary.json "$RUNNER_TEMP/coverage.json"
+
+      - name: Publish it to the badges branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan badges
+          git rm -rf --quiet .
+          git clean -fdxq
+          cp "$RUNNER_TEMP/coverage.json" coverage.json
+          git add coverage.json
+          git commit -m "Update coverage badge"
+          git push --force origin badges

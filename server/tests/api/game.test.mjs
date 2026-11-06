@@ -75,6 +75,40 @@ describe('a normal day', () => {
     expect((await goalOf(player)).xp).toBe(35)
   })
 
+  describe('the window after a level-up', () => {
+    async function levelUpToFour(player) {
+      await setGoalXp(player, 90, 3)
+      await as(player).post('/api/daily/start')
+      await tickAll(player)
+      await startedSecondsAgo(player, CONFIRM_OPEN)
+      return as(player).post('/api/daily/confirm')
+    }
+
+    it('announces the shorter window once the new tier has tasks', async () => {
+      const player = await createPlayer()
+      await query(
+        `UPDATE goal_tasks SET level = 4 WHERE id = (SELECT id FROM goal_tasks WHERE user_id = $1 LIMIT 1)`,
+        [player.id]
+      )
+      const res = await levelUpToFour(player)
+      expect(res.body).toMatchObject({ level: 4, new_window_seconds: 2 * 60 * 60 })
+    })
+
+    it('stays quiet if the new tier has no tasks, because the window stays the same', async () => {
+      const player = await createPlayer()
+      const res = await levelUpToFour(player)
+      expect(res.body).toMatchObject({ level: 4, new_window_seconds: null })
+    })
+
+    it('stays quiet without a level-up', async () => {
+      const player = await createPlayer()
+      await as(player).post('/api/daily/start')
+      await tickAll(player)
+      await startedSecondsAgo(player, CONFIRM_OPEN)
+      expect((await as(player).post('/api/daily/confirm')).body.new_window_seconds).toBeNull()
+    })
+  })
+
   it('stops at a full bar on level 10', async () => {
     const player = await createPlayer()
     await setGoalXp(player, 95, 10)

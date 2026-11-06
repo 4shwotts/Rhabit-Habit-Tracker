@@ -164,6 +164,22 @@ async function generateTasks(db, userId, goalId, minLevel, maxLevel) {
   return selected
 }
 
+// The window the player gets after levelling up, or null if it isn't changing.
+// The first task rolled always comes from the top unlocked tier if that tier
+// has any tasks, and the hardest task rolled sets the window. An empty tier
+// leaves the window as it was until the player adds tasks to it.
+async function windowAfterLevelUp(db, userId, goal, currentSeconds) {
+  const tier = getMaxTaskLevel(goal.level)
+  const { rows } = await db.query(
+    `SELECT 1 FROM goal_tasks
+     WHERE goal_id = $1 AND user_id = $2 AND title != '' AND level = $3 LIMIT 1`,
+    [goal.id, userId, tier]
+  )
+  if (rows.length === 0) return null
+  const seconds = getWindowSeconds(tier)
+  return seconds === currentSeconds ? null : seconds
+}
+
 // Today's tasks for a goal at its current level (none once it's finished).
 function tasksForGoal(db, userId, goal) {
   if (isPathwayComplete(goal)) return []
@@ -193,6 +209,7 @@ module.exports = {
   MAX_LEVEL,
   isPathwayComplete,
   tasksForGoal,
+  windowAfterLevelUp,
   MAX_XP_PER_ACTION,
   CONFIRM_UNLOCK_BEFORE_END,
   PENALTY_CONFIRM_UNLOCK_BEFORE_END,

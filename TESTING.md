@@ -7,16 +7,16 @@ Rhabit is tested at four levels, from fast checks of single functions up to a re
 | Level | Tool | Where | Tests | Time |
 |---|---|---|---|---|
 | Unit | Vitest | `server/tests/unit/` | 89 | seconds |
-| Frontend component | Vitest, Testing Library | `src/components/*.test.jsx` | 15 | seconds |
+| Frontend component | Vitest, Testing Library | `src/components/*.test.jsx` | 17 | seconds |
 | Image sizes | Vitest | `src/assets/assets.test.js` | 32 | seconds |
-| API integration | Vitest, Supertest | `server/tests/api/` | 171 | about 30s |
-| End-to-end and accessibility | Playwright, axe | `e2e/` | 7 | about 3 minutes |
-| **Total** | | | **314** | |
+| API integration | Vitest, Supertest | `server/tests/api/` | 174 | about 30s |
+| End-to-end, phone sizes and accessibility | Playwright, axe | `e2e/` | 11 | about 3 minutes |
+| **Total** | | | **323** | |
 
 | Coverage | Statements | Branches | Functions | Lines |
 |---|---|---|---|---|
-| Server (unit and API tests) | 87.32% | 68.43% | 89.55% | 90.01% |
-| Frontend (component tests only) | 23.78% | 24.96% | 18.77% | 24.62% |
+| Server (unit and API tests) | 87.50% | 68.22% | 90.09% | 90.08% |
+| Frontend (component tests only) | 23.42% | 24.26% | 19.11% | 24.19% |
 
 The frontend figure counts component tests only. The end-to-end journeys use most of the frontend, but they run in a real browser and aren't included in that number.
 
@@ -35,7 +35,7 @@ The game's rules are enforced on the server, so most tests sit there. A rule suc
   | `validation` | 23 | bad input gets a clean 400, never a stack trace |
   | `two-factor` | 20 | setup, sign-in, replayed codes, backup codes, bypass attempts |
   | `authorisation` | 17 | one player against another's data always gets a 404 |
-  | `game` | 46 | window, ticks, XP, level cap, finished pathways, penalties, rerolls, late-day rules, missed days, pausing, midnight reset by time zone |
+  | `game` | 49 | window, ticks, XP, level cap, finished pathways, penalties, rerolls, late-day rules, missed days, pausing, midnight reset by time zone |
   | `rate-limits` | 6 | 429 on repeated logins, sign-ups, reset emails and overall traffic |
 
 - **End-to-end tests** drive Chromium through the main journeys, on a stack that uses 30-second windows so a full day fits in a test:
@@ -45,6 +45,7 @@ The game's rules are enforced on the server, so most tests sit there. A rule suc
   4. a started day left unfinished, and the XP loss shown on the next visit
   5. the longest confirm label fits inside its button
   6. add, rename and delete a goal
+- **Phone sizes:** every main page is opened at 320 by 568, 390 by 844, 844 by 390 and 768 by 1024 with touch on, and nothing may run off the sides of the screen.
 - **Accessibility:** axe scans login, sign-up, setup, Home and Goals against WCAG 2.1 A and AA. Any violation fails the run.
 - **Image sizes:** every image and icon must stay under 200 kB, so a heavy file can't quietly slow the first load again.
 
@@ -60,7 +61,7 @@ The game's rules are enforced on the server, so most tests sit there. A rule suc
 | Not tested | Why |
 |---|---|
 | How pages look | There's no visual regression testing, because the animated background and glass effects would make screenshots unreliable. Only one layout rule, the confirm button label, has a test. |
-| Other browsers and phones | Chromium only, to keep the suite fast. Responsive layouts are checked by hand. |
+| Other browsers and real phones | Chromium only, to keep the suite fast. Phone layouts run in Chromium at phone sizes with touch on, which isn't the same as Safari on an iPhone. |
 | Real email delivery | Sending through Brevo would need a live account and could spam real inboxes. Tests read an in-memory outbox instead. |
 | Real mail-server (MX) lookups | The lookup is faked so tests never depend on the network. |
 | Production hosting | Vercel rewrites, security headers set by Vercel, and the Render and Neon setup aren't covered. |
@@ -104,5 +105,7 @@ The end-to-end tests start their own frontend, API and database, and never reuse
 ## Continuous integration
 
 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) runs install, lint, tests with coverage, build, and the end-to-end tests, against a Postgres service that exists only for that run. Coverage reports, the Playwright HTML report and test results are uploaded as artifacts and kept for 14 days.
+
+After a green run on `main`, a separate job updates the README's coverage badge by replacing the one file on the `badges` branch. That job is the only part of CI allowed to write to the repository.
 
 Three optional Actions secrets replace the test-only values: `TEST_DB_PASSWORD`, `TEST_JWT_SECRET` and `TEST_TOTP_KEY`. CI passes without them, so forks work too. They should always be made-up test values, never production ones.
