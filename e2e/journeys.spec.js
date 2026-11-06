@@ -30,8 +30,8 @@ test('full loop: sign up, set up, complete a day, and the XP is still there afte
   await expect(xpText(page)).toHaveText('0/100XP')
 
   await completeTheDay(page)
-  await expect(page.getByText('+15XP')).toBeVisible()
-  await expect(xpText(page)).toHaveText('15/100XP')
+  await expect(page.getByText('+45XP')).toBeVisible()
+  await expect(xpText(page)).toHaveText('45/100XP')
 
   // log out from Settings
   await page.locator('.home-icon-btn').first().click()
@@ -40,7 +40,7 @@ test('full loop: sign up, set up, complete a day, and the XP is still there afte
 
   await logIn(page, email)
   await page.waitForURL('**/home')
-  await expect(xpText(page)).toHaveText('15/100XP')
+  await expect(xpText(page)).toHaveText('45/100XP')
   await expect(page.locator('.home-tasks-done')).toBeVisible()
 })
 
@@ -74,8 +74,8 @@ test('wrong password, then resetting a forgotten password', async ({ page, reque
 // appear; when the penalty then runs out it must be failed exactly once.
 test('a missed window starts a penalty, and a missed penalty costs XP', async ({ page, request }) => {
   const email = await newPlayer(page, request, 'slacker')
-  await completeTheDay(page) // day one: earn 15 XP so there is some to lose
-  await expect(xpText(page)).toHaveText('15/100XP')
+  await completeTheDay(page) // day one: earn 45 XP so there is some to lose
+  await expect(xpText(page)).toHaveText('45/100XP')
 
   await startNewDay(request, email)
   await page.reload()
@@ -104,6 +104,43 @@ test('a missed window starts a penalty, and a missed penalty costs XP', async ({
   await page.reload()
   await expect(xpText(page)).toHaveText('0/100XP')
   await expect(page.locator('.home-start-btn')).toHaveCount(0)
+})
+
+test('leaving a started day unfinished still costs XP on the next visit', async ({ page, request }) => {
+  const email = await newPlayer(page, request, 'dodger')
+  await completeTheDay(page)
+  await expect(xpText(page)).toHaveText('45/100XP')
+
+  // a new day: start it, then walk away until the day after
+  await startNewDay(request, email)
+  await page.reload()
+  await page.locator('.home-start-btn').click()
+  await startNewDay(request, email)
+  await page.reload()
+
+  await expect(page.getByText(/abandoned your tasks and lost 45 XP/)).toBeVisible()
+  await expect(xpText(page)).toHaveText('0/100XP')
+  await expect(page.locator('.home-start-btn')).toHaveText('Start Tasks') // today is still playable
+
+  // shown once only
+  await page.waitForResponse(r => r.url().endsWith('/api/daily/xp-loss/seen'))
+  await page.reload()
+  await expect(page.locator('.home-task-row')).toHaveCount(3)
+  await expect(page.getByText(/abandoned your tasks/)).toHaveCount(0)
+  await expect(xpText(page)).toHaveText('0/100XP')
+})
+
+// the label used to run out of the sides of a fixed-width button
+test('the longest confirm label fits inside its button', async ({ page, request }) => {
+  await newPlayer(page, request, 'reader')
+  await page.locator('.home-start-btn').click()
+  await expect(actionButton(page)).toHaveText('Tick all tasks to confirm', { timeout: 20_000 })
+  const fits = await actionButton(page).evaluate(button => {
+    const outer = button.getBoundingClientRect()
+    const label = button.querySelector('span').getBoundingClientRect()
+    return label.left >= outer.left && label.right <= outer.right
+  })
+  expect(fits).toBe(true)
 })
 
 test('goals: add, rename and delete a goal pathway', async ({ page, request }) => {

@@ -12,7 +12,7 @@ vi.mock('../api', () => ({
   getUser: vi.fn(), getGoals: vi.fn(), getDaily: vi.fn(), startDaily: vi.fn(),
   checkTask: vi.fn(), confirmDaily: vi.fn(), refreshTask: vi.fn(),
   triggerPenalty: vi.fn(), failPenalty: vi.fn(), confirmPenalty: vi.fn(),
-  updateSettings: vi.fn(), deleteAccount: vi.fn()
+  updateSettings: vi.fn(), deleteAccount: vi.fn(), markXpLossSeen: vi.fn()
 }))
 
 const NOW = new Date('2026-07-14T12:00:00Z').getTime()
@@ -28,7 +28,9 @@ const activePenalty = startedAt => ({
 // Sets up the stand-in API for a day. `started` is how many seconds ago the
 // window started (null = not started yet). The server side is simulated just
 // enough: triggerPenalty starts a penalty that later getDaily calls return.
-function serveDay({ started = null, ticked = false, triggerResults = [{ success: true }] } = {}) {
+function serveDay({
+  started = null, ticked = false, triggerResults = [{ success: true }], xpLoss = null, noTimeForPenalty = false
+} = {}) {
   let penalty = { active: false, unlock_before_end: 20 }
   const results = [...triggerResults]
   api.getUser.mockResolvedValue({
@@ -44,13 +46,18 @@ function serveDay({ started = null, ticked = false, triggerResults = [{ success:
     penalty,
     windowSeconds: WINDOW,
     confirmUnlockBeforeEnd: 20,
-    outcome: null
+    outcome: null,
+    xpLoss
   }))
   api.startDaily.mockImplementation(async () => {
     started = 0
     return { success: true, window_start: new Date().toISOString(), windowSeconds: WINDOW }
   })
   api.triggerPenalty.mockImplementation(async () => {
+    if (noTimeForPenalty) {
+      xpLoss = { amount: 45, reason: 'late', xp: 0, level: 1 }
+      return { success: true, task: null }
+    }
     const result = results.length > 1 ? results.shift() : results[0]
     if (result.success) penalty = activePenalty(new Date().toISOString())
     return result
@@ -109,12 +116,12 @@ describe('Home window timer', () => {
     expect(penaltyShown(view)).toBe(true)
   })
 
-  it('does not start a penalty when every task is ticked', async () => {
+  it('starts the penalty even with every task ticked, if confirm was never pressed', async () => {
     serveDay({ started: 25, ticked: true })
     const view = await renderHome()
-    await wait(15_000)
-    expect(api.triggerPenalty).not.toHaveBeenCalled()
-    expect(penaltyShown(view)).toBe(false)
+    await wait(7000)
+    expect(api.triggerPenalty).toHaveBeenCalledTimes(1)
+    expect(penaltyShown(view)).toBe(true)
   })
 
   // Bug: a refused or failed request opened an empty pop-up with no penalty
@@ -144,6 +151,38 @@ describe('Home window timer', () => {
     expect(view.container.textContent).toMatch(/failed on the penalty task/)
     await wait(10_000)
     expect(api.failPenalty).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('XP lost while away', () => {
+  const xpBarText = view => view.container.querySelector('.home-xp-text').textContent
+
+  it('tells the player about an abandoned day, and today carries on', async () => {
+    serveDay({ xpLoss: { amount: 45, reason: 'missed_day', xp: 15, level: 1 } })
+    const view = await renderHome()
+    expect(view.container.textContent).toMatch(/abandoned your tasks and lost 45 XP/)
+    expect(xpBarText(view)).toBe('15/100XP')
+    expect(view.container.querySelectorAll('.home-task-row')).toHaveLength(3)
+    expect(api.markXpLossSeen).not.toHaveBeenCalled()
+    await wait(2500)
+    expect(api.markXpLossSeen).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows the no-time message when the XP was taken at once', async () => {
+    serveDay({ xpLoss: { amount: 45, reason: 'late', xp: 15, level: 1 } })
+    const view = await renderHome()
+    expect(view.container.textContent).toMatch(/did not have enough time to save yourself/)
+    expect(xpBarText(view)).toBe('15/100XP')
+  })
+
+  it('takes the XP with no pop-up when a window ends too late for a penalty', async () => {
+    serveDay({ started: 29, noTimeForPenalty: true })
+    const view = await renderHome()
+    await wait(2500)
+    expect(api.triggerPenalty).toHaveBeenCalledTimes(1)
+    expect(penaltyShown(view)).toBe(false)
+    expect(view.container.textContent).toMatch(/did not have enough time to save yourself/)
+    expect(xpBarText(view)).toBe('0/100XP')
   })
 })
 

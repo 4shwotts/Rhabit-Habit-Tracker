@@ -9,6 +9,7 @@ const router = express.Router()
 const config = require('../config')
 const { query } = require('../db')
 const { getTestOutbox } = require('../lib/email')
+const { getYesterdayInTimezone } = require('../lib/game')
 const { resetRateLimitsForTests } = require('../middleware/rateLimits')
 
 router.use((req, res, next) => {
@@ -27,12 +28,15 @@ router.post('/reset-rate-limits', async (req, res) => {
 })
 
 router.post('/new-day', async (req, res) => {
-  const { rowCount } = await query(
-    `UPDATE daily_state SET last_reset = '1970-01-01'
-     WHERE user_id = (SELECT id FROM users WHERE email = $1)`,
-    [String(req.body?.email || '').toLowerCase()]
+  const { rows } = await query(
+    'SELECT id, timezone FROM users WHERE email = $1', [String(req.body?.email || '').toLowerCase()]
   )
-  res.status(rowCount ? 200 : 404).json({ success: rowCount > 0 })
+  if (!rows[0]) return res.status(404).json({ success: false })
+  // yesterday, so the reset sees one finished day and no days missed in between
+  await query('UPDATE daily_state SET last_reset = $1 WHERE user_id = $2', [
+    getYesterdayInTimezone(rows[0].timezone), rows[0].id
+  ])
+  res.json({ success: true })
 })
 
 module.exports = router

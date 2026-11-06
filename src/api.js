@@ -175,6 +175,11 @@ export function refreshTask(id) {
 }
 
 // penalty
+// tells the server the player has been shown their XP loss
+export function markXpLossSeen() {
+  return request('/daily/xp-loss/seen', { method: 'POST' })
+}
+
 export function triggerPenalty() {
   return request('/daily/penalty/trigger', { method: 'POST' })
 }

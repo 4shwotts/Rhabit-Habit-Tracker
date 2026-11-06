@@ -1,32 +1,36 @@
 // Game rules shared by the daily reset and the routes.
 const config = require('../config')
-//
-// DEMO VALUES: windows, XP amounts and unlock times are shortened so the full
-// flow can be tested quickly. Swap these for the real values before launch.
-const XP_PER_TASK = 5
-const PENALTY_XP = 15
+
+const XP_PER_TASK = 15
+// a whole day's worth of XP (three tasks)
+const PENALTY_XP = 45
 const REFRESH_COST = 5
 const XP_PER_LEVEL = 100
+// levels stop here; the final level's bar fills to 100/100 XP and stays full
+const MAX_LEVEL = 10
+const MAX_TOTAL_XP = MAX_LEVEL * XP_PER_LEVEL
 // TEST_TIMERS (local only, see config.js): 30-second windows and penalties,
 // confirm unlocking after 10 seconds
 const TEST_TIMER_SECONDS = 30
 const TEST_CONFIRM_AFTER = 10
 
-// confirm button unlocks this many seconds before the window/penalty ends
-const CONFIRM_UNLOCK_BEFORE_END = config.testTimers ? TEST_TIMER_SECONDS - TEST_CONFIRM_AFTER : 60
-// if a session can't fit before midnight, a late penalty is only offered when
-// at least this much of the day is left; otherwise XP is deducted straight away
-const LATE_PENALTY_MIN_SECONDS = 3600
+// confirm button unlocks this many seconds before the window ends...
+const CONFIRM_UNLOCK_BEFORE_END = config.testTimers ? TEST_TIMER_SECONDS - TEST_CONFIRM_AFTER : 30 * 60
+// ...and this many seconds before a penalty ends
+const PENALTY_CONFIRM_UNLOCK_BEFORE_END = config.testTimers ? TEST_TIMER_SECONDS - TEST_CONFIRM_AFTER : 10 * 60
+// how long every penalty lasts. One that can't finish before midnight is never
+// started; the XP is deducted straight away instead (see lib/session.js)
+const PENALTY_SECONDS = config.testTimers ? TEST_TIMER_SECONDS : 60 * 60
 // allowance for network latency and clock drift between browser and server
 const TIMING_GRACE_SECONDS = 5
 
-// demo mode — shortened windows so visitors can test the full flow quickly
+// harder task tiers get shorter windows
 function getWindowSeconds(level) {
   if (config.testTimers) return TEST_TIMER_SECONDS
-  if (level <= 3) return 5 * 60
-  if (level <= 6) return 4 * 60
-  if (level <= 9) return 3 * 60
-  return 2 * 60
+  if (level <= 3) return 3 * 60 * 60
+  if (level <= 6) return 2 * 60 * 60
+  if (level <= 9) return 90 * 60
+  return 60 * 60
 }
 
 // each level up unlocks the matching task tier
@@ -56,6 +60,17 @@ function getTodayInTimezone(timezone) {
   } catch {
     return new Date().toISOString().split('T')[0]
   }
+}
+
+// Whole days from one 'YYYY-MM-DD' date to a later one.
+function daysBetween(from, to) {
+  return Math.round((Date.parse(to) - Date.parse(from)) / 86400000)
+}
+
+// Yesterday's 'YYYY-MM-DD' date in the user's timezone.
+function getYesterdayInTimezone(timezone) {
+  const today = Date.parse(getTodayInTimezone(timezone))
+  return new Date(today - 86400000).toISOString().split('T')[0]
 }
 
 // Seconds left until midnight in the user's timezone (decides "too late to start").
@@ -102,14 +117,18 @@ function checkAmount(amount) {
 // Levels are worked out from the total XP earned since level 1, with division
 // rather than a loop, so the cost is the same whatever the amount.
 const totalXp = (xp, level) => (level - 1) * XP_PER_LEVEL + xp
-const fromTotal = total => ({ xp: total % XP_PER_LEVEL, level: Math.floor(total / XP_PER_LEVEL) + 1 })
+function fromTotal(total) {
+  const capped = Math.min(total, MAX_TOTAL_XP)
+  const level = Math.min(MAX_LEVEL, Math.floor(capped / XP_PER_LEVEL) + 1)
+  return { xp: capped - (level - 1) * XP_PER_LEVEL, level }
+}
 
 // Removes `amount` XP, dropping levels as needed but never below level 1 / 0 XP.
 function deductXp(xp, level, amount) {
   return fromTotal(Math.max(0, totalXp(xp, level) - checkAmount(amount)))
 }
 
-// Adds `amount` XP, rolling over into new levels.
+// Adds `amount` XP, rolling over into new levels, up to a full bar at MAX_LEVEL.
 function addXp(xp, level, amount) {
   return fromTotal(totalXp(xp, level) + checkAmount(amount))
 }
@@ -161,10 +180,12 @@ module.exports = {
   PENALTY_XP,
   REFRESH_COST,
   XP_PER_LEVEL,
+  MAX_LEVEL,
   MAX_XP_PER_ACTION,
   CONFIRM_UNLOCK_BEFORE_END,
+  PENALTY_CONFIRM_UNLOCK_BEFORE_END,
   TEST_TIMER_SECONDS,
-  LATE_PENALTY_MIN_SECONDS,
+  PENALTY_SECONDS,
   TIMING_GRACE_SECONDS,
   getSecondsUntilMidnight,
   windowForTasks,
@@ -172,6 +193,9 @@ module.exports = {
   getMaxTaskLevel,
   getMinTaskLevel,
   getTodayInTimezone,
+  getYesterdayInTimezone,
+  daysBetween,
+  totalXp,
   deductXp,
   addXp,
   generateTasks,

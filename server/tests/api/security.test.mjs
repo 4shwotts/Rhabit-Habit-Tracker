@@ -101,11 +101,11 @@ describe('values only the server may set', () => {
     for (const t of await dailyTasksOf(player)) {
       await as(player).patch(`/api/daily/tasks/${t.id}/check`).send({ checked: true })
     }
-    await startedSecondsAgo(player, 250) // confirm unlocks in the last minute
+    await startedSecondsAgo(player, 9100) // confirm unlocks 30 minutes before the end
     const res = await as(player).post('/api/daily/confirm')
     expect(res.status).toBe(200)
-    expect(res.body).toMatchObject({ xp: 15, level: 1, xp_earned: 15 })
-    expect((await goalOf(player)).xp).toBe(15)
+    expect(res.body).toMatchObject({ xp: 45, level: 1, xp_earned: 45 })
+    expect((await goalOf(player)).xp).toBe(45)
   })
 })
 

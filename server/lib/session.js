@@ -4,8 +4,8 @@
 // itself XP by calling the API directly.
 const { getRandomPenaltyTask } = require('../data/penaltyTasks')
 const {
-  PENALTY_XP, LATE_PENALTY_MIN_SECONDS, TIMING_GRACE_SECONDS,
-  getSecondsUntilMidnight, windowForTasks, deductXp
+  PENALTY_XP, PENALTY_SECONDS, TIMING_GRACE_SECONDS,
+  getSecondsUntilMidnight, windowForTasks, deductXp, totalXp, daysBetween
 } = require('./game')
 
 function secondsSince(timestamp) {
@@ -71,16 +71,77 @@ async function startPenalty(client, user, day, startedAt) {
   return task
 }
 
-// Penalty failed: lose a day's XP (never below level 1 / 0 XP) and close the day.
-async function failPenalty(client, user, day) {
-  if (day.goal) {
-    const { xp, level } = deductXp(day.goal.xp, day.goal.level, PENALTY_XP)
-    await setGoalXp(client, user, day.goal, xp, level)
-  }
+// Takes a day's XP (never below level 1 / 0 XP). Returns how much actually went.
+async function takePenaltyXp(client, user, day) {
+  if (!day.goal) return 0
+  const before = totalXp(day.goal.xp, day.goal.level)
+  const { xp, level } = deductXp(day.goal.xp, day.goal.level, PENALTY_XP)
+  await setGoalXp(client, user, day.goal, xp, level)
+  return before - totalXp(xp, level)
+}
+
+// Remembers XP lost while the player wasn't watching, so their next visit can
+// show the message and animate the bar. It stays until they've seen it.
+async function rememberLoss(client, user, day, amount, reason) {
+  await client.query(
+    `UPDATE daily_state SET pending_xp_loss = pending_xp_loss + $1, pending_loss_reason = $2
+     WHERE user_id = $3`,
+    [amount, reason, user.id]
+  )
+  day.state.pending_xp_loss += amount
+  day.state.pending_loss_reason = reason
+}
+
+// Penalty failed: lose a day's XP and close the day. `lossReason` is set when
+// the player isn't there to see it happen.
+async function failPenalty(client, user, day, lossReason = null) {
+  const lost = await takePenaltyXp(client, user, day)
   await client.query('UPDATE penalty_state SET active = FALSE WHERE user_id = $1', [user.id])
   await client.query('UPDATE daily_state SET confirmed = TRUE WHERE user_id = $1', [user.id])
   day.penalty.active = false
   day.state.confirmed = true
+  if (lossReason) await rememberLoss(client, user, day, lost, lossReason)
+}
+
+// Not even a penalty fits in what's left of the day: the XP goes straight away.
+async function failWithoutPenalty(client, user, day) {
+  const lost = await takePenaltyXp(client, user, day)
+  await client.query(
+    'UPDATE daily_state SET confirmed = TRUE, penalty_shown = TRUE WHERE user_id = $1', [user.id]
+  )
+  day.state.confirmed = true
+  day.state.penalty_shown = true
+  day.outcome = 'late_auto_failed'
+  await rememberLoss(client, user, day, lost, 'late')
+}
+
+// The window was missed: starts a penalty from `startedAt`, unless it couldn't
+// finish before midnight. Returns the penalty task, or null if the XP went instead.
+async function penaliseMissedWindow(client, user, day, startedAt) {
+  const penaltyLeft = PENALTY_SECONDS - secondsSince(startedAt)
+  if (penaltyLeft > getSecondsUntilMidnight(user.timezone)) {
+    await failWithoutPenalty(client, user, day)
+    return null
+  }
+  return startPenalty(client, user, day, startedAt)
+}
+
+// Called at the daily reset, before the old day is cleared. Every missed day
+// costs the same XP as a failed penalty, so closing the site can't dodge it:
+// the last day if it was never confirmed (ticks alone don't count), plus each
+// day the app wasn't opened at all. Paused players don't reach this.
+async function settleMissedDays(client, user, today) {
+  const day = await loadDay(client, user)
+  const { state, penalty, tasks } = day
+  if (!state || !penalty || !day.goal || tasks.length === 0) return
+
+  const neverOpened = Math.max(0, daysBetween(state.last_reset, today) - 1)
+  const missed = neverOpened + (state.confirmed ? 0 : 1)
+  let lost = 0
+  for (let i = 0; i < missed && totalXp(day.goal.xp, day.goal.level) > 0; i++) {
+    lost += await takePenaltyXp(client, user, day)
+  }
+  if (lost > 0) await rememberLoss(client, user, day, lost, 'missed_day')
 }
 
 function penaltyExpired(penalty) {
@@ -102,22 +163,23 @@ async function settleDay(client, user) {
 
   // 1. a running penalty whose timer has run out counts as failed
   if (penaltyExpired(penalty)) {
-    await failPenalty(client, user, day)
+    await failPenalty(client, user, day, 'penalty')
     day.outcome = 'penalty_failed'
     return day
   }
 
-  // 2. the window ran out with unticked tasks: the penalty starts from the
-  //    moment the window ended (even if the tab was closed at the time)
-  const allChecked = tasks.length > 0 && tasks.every(t => t.checked)
-  if (state.started && !state.penalty_shown && !allChecked &&
+  // 2. the window ran out without being confirmed (ticking every task isn't
+  //    enough): the penalty starts from the moment the window ended, even if
+  //    the tab was closed at the time
+  if (state.started && !state.penalty_shown &&
       secondsSince(state.window_start) > day.windowSeconds + TIMING_GRACE_SECONDS) {
     const windowEnd = new Date(new Date(state.window_start).getTime() + day.windowSeconds * 1000)
-    await startPenalty(client, user, day, windowEnd)
-    day.outcome = 'window_missed'
-    if (penaltyExpired(day.penalty)) {
-      await failPenalty(client, user, day)
-      day.outcome = 'penalty_failed'
+    if (await penaliseMissedWindow(client, user, day, windowEnd)) {
+      day.outcome = 'window_missed'
+      if (penaltyExpired(day.penalty)) {
+        await failPenalty(client, user, day, 'penalty')
+        day.outcome = 'penalty_failed'
+      }
     }
     return day
   }
@@ -128,23 +190,13 @@ async function settleDay(client, user) {
       day.goal && tasks.length > 0) {
     const secondsLeft = getSecondsUntilMidnight(user.timezone)
     if (secondsLeft < day.windowSeconds) {
-      if (secondsLeft >= LATE_PENALTY_MIN_SECONDS) {
-        await startPenalty(client, user, day, new Date())
-        day.outcome = 'late_penalty'
-      } else {
-        const { xp, level } = deductXp(day.goal.xp, day.goal.level, PENALTY_XP)
-        await setGoalXp(client, user, day.goal, xp, level)
-        await client.query(
-          'UPDATE daily_state SET confirmed = TRUE, penalty_shown = TRUE WHERE user_id = $1', [user.id]
-        )
-        state.confirmed = true
-        state.penalty_shown = true
-        day.outcome = 'late_auto_failed'
-      }
+      if (await penaliseMissedWindow(client, user, day, new Date())) day.outcome = 'late_penalty'
     }
   }
 
   return day
 }
 
-module.exports = { settleDay, startPenalty, failPenalty, setGoalXp, secondsSince }
+module.exports = {
+  settleDay, settleMissedDays, penaliseMissedWindow, failPenalty, setGoalXp, secondsSince
+}

@@ -3,6 +3,7 @@ const router = express.Router()
 const { query } = require('../db')
 const { publicUser } = require('./auth')
 const { validate, z, idParam, fields } = require('../lib/validate')
+const { getTodayInTimezone, getYesterdayInTimezone } = require('../lib/game')
 
 // the logged-in user's profile and settings (never includes the password hash)
 router.get('/', (req, res) => {
@@ -27,6 +28,19 @@ router.patch('/settings', validate({ body: settingsBody }), async (req, res) => 
      WHERE id = $4`,
     [timer_visible ?? null, task_refresh ?? null, pause_progression ?? null, req.user.id]
   )
+
+  // Resuming after a pause: paused days freeze losses, so they don't count as
+  // missed, and neither does a day that was never started. A day already
+  // started before pausing is still punished at the next reset.
+  if (req.user.pause_progression && pause_progression === false) {
+    await query(
+      `UPDATE daily_state SET
+         last_reset = $2::date,
+         confirmed = confirmed OR (NOT started AND NOT penalty_shown)
+       WHERE user_id = $1 AND last_reset < $3::date`,
+      [req.user.id, getYesterdayInTimezone(req.user.timezone), getTodayInTimezone(req.user.timezone)]
+    )
+  }
 
   res.json({ success: true })
 })

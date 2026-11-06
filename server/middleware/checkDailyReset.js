@@ -1,5 +1,6 @@
 const { query, withTransaction } = require('../db')
 const { getTodayInTimezone, rollDailyTasks } = require('../lib/game')
+const { settleMissedDays } = require('../lib/session')
 
 // Runs before every game route (after requireAuth) — checks whether the logged-in
 // user's day has rolled over in their timezone and, if so, rolls new tasks and
@@ -21,6 +22,9 @@ async function checkDailyReset(req, res, next) {
       'SELECT last_reset FROM daily_state WHERE user_id = $1 FOR UPDATE', [user.id]
     )
     if (fresh[0]?.last_reset === today) return
+
+    // missed days are settled first, so closing the site can't dodge a punishment
+    await settleMissedDays(client, user, today)
 
     const { rows: goals } = await client.query(
       'SELECT * FROM goals WHERE id = $1 AND user_id = $2', [user.active_goal_id, user.id]

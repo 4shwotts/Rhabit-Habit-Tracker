@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url)
 const game = require('../../lib/game')
 const {
   addXp, deductXp, getMinTaskLevel, getMaxTaskLevel, getWindowSeconds, windowForTasks,
-  getTodayInTimezone, getSecondsUntilMidnight, generateTasks, rollDailyTasks,
+  getTodayInTimezone, getYesterdayInTimezone, daysBetween, getSecondsUntilMidnight, generateTasks, rollDailyTasks,
   XP_PER_LEVEL, MAX_XP_PER_ACTION
 } = game
 
@@ -41,7 +41,7 @@ describe('addXp', () => {
   })
 
   it('handles the largest real award (three tasks) from a nearly full bar', () => {
-    expect(addXp(99, 2, 3 * game.XP_PER_TASK)).toEqual({ xp: 14, level: 3 })
+    expect(addXp(99, 2, 3 * game.XP_PER_TASK)).toEqual({ xp: 44, level: 3 })
   })
 
   // Bug found by this suite: the old loop ran once per level gained, so a
@@ -56,6 +56,16 @@ describe('addXp', () => {
   it('caps at exactly MAX_XP_PER_ACTION', () => {
     expect(MAX_XP_PER_ACTION).toBe(XP_PER_LEVEL)
     expect(addXp(0, 1, MAX_XP_PER_ACTION)).toEqual(addXp(0, 1, MAX_XP_PER_ACTION + 1))
+  })
+
+  it('stops at a full bar on level 10', () => {
+    expect(addXp(99, 9, 1)).toEqual({ xp: 0, level: 10 })
+    expect(addXp(70, 10, 45)).toEqual({ xp: 100, level: 10 })
+    expect(addXp(100, 10, 45)).toEqual({ xp: 100, level: 10 })
+  })
+
+  it('brings a goal already past the cap back to it', () => {
+    expect(addXp(40, 13, 15)).toEqual({ xp: 100, level: 10 })
   })
 
   // Bug found by this suite: these used to return NaN XP (or negative XP),
@@ -95,13 +105,17 @@ describe('deductXp', () => {
     expect(deductXp(50, 5, 1e12)).toEqual({ xp: 50, level: 4 })
   })
 
+  it('takes XP from a full bar on level 10 without leaving the level', () => {
+    expect(deductXp(100, 10, 45)).toEqual({ xp: 55, level: 10 })
+  })
+
   it.each([undefined, NaN, -Infinity, -100, 1.5])('rejects an invalid amount (%s)', amount => {
     // -100 used to *add* XP: deductXp(50, 1, -100) gave 150 XP at level 1
     expect(() => deductXp(50, 1, amount)).toThrow(RangeError)
   })
 
   it('undoes addXp exactly', () => {
-    for (let level = 1; level <= 12; level++) {
+    for (let level = 1; level <= 9; level++) {
       for (const xp of [0, 1, 50, 99]) {
         for (const amount of [0, 5, 15, 99, 100]) {
           const up = addXp(xp, level, amount)
@@ -135,22 +149,23 @@ describe('task tier unlocks', () => {
 
 describe('daily windows', () => {
   it.each([
-    [1, 300], [3, 300], [4, 240], [6, 240], [7, 180], [9, 180], [10, 120], [20, 120]
+    [1, 10800], [3, 10800], [4, 7200], [6, 7200], [7, 5400], [9, 5400], [10, 3600], [20, 3600]
   ])('a level %i task gives a %i-second window', (level, seconds) => {
     expect(getWindowSeconds(level)).toBe(seconds)
   })
 
   it('uses the real values in tests, not the local 30-second timers', () => {
     expect(getWindowSeconds(1)).not.toBe(game.TEST_TIMER_SECONDS)
-    expect(game.CONFIRM_UNLOCK_BEFORE_END).toBe(60)
+    expect(game.CONFIRM_UNLOCK_BEFORE_END).toBe(30 * 60)
+    expect(game.PENALTY_CONFIRM_UNLOCK_BEFORE_END).toBe(10 * 60)
   })
 
   it('sizes the window by the hardest task rolled', () => {
-    expect(windowForTasks([{ level: 2 }, { level: 8 }, { level: 5 }])).toBe(180)
+    expect(windowForTasks([{ level: 2 }, { level: 8 }, { level: 5 }])).toBe(5400)
   })
 
   it('falls back to the level 1 window when there are no tasks', () => {
-    expect(windowForTasks([])).toBe(300)
+    expect(windowForTasks([])).toBe(10800)
   })
 })
 
@@ -219,6 +234,22 @@ describe('getTodayInTimezone', () => {
     expect(getTodayInTimezone('Europe/London')).toBe('2026-05-03')
     vi.setSystemTime(new Date('2026-04-30T12:00:00Z'))
     expect(getTodayInTimezone('Europe/London')).toBe('2026-04-30')
+  })
+})
+
+describe('counting days', () => {
+  it('counts whole days between dates, across months and clock changes', () => {
+    expect(daysBetween('2026-07-14', '2026-07-14')).toBe(0)
+    expect(daysBetween('2026-07-14', '2026-07-15')).toBe(1)
+    expect(daysBetween('2026-02-27', '2026-03-02')).toBe(3)
+    expect(daysBetween('2026-03-28', '2026-03-30')).toBe(2)
+    expect(daysBetween('2026-12-31', '2027-01-01')).toBe(1)
+  })
+
+  it('finds yesterday in each time zone', () => {
+    at('2026-03-01T23:30:00Z') // already the 2nd in Kiritimati
+    expect(getYesterdayInTimezone('UTC')).toBe('2026-02-28')
+    expect(getYesterdayInTimezone('Pacific/Kiritimati')).toBe('2026-03-01')
   })
 })
 

@@ -1,6 +1,7 @@
 // Shared helpers for the API tests: the app under Supertest, database reset,
 // and quick ways to create users and sessions.
 import { createRequire } from 'node:module'
+import { beforeEach, afterEach, vi } from 'vitest'
 import supertest from 'supertest'
 
 // the server is CommonJS, so load it the same way it loads itself
@@ -17,6 +18,17 @@ const { createFormToken } = require('../../lib/botCheck')
 export { query, config }
 export const request = () => supertest(app)
 export const PASSWORD = 'correct-horse-battery'
+
+// Every API test starts at the same time of day, because the game rules depend
+// on it (from late evening a day's window no longer fits). Only the server's
+// clock (Date) is faked; real timers keep the database and HTTP working.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-07-14T09:00:00Z') })
+})
+afterEach(() => vi.useRealTimers())
+
+// moves the frozen clock to a moment in UTC
+export const setClock = iso => vi.setSystemTime(new Date(iso))
 
 // Empties every table, the email outbox and the rate limit counters.
 export async function resetDb() {
@@ -110,10 +122,10 @@ export async function dailyTasksOf(user) {
   return rows
 }
 
+// a time `seconds` before the test's clock (the database's now() is the real time)
+export const secondsAgo = seconds => new Date(Date.now() - seconds * 1000)
+
 // moves today's window start back, as if it started `seconds` ago
 export async function startedSecondsAgo(user, seconds) {
-  await query(
-    `UPDATE daily_state SET window_start = now() - make_interval(secs => $1) WHERE user_id = $2`,
-    [seconds, user.id]
-  )
+  await query('UPDATE daily_state SET window_start = $1 WHERE user_id = $2', [secondsAgo(seconds), user.id])
 }

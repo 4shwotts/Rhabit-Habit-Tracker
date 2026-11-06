@@ -12,13 +12,16 @@ import PenaltyModal from './PenaltyModal'
 import {
   getUser, getGoals, getDaily, startDaily, checkTask,
   confirmDaily, refreshTask, triggerPenalty,
-  failPenalty, updateSettings
+  failPenalty, updateSettings, markXpLossSeen
 } from '../api'
 
 // display only — the server decides what a refresh actually costs
 const REFRESH_COST = 5
 // how long to wait before asking for the penalty again if a request failed
 const PENALTY_RETRY_MS = 5000
+const XP_PER_LEVEL = 100
+const NO_TIME_MESSAGE = 'You did not have enough time to save yourself at all, [username]'
+const FAILED_MESSAGE = `You failed to do the tasks and you failed on the penalty task, you aren't worthy of this XP.`
 
 function formatTime(seconds) {
   const h = Math.floor(seconds / 3600)
@@ -117,6 +120,15 @@ function HomePage() {
     }, 10000)
   }
 
+  // XP the server took while the player wasn't watching: the bar starts where
+  // it was and eases down, and the server stops reporting it once it's shown
+  function animateXpLoss({ amount, xp: newXp, level: newLevel }) {
+    setXp(newXp)
+    setLevel(newLevel)
+    setXpAnim(Math.min(XP_PER_LEVEL, newXp + amount))
+    setTimeout(() => { markXpLossSeen() }, 2000)
+  }
+
   useEffect(() => {
     async function load() {
       try {
@@ -133,7 +145,7 @@ function HomePage() {
 
         // `outcome` is anything the server settled on this load: a missed window,
         // an expired penalty, or opening the app too late in the day
-        const { state, tasks, penalty, windowSeconds: ws, confirmUnlockBeforeEnd, outcome } = dailyData
+        const { state, tasks, penalty, windowSeconds: ws, confirmUnlockBeforeEnd, outcome, xpLoss } = dailyData
         setDailyTasks(tasks)
         setDailyState(state)
         setPenaltyState(penalty)
@@ -150,20 +162,17 @@ function HomePage() {
           }
         }
 
-        if (outcome === 'late_auto_failed') {
-          setConfirmed(true)
-          showEndState(`You did not have enough time to save yourself at all, [username]`, userData.username)
-          setDissolvingIndices([0, 1, 2])
-          setLoading(false)
-          return
+        if (xpLoss) animateXpLoss(xpLoss)
+
+        // yesterday was left unfinished: today carries on as normal
+        if (xpLoss?.reason === 'missed_day') {
+          setLevelUpMsg(`SYSTEM NOTICE — You abandoned your tasks and lost ${xpLoss.amount} XP`)
+          setTimeout(() => setLevelUpMsg(null), 8000)
         }
 
-        if (outcome === 'penalty_failed') {
+        if (xpLoss?.reason === 'late' || xpLoss?.reason === 'penalty') {
           setConfirmed(true)
-          showEndState(
-            `You failed to do the tasks and you failed on the penalty task, you aren't worthy of this XP.`,
-            userData.username
-          )
+          showEndState(xpLoss.reason === 'late' ? NO_TIME_MESSAGE : FAILED_MESSAGE, userData.username)
           setDissolvingIndices([0, 1, 2])
           setLoading(false)
           return
@@ -337,6 +346,15 @@ function HomePage() {
     try {
       const result = await triggerPenalty()
       const fresh = await getDaily()
+      // no time left for a penalty today: the XP has gone straight away
+      if (fresh.xpLoss) {
+        req.started = true
+        setConfirmed(true)
+        animateXpLoss(fresh.xpLoss)
+        showEndState(NO_TIME_MESSAGE, user?.username)
+        setDissolvingIndices([0, 1, 2])
+        return
+      }
       // refused or failed: keep the pop-up closed; the window timer asks again
       if (!fresh.penalty?.active) {
         console.error('Penalty did not start:', result.error || 'no active penalty')
@@ -359,15 +377,15 @@ function HomePage() {
 
   // The window timer. Each second it works out what's left from the stored end
   // time, so it can't drift and still notices a window that ended while the
-  // page was loading. Once time is up with tasks unticked it asks for the
-  // penalty (reading the ref, as `checked` may not have re-rendered yet).
+  // page was loading. Once time is up without a confirm it asks for the penalty:
+  // ticking every task isn't enough, the player has to confirm them too.
   useEffect(() => {
     if (!dailyState?.started || confirmed || windowEndsAt === null) return
 
     timerRef.current = setInterval(() => {
       const left = Math.max(0, Math.ceil((windowEndsAt - Date.now()) / 1000))
       setTimeLeft(left)
-      if (left > 0 || checkedRef.current.every(Boolean)) return
+      if (left > 0) return
       const req = penaltyRequest.current
       if (req.busy || req.started || Date.now() - req.last < PENALTY_RETRY_MS) return
       handleTriggerPenalty()
@@ -383,8 +401,8 @@ function HomePage() {
         console.error('Failed penalty:', result.error)
         return
       }
+      // the bar eases down to the new value
       setXp(result.xp)
-      setXpAnim(result.xp)
       setLevel(result.level)
       setShowPenalty(false)
 
@@ -394,10 +412,7 @@ function HomePage() {
           user?.username
         )
       } else {
-        showEndState(
-          `You failed to do the tasks and you failed on the penalty task, you aren't worthy of this XP.`,
-          user?.username
-        )
+        showEndState(FAILED_MESSAGE, user?.username)
       }
     } catch (err) {
       console.error('Failed penalty:', err)

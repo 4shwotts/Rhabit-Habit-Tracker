@@ -27,7 +27,7 @@ function PenaltyModal({ onConfirm, onPenalty, penaltyData, autoTriggered }) {
   const elapsed = penaltyData ? Math.floor((now - new Date(penaltyData.started_at)) / 1000) : 0
   const taskTimer = penaltyData ? Math.max(0, penaltyData.task_timer_seconds - elapsed) : 0
   // unlock time comes from the server, which also enforces it
-  const unlockAt = penaltyData ? penaltyData.task_timer_seconds - (penaltyData.unlock_before_end ?? 60) : 0
+  const unlockAt = penaltyData ? penaltyData.task_timer_seconds - (penaltyData.unlock_before_end ?? 600) : 0
   const unlockTimer = Math.max(0, unlockAt - elapsed)
   const canConfirm = !!penaltyData && unlockTimer === 0
 
