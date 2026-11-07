@@ -3968,9 +3968,13 @@ body {
     display: none;
   }
 
+  /* As on desktop, the bar runs off the left edge of the screen: --bleed is how
+     far the header reaches past the content's left edge (the page's side
+     padding, plus 30px off the screen) */
   .home-header-bar {
-    left: 0;
-    width: 100%;
+    --bleed: max(44px, calc((100vw - 560px) / 2 + 30px));
+    left: calc(-1 * var(--bleed));
+    width: calc(100% + var(--bleed));
     height: 150px;
     margin-top: 36px;
     aspect-ratio: auto;
@@ -3995,18 +3999,18 @@ body {
   }
 
   .home-phone-card {
-    top: 30px;
-    left: 4px;
-    width: 64%;
+    top: 25px;
+    left: calc(var(--bleed) + 10px);
+    width: calc((100% - var(--bleed)) * 0.64);
     height: 48px;
     z-index: 1;
   }
 
   .home-greetings-content {
-    top: 30px;
-    left: 4px;
+    top: 25px;
+    left: calc(var(--bleed) + 10px);
     bottom: auto;
-    width: 64%;
+    width: calc((100% - var(--bleed)) * 0.64);
     height: 48px;
     padding: 2px 22px 0 54px;
     gap: 0;
@@ -4040,19 +4044,19 @@ body {
   /* where they were before the header moved down */
   .home-icon-btns {
     position: absolute;
-    top: -2px;
+    top: -10px;
     right: 0;
-    gap: 6px;
+    gap: 8px;
   }
 
   .home-icon-btn img {
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
   }
 
   .home-title-content {
-    top: 84px;
-    left: 0;
+    top: 82px;
+    left: var(--bleed);
     right: 0;
     bottom: auto;
     height: 28px;
@@ -4068,7 +4072,7 @@ body {
   /* inside the bar's angled ends, in the desktop XP frame */
   .home-xp-border {
     top: auto;
-    left: 12%;
+    left: calc(var(--bleed) + 24px);
     right: 8%;
     bottom: 10px;
     width: auto;
@@ -4160,15 +4164,15 @@ body {
   }
 
   .home-task-check {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     margin-left: 0;
     border-radius: 8px;
   }
 
   .home-task-check svg {
-    width: 20px;
-    height: 20px;
+    width: 22px;
+    height: 22px;
   }
 
   .home-task-info {
@@ -4193,15 +4197,15 @@ body {
   }
 
   .home-task-refresh-wrap {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     margin: 6px 0 0;
     border-radius: 8px;
   }
 
   .home-task-refresh-icon {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 20px;
   }
 
   .home-task-refresh-wrap .refresh-badge {
@@ -4223,14 +4227,14 @@ body {
 
   .home-page .home-start-btn {
     width: auto;
-    min-width: 190px;
+    min-width: 210px;
     max-width: 100%;
-    height: 42px;
-    padding: 0 16px;
+    height: 48px;
+    padding: 0 18px;
   }
 
   .home-start-btn span {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .home-end-message,
@@ -4283,25 +4287,25 @@ body {
 
   /* Add Goal sits on the frame's top edge, and Home above it, as on desktop */
   .add-goal-btn {
-    width: 112px;
-    height: 34px;
-    margin: 0 10px -18px 0;
+    width: 128px;
+    height: 38px;
+    margin: 0 10px -20px 0;
   }
 
   .add-goal-btn-text {
     height: 100%;
-    padding: 4px 0 0 10px;
-    font-size: 12px;
+    padding: 4px 0 0 12px;
+    font-size: 13px;
   }
 
   /* the same place as Home's Settings and Goals buttons */
   .goals-home-btn {
     position: fixed;
-    top: 56px;
+    top: 48px;
     right: max(14px, calc((100vw - 560px) / 2));
     z-index: 10;
-    width: 36px;
-    height: 36px;
+    width: 42px;
+    height: 42px;
     margin: 0;
   }
 
@@ -4352,7 +4356,7 @@ body {
 
   .goal-row-wrap {
     width: 100%;
-    height: 60px;
+    height: 66px;
   }
 
   .goal-row-content {
@@ -4409,8 +4413,8 @@ body {
   }
 
   .goal-action-btn {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     border-radius: 8px;
   }
 
@@ -4476,8 +4480,8 @@ body {
 
   .setup-page .start-btn,
   .setup-page .start-btn::after {
-    height: 42px;
-    font-size: 18px;
+    height: 48px;
+    font-size: 19px;
   }
 
   .auth-content {
@@ -4495,7 +4499,7 @@ body {
   }
 
   :is(.setup-page, .expanded-goal-box) .tabs-carousel {
-    height: 38px;
+    height: 42px;
     padding: 0 2px;
     gap: 2px;
   }
@@ -4529,10 +4533,10 @@ body {
 
   :is(.setup-page, .expanded-goal-box) .level-tab {
     min-width: 0;
-    height: 28px;
+    height: 32px;
     padding: 0;
     gap: 3px;
-    font-size: 13px;
+    font-size: 14px;
     letter-spacing: 0;
     word-spacing: 0;
   }
@@ -4576,7 +4580,7 @@ body {
 
   :is(.setup-page, .expanded-goal-box) .task-row {
     height: auto;
-    min-height: 46px;
+    min-height: 50px;
     padding: 4px 6px 4px 10px;
     gap: 6px;
   }
@@ -4619,8 +4623,8 @@ body {
   }
 
   .task-icon-btn {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -4630,8 +4634,8 @@ body {
   .task-icon-btn .task-icon-img,
   .setup-page .task-icon-btn .task-icon-img,
   .expanded-task-list .task-icon-btn .task-icon-img {
-    width: 16px;
-    height: 17px;
+    width: 18px;
+    height: 19px;
   }
 
   .expanded-task-list {
@@ -4646,21 +4650,21 @@ body {
   .setup-page .task-add-row {
     justify-content: center;
     margin-top: 8px;
-    min-height: 30px;
+    min-height: 34px;
   }
 
   .page-dot.active,
   .page-dot.inactive {
-    width: 32px;
-    height: 14px;
+    width: 36px;
+    height: 16px;
   }
 
   :is(.setup-page, .expanded-goal-box) .add-task-btn {
     position: absolute;
     right: 10px;
-    height: 30px;
-    padding: 0 10px;
-    font-size: 12px;
+    height: 34px;
+    padding: 0 12px;
+    font-size: 13px;
     letter-spacing: 0;
   }
 
@@ -4715,20 +4719,20 @@ body {
   }
 
   .settings-toggle {
-    width: 46px;
-    height: 24px;
+    width: 52px;
+    height: 28px;
   }
 
   .settings-toggle-thumb {
-    top: 2.5px;
-    left: 2.5px;
-    width: 16px;
-    height: 16px;
+    top: 3px;
+    left: 3px;
+    width: 19px;
+    height: 19px;
     border-radius: 4px;
   }
 
   .settings-toggle.on .settings-toggle-thumb {
-    transform: translateX(22px);
+    transform: translateX(24px);
   }
 
   .twofa-status {
@@ -4747,8 +4751,8 @@ body {
   }
 
   .settings-account-btn {
-    padding: 5px 12px;
-    font-size: 13px;
+    padding: 8px 14px;
+    font-size: 14px;
     white-space: nowrap;
   }
 
@@ -4856,9 +4860,9 @@ body {
   .penalty-confirm-btn:hover,
   .penalty-confirm-btn:disabled {
     width: auto;
-    min-width: 190px;
-    height: 38px;
-    font-size: 14px;
+    min-width: 210px;
+    height: 44px;
+    font-size: 15px;
   }
 
   .expanded-goal-content {
