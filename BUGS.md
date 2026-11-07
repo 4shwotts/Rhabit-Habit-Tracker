@@ -261,9 +261,9 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 
 **Root cause:** the desktop list has a maximum height so it can scroll inside the frame. The first phone layout let the page scroll instead, but kept that limit, and its test only used one goal.
 
-**Fix:** the list now scrolls inside the file frame, as on desktop, and the frame fills the space left on the screen.
+**Fix:** the list now scrolls inside a fixed-size file frame, as on desktop. It also stops at the frame's drawn bottom line, which sits slightly above the bottom of the frame's box.
 
-**Preventing test:** `every main page fits` in `e2e/phones.spec.js` adds eight goals, then checks that the last one can be scrolled to inside the frame.
+**Preventing test:** `every main page fits` in `e2e/phones.spec.js` adds eight goals, then checks that the last one can be scrolled to and that nothing shows below the frame's line.
 
 ## 14. Pop-up corners were squashed on phones
 

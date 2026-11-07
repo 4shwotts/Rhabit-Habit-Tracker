@@ -3852,6 +3852,12 @@ body {
   color: #C1AAFF;
 }
 
+/* Home's card and bar shapes for small screens (see the end of this file) */
+.home-phone-bar,
+.home-phone-card {
+  display: none;
+}
+
 /* a pop-up's close button; desktop closes by clicking outside the pop-up */
 .modal-close {
   display: none;
@@ -3945,80 +3951,75 @@ body {
     display: none;
   }
 
-  /* ---- home: the desktop header, smaller ---- */
+  /* ---- home: the desktop header, smaller ----
+     The clock sits at the top, then the greeting card on the main bar, with
+     Settings and Goals at the top right. The card and bar are the desktop
+     shapes (the SVGs in HomePage.jsx), stretched to fit with an even outline. */
   .home-content {
     width: 100%;
     max-width: 560px;
-    margin: auto;
-    gap: 10px;
+    min-height: 100%;
+    margin: 0 auto;
+    gap: 0;
+    padding: 4px 0 20px;
+    box-sizing: border-box;
   }
 
   .home-main-bar,
+  .home-main-bar-bg,
   .home-greetings-card,
   .home-xp-border-img {
     display: none;
   }
 
-  /* The desktop bars are images that can't reshape to a phone, so the same
-     angled panels are cut here: ::before is the purple edge, and ::after is
-     the fill, set in from it by the edge's thickness. */
-  .home-greetings-content::before,
-  .home-greetings-content::after,
-  .home-main-bar-bg::before,
-  .home-main-bar-bg::after {
-    content: '';
-    position: absolute;
-    clip-path: var(--panel-shape);
-    pointer-events: none;
-  }
-
-  .home-greetings-content::before,
-  .home-main-bar-bg::before {
-    inset: 0;
-    z-index: -2;
-    background: #916FF1;
-  }
-
-  .home-greetings-content::after,
-  .home-main-bar-bg::after {
-    inset: 1.5px;
-    z-index: -1;
-    background: #191329;
-  }
-
   .home-header-bar {
     left: 0;
     width: 100%;
+    height: 150px;
     aspect-ratio: auto;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-    column-gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .home-phone-bar,
+  .home-phone-card {
+    display: block;
+    position: absolute;
+    overflow: visible;
+    pointer-events: none;
+  }
+
+  .home-phone-bar {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100%;
+    height: 102px;
+    z-index: 0;
+  }
+
+  .home-phone-card {
+    top: 30px;
+    left: 4px;
+    width: 64%;
+    height: 48px;
+    z-index: 1;
   }
 
   .home-greetings-content {
-    --panel-shape: polygon(0 16%, 10% 0, 100% 24%, 92% 100%, 0 100%);
-    position: relative;
-    isolation: isolate;
-    grid-column: 1;
-    grid-row: 1;
-    justify-self: start;
-    left: 0;
+    top: 30px;
+    left: 4px;
     bottom: auto;
-    width: min(100%, 240px);
-    height: auto;
-    min-height: 42px;
-    margin: 0 0 -1px 4px;
-    padding: 9px 24px 5px 50px;
+    width: 64%;
+    height: 48px;
+    padding: 2px 22px 0 54px;
     gap: 0;
   }
 
   /* the logo sits on the card's left end with its ears above it, as on desktop */
   .home-logo-circle {
-    position: absolute;
     top: auto;
     left: -8px;
-    bottom: 1px;
+    bottom: 2px;
     transform: none;
     width: 54px;
     height: auto;
@@ -4040,11 +4041,10 @@ body {
   }
 
   .home-icon-btns {
-    position: static;
-    grid-column: 2;
-    grid-row: 1;
+    position: absolute;
+    top: 34px;
+    right: 0;
     gap: 6px;
-    margin-bottom: 6px;
   }
 
   .home-icon-btn img {
@@ -4052,48 +4052,30 @@ body {
     height: 36px;
   }
 
-  .home-main-bar-bg {
-    --panel-shape: polygon(0 0, 100% 0, 100% 42%, 95% 100%, 7% 100%, 6% 74%, 1% 42%, 0 42%);
-    position: relative;
-    isolation: isolate;
-    display: block;
-    grid-column: 1 / -1;
-    grid-row: 2 / 4;
-    align-self: stretch;
-    width: 100%;
-    height: 100%;
-    background: none;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    -webkit-mask-image: none;
-    mask-image: none;
-  }
-
   .home-title-content {
-    position: relative;
-    grid-column: 1 / -1;
-    grid-row: 2;
+    top: 84px;
     left: 0;
-    height: auto;
-    padding: 11px 8px 6px;
+    right: 0;
+    bottom: auto;
+    height: 28px;
+    padding: 0 8px;
     justify-content: center;
   }
 
   .home-title {
-    font-size: min(4.6vw, 24px);
+    font-size: min(4.6vw, 22px);
     letter-spacing: 0;
   }
 
+  /* inside the bar's angled ends */
   .home-xp-border {
-    position: relative;
-    grid-column: 1 / -1;
-    grid-row: 3;
-    left: 0;
-    bottom: auto;
-    width: 100%;
-    height: auto;
+    top: auto;
+    left: 13%;
+    right: 9%;
+    bottom: 12px;
+    width: auto;
+    height: 22px;
     gap: 10px;
-    padding: 0 26px 10px 30px;
   }
 
   .home-xp-inner-wrap {
@@ -4103,7 +4085,7 @@ body {
     transform: none;
     flex: 1;
     width: auto;
-    height: 20px;
+    height: 18px;
     /* the bar's own track is too dark to see when empty on this narrow bar */
     background: rgba(145, 111, 241, 0.28);
     clip-path: polygon(0 100%, 96% 100%, 100% 0, 2% 0);
@@ -4111,7 +4093,7 @@ body {
 
   /* normal weight: this font's letters fill in when thickened at small sizes */
   .home-xp-text {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
   }
 
@@ -4123,10 +4105,10 @@ body {
   }
 
   .home-clock {
-    position: static;
-    transform: none;
-    order: -1;
-    text-align: center;
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
     font-size: 13px;
   }
 
@@ -4144,14 +4126,14 @@ body {
 
   .home-tier-notice {
     max-width: 100%;
-    margin-top: 0;
+    margin-top: 14px;
     font-size: 13px;
   }
 
   /* ---- home: the desktop task card, smaller ---- */
   .home-task-list {
     gap: 8px;
-    margin-top: 0;
+    margin-top: 34px;
     padding: 0;
   }
 
@@ -4222,7 +4204,8 @@ body {
 
   .home-action-area {
     height: auto;
-    margin-top: 2px;
+    margin-top: auto;
+    padding-top: 18px;
   }
 
   .home-page .home-start-btn {
@@ -4259,11 +4242,10 @@ body {
   }
 
   .goals-layout {
-    flex: 1;
+    flex: none;
     width: 100%;
     max-width: 640px;
-    min-height: 0;
-    margin: 0 auto;
+    margin: auto;
   }
 
   .goals-top-bar {
@@ -4308,15 +4290,31 @@ body {
     margin: 0;
   }
 
+  /* a fixed height, so the list always scrolls inside the frame. No clipping
+     or blur in here: Safari can skip drawing parts of a scrolling list that
+     sits inside them */
   .goals-filebox-wrap {
-    flex: 1;
-    min-height: 240px;
-    height: auto;
+    flex: none;
+    height: clamp(220px, 62vh, 540px);
+    height: clamp(220px, 62dvh, 540px);
+    clip-path: none;
   }
 
+  .goals-filebox-wrap::before,
+  .goals-header-card::before {
+    display: none;
+  }
+
+  .goal-action-btn {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  /* the frame's drawn bottom edge is 2.5% above the bottom of its box, so the
+     list stops there rather than showing below the line */
   .goals-filebox-inner {
     position: absolute;
-    inset: 0;
+    inset: 0 0 2.7% 0;
     height: auto;
   }
 
@@ -4640,8 +4638,8 @@ body {
 
   .task-add-row,
   .setup-page .task-add-row {
-    justify-content: space-between;
-    margin-top: 6px;
+    justify-content: center;
+    margin-top: 8px;
     min-height: 30px;
   }
 
@@ -4652,7 +4650,8 @@ body {
   }
 
   :is(.setup-page, .expanded-goal-box) .add-task-btn {
-    position: static;
+    position: absolute;
+    right: 10px;
     height: 30px;
     padding: 0 10px;
     font-size: 12px;
@@ -4691,8 +4690,8 @@ body {
 
   .modal-close {
     position: absolute;
-    top: 18px;
-    right: 16px;
+    top: 36px;
+    right: 22px;
     z-index: 3;
     display: flex;
     align-items: center;
@@ -4720,7 +4719,7 @@ body {
   .settings-content {
     min-height: 0;
     gap: 8px;
-    padding: 48px 20px 26px;
+    padding: 72px 20px 28px;
   }
 
   .setting-row {
@@ -4887,13 +4886,15 @@ body {
   .expanded-goal-content {
     height: auto;
     gap: 6px;
-    padding: 36px 16px 22px;
+    padding: 38px 16px 36px;
   }
 
+  /* narrow enough on both sides to stay centred and clear of the close button */
   .expanded-goal-title {
-    max-width: calc(100% - 40px);
-    font-size: 15px;
-    line-height: 1.25;
+    max-width: calc(100% - 76px);
+    min-height: 26px;
+    font-size: 13px;
+    line-height: 1.3;
   }
 }
 
@@ -4909,6 +4910,6 @@ body {
   }
 
   .expanded-goal-title {
-    font-size: 13px;
+    font-size: 12px;
   }
 }

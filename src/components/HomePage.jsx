@@ -492,6 +492,19 @@ function HomePage() {
           <div className="home-main-bar-bg" />
           <img src={mainBar} className="home-main-bar" alt="" />
           <img src={greetingsCard} className="home-greetings-card" alt="" />
+          {/* small screens: the same two shapes, stretched to fit, with an even outline */}
+          <svg className="home-phone-bar" viewBox="0 0 1572 145" preserveAspectRatio="none" aria-hidden="true">
+            <path
+              d="M1489.77 143.272L1567.22 36.209L1568.94 33.8291H219.609L2.21657 1.98735L0.528001 36.8291H10.113L143.464 110.791L161.108 143.272H1489.77Z"
+              fill="#191329" fillOpacity="0.85" stroke="#7B62D6" strokeWidth="2" vectorEffect="non-scaling-stroke"
+            />
+          </svg>
+          <svg className="home-phone-card" viewBox="0 0 741 95" preserveAspectRatio="none" aria-hidden="true">
+            <path
+              d="M688.242 92.0118L733.99 29.2535L736.206 26.2135L87.7003 2.01348L10.3624 14.323L8.69257 16.1188L2.36649 89.8331L2.17964 92.0118H688.242Z"
+              fill="#191329" fillOpacity="0.92" stroke="#916FF1" strokeWidth="2" vectorEffect="non-scaling-stroke"
+            />
+          </svg>
 
           <div className="home-greetings-content">
             <div className="home-logo-circle">

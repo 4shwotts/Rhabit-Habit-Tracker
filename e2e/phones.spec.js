@@ -82,9 +82,13 @@ for (const { name, width, height } of SCREENS) {
       if (height >= width) await expectNoScrolling(page, '.goals-page')
       const lastRow = page.locator('.goal-row-wrap').last()
       await lastRow.scrollIntoViewIfNeeded()
+      // and nothing shows below the frame's drawn bottom line, 97.5% of the way down its box
       const frame = await page.locator('.goals-filebox-wrap').boundingBox()
+      const frameLine = frame.y + frame.height * 0.975
+      const visibleBottom = await page.locator('.goals-scroll-area').evaluate(el => el.getBoundingClientRect().bottom)
+      expect(visibleBottom).toBeLessThanOrEqual(frameLine + 1)
       const lastGoal = await lastRow.boundingBox()
-      expect(lastGoal.y + lastGoal.height).toBeLessThanOrEqual(frame.y + frame.height)
+      expect(lastGoal.y + lastGoal.height).toBeLessThanOrEqual(frameLine + 1)
 
       await page.getByRole('button', { name: 'Open goal tasks' }).first().click()
       await expect(page.locator('.expanded-goal-box .task-row').first()).toBeVisible()
