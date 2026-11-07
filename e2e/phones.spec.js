@@ -36,6 +36,12 @@ async function expectNoScrolling(page, selector) {
   expect(extra, `${selector} scrolls`).toBeLessThanOrEqual(0)
 }
 
+// pop-ups close with a tap outside them; there's always a strip of screen left
+// above a pop-up for that
+async function closePopUp(page) {
+  await page.locator('.modal-overlay').click({ position: { x: 4, y: 4 } })
+}
+
 for (const { name, width, height } of SCREENS) {
   test.describe(name, () => {
     test.use({ viewport: { width, height }, isMobile: true, hasTouch: true })
@@ -65,7 +71,7 @@ for (const { name, width, height } of SCREENS) {
       await settingsButton.click()
       await expect(page.locator('.settings-box')).toBeVisible()
       await expectNothingOffScreen(page, 'settings')
-      await page.getByRole('button', { name: 'Close settings' }).click()
+      await closePopUp(page)
       await expect(page.locator('.settings-box')).toHaveCount(0)
 
       await page.locator('.home-icon-btn').nth(1).click()
@@ -93,7 +99,7 @@ for (const { name, width, height } of SCREENS) {
       await page.getByRole('button', { name: 'Open goal tasks' }).first().click()
       await expect(page.locator('.expanded-goal-box .task-row').first()).toBeVisible()
       await expectNothingOffScreen(page, 'goal tasks')
-      await page.getByRole('button', { name: 'Close goal tasks' }).click()
+      await closePopUp(page)
       await expect(page.locator('.expanded-goal-box')).toHaveCount(0)
     })
   })

@@ -521,6 +521,13 @@ function HomePage() {
 
           <div className="home-xp-border">
             <img src={xpBarBorder} className="home-xp-border-img" alt="" />
+            {/* small screens: the same frame, stretched to fit, with an even outline */}
+            <svg className="home-phone-xp-frame" viewBox="0 0 566 46" preserveAspectRatio="none" aria-hidden="true">
+              <path
+                d="M5.28418 44H539.362L560.284 1H16.1514L5.28418 44Z"
+                fill="#322656" fillOpacity="0.35" stroke="#5B4A9A" strokeWidth="1.5" vectorEffect="non-scaling-stroke"
+              />
+            </svg>
             <div className="home-xp-inner-wrap">
               <svg
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}

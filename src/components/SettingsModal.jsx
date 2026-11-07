@@ -38,7 +38,6 @@ function SettingsModal({ onClose, settings, onToggle }) {
       <div className="settings-box" onClick={(e) => e.stopPropagation()}>
 
         <ModalFrame className="penalty-frame" />
-        <button className="modal-close" type="button" aria-label="Close settings" onClick={onClose}>×</button>
 
         <div className="settings-content">
           {showTwoFactor ? (

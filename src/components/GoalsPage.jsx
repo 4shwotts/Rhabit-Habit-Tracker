@@ -373,7 +373,6 @@ function GoalsPage() {
         <div className="modal-overlay" onClick={closeExpanded}>
           <div className="expanded-goal-box" onClick={e => e.stopPropagation()}>
             <ModalFrame className="expanded-goal-frame" />
-            <button className="modal-close" type="button" aria-label="Close goal tasks" onClick={closeExpanded}>×</button>
 
             <div className="expanded-goal-content">
               <h2 className="expanded-goal-title">{expandedGoal.name}: Level {expandedGoal.level}</h2>

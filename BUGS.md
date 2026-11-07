@@ -227,7 +227,7 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 
 **Root cause:** the pages were fixed to the window's height, with bars placed at exact pixel positions and the page's scrolling turned off.
 
-**Fix:** screens narrower than 1024 pixels or shorter than 500 pixels get the desktop design drawn smaller. Setup no longer shrinks there, and pop-ups have a close button, because a tall pop-up can leave nothing outside it to tap. The first version stacked everything into a tall column and removed Home's angled panels. A check on a real iPhone showed it had lost the design, so it was rebuilt with the same cards, panels and file frame as desktop.
+**Fix:** screens narrower than 1024 pixels or shorter than 500 pixels get the desktop design drawn smaller. Setup no longer shrinks there, and pop-ups always leave a strip of screen to tap outside them, which closes them. The first version stacked everything into a tall column and removed Home's angled panels. A check on a real iPhone showed it had lost the design, so it was rebuilt with the same cards, panels and file frame as desktop.
 
 **Preventing test:** `e2e/phones.spec.js` checks every main page at four screen sizes. It was shown to fail on the old styles.
 

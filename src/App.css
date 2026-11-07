@@ -3852,14 +3852,10 @@ body {
   color: #C1AAFF;
 }
 
-/* Home's card and bar shapes for small screens (see the end of this file) */
+/* Home's card, bar and XP frame shapes for small screens (see the end of this file) */
 .home-phone-bar,
-.home-phone-card {
-  display: none;
-}
-
-/* a pop-up's close button; desktop closes by clicking outside the pop-up */
-.modal-close {
+.home-phone-card,
+.home-phone-xp-frame {
   display: none;
 }
 
@@ -3976,6 +3972,7 @@ body {
     left: 0;
     width: 100%;
     height: 150px;
+    margin-top: 36px;
     aspect-ratio: auto;
     flex-shrink: 0;
   }
@@ -4040,9 +4037,10 @@ body {
     overflow-wrap: anywhere;
   }
 
+  /* where they were before the header moved down */
   .home-icon-btns {
     position: absolute;
-    top: 34px;
+    top: -2px;
     right: 0;
     gap: 6px;
   }
@@ -4067,15 +4065,26 @@ body {
     letter-spacing: 0;
   }
 
-  /* inside the bar's angled ends */
+  /* inside the bar's angled ends, in the desktop XP frame */
   .home-xp-border {
     top: auto;
-    left: 13%;
-    right: 9%;
-    bottom: 12px;
+    left: 12%;
+    right: 8%;
+    bottom: 10px;
     width: auto;
-    height: 22px;
+    height: 28px;
     gap: 10px;
+    padding: 0 16px 0 10px;
+  }
+
+  .home-phone-xp-frame {
+    display: block;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
   }
 
   .home-xp-inner-wrap {
@@ -4085,7 +4094,8 @@ body {
     transform: none;
     flex: 1;
     width: auto;
-    height: 18px;
+    height: 16px;
+    z-index: 1;
     /* the bar's own track is too dark to see when empty on this narrow bar */
     background: rgba(145, 111, 241, 0.28);
     clip-path: polygon(0 100%, 96% 100%, 100% 0, 2% 0);
@@ -4098,7 +4108,11 @@ body {
   }
 
   .home-level-text {
-    position: static;
+    position: relative;
+    top: auto;
+    right: auto;
+    left: auto;
+    z-index: 1;
     transform: none;
     flex-shrink: 0;
     font-size: 13px;
@@ -4133,8 +4147,8 @@ body {
   /* ---- home: the desktop task card, smaller ---- */
   .home-task-list {
     gap: 8px;
-    margin-top: 34px;
-    padding: 0;
+    margin: auto 0;
+    padding: 28px 0 18px;
   }
 
   .home-page .home-task-row {
@@ -4204,8 +4218,7 @@ body {
 
   .home-action-area {
     height: auto;
-    margin-top: auto;
-    padding-top: 18px;
+    margin-top: 0;
   }
 
   .home-page .home-start-btn {
@@ -4281,12 +4294,14 @@ body {
     font-size: 12px;
   }
 
+  /* the same place as Home's Settings and Goals buttons */
   .goals-home-btn {
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 40px;
-    height: 40px;
+    position: fixed;
+    top: 56px;
+    right: max(14px, calc((100vw - 560px) / 2));
+    z-index: 10;
+    width: 36px;
+    height: 36px;
     margin: 0;
   }
 
@@ -4327,22 +4342,12 @@ body {
      cards and the scrollbar stay clear of that */
   .goals-scroll-area {
     max-height: none;
-    padding: 10px calc(6.6% + 16px) 12px 8px;
+    padding: 10px calc(6.6% + 6px) 12px 8px;
     gap: 8px;
   }
 
   .goals-scrollbar-track {
-    top: 36px;
-    right: calc(6.6% + 3px);
-    bottom: 16px;
-    width: 8px;
-    border-width: 1px;
-    border-radius: 4px;
-  }
-
-  .goals-scrollbar-thumb {
-    border-width: 1px;
-    border-radius: 3px;
+    display: none;
   }
 
   .goal-row-wrap {
@@ -4358,7 +4363,8 @@ body {
       'bar progress actions';
     align-content: center;
     gap: 5px 8px;
-    padding: 0 12px 0 14px;
+    /* the card's right edge slants in by about 4% of its width */
+    padding: 0 calc(4% + 10px) 0 16px;
   }
 
   .goal-name-wrap {
@@ -4688,38 +4694,10 @@ body {
     display: block;
   }
 
-  .modal-close {
-    position: absolute;
-    top: 36px;
-    right: 22px;
-    z-index: 3;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    padding: 0;
-    border: 1.5px solid var(--holo-edge);
-    border-radius: 7px;
-    background: rgba(20, 14, 40, 0.9);
-    color: #FFFFFF;
-    font-family: var(--font-body);
-    font-size: 15px;
-    line-height: 1;
-    cursor: pointer;
-  }
-
-  /* small to look at, easier to hit */
-  .modal-close::after {
-    content: '';
-    position: absolute;
-    inset: -8px;
-  }
-
   .settings-content {
     min-height: 0;
     gap: 8px;
-    padding: 72px 20px 28px;
+    padding: 46px 20px 28px;
   }
 
   .setting-row {
@@ -4889,10 +4867,8 @@ body {
     padding: 38px 16px 36px;
   }
 
-  /* narrow enough on both sides to stay centred and clear of the close button */
   .expanded-goal-title {
-    max-width: calc(100% - 76px);
-    min-height: 26px;
+    max-width: calc(100% - 40px);
     font-size: 13px;
     line-height: 1.3;
   }
