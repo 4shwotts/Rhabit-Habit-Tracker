@@ -4012,22 +4012,24 @@ body {
     bottom: auto;
     width: calc((100% - var(--bleed)) * 0.64);
     height: 48px;
-    padding: 2px 22px 0 54px;
+    padding: 2px 22px 0 66px;
     gap: 0;
   }
 
-  /* the logo sits on the card's left end with its ears above it, as on desktop */
+  /* the logo overlaps the card's left end on purpose, as on desktop: its ears
+     rise above the card and its head dips onto the main bar */
   .home-logo-circle {
     top: auto;
-    left: -8px;
-    bottom: 2px;
+    left: -14px;
+    bottom: -14px;
+    z-index: 3;
     transform: none;
-    width: 54px;
+    width: 74px;
     height: auto;
   }
 
   .home-logo {
-    width: 54px;
+    width: 74px;
     transform: rotate(-8deg);
   }
 
