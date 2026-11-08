@@ -7,8 +7,7 @@ const { withTransaction } = require('../db')
 const { validate, z, idParam } = require('../lib/validate')
 const { settleDay, penaliseMissedWindow, failPenalty, setGoalXp, secondsSince } = require('../lib/session')
 const {
-  XP_PER_TASK, REFRESH_COST, CONFIRM_UNLOCK_BEFORE_END, PENALTY_CONFIRM_UNLOCK_BEFORE_END,
-  TIMING_GRACE_SECONDS,
+  XP_PER_TASK, REFRESH_COST, TIMING_GRACE_SECONDS,
   getMaxTaskLevel, getMinTaskLevel, addXp, deductXp, windowAfterLevelUp
 } = require('../lib/game')
 
@@ -32,9 +31,9 @@ function dayResponse(day) {
   return {
     state: day.state,
     tasks: day.tasks,
-    penalty: { ...day.penalty, unlock_before_end: PENALTY_CONFIRM_UNLOCK_BEFORE_END },
+    penalty: { ...day.penalty, unlock_before_end: day.timers.penaltyConfirmUnlockBeforeEnd },
     windowSeconds: day.windowSeconds,
-    confirmUnlockBeforeEnd: CONFIRM_UNLOCK_BEFORE_END,
+    confirmUnlockBeforeEnd: day.timers.confirmUnlockBeforeEnd,
     outcome: day.outcome,
     // XP lost that the player hasn't been told about yet
     xpLoss: day.state.pending_loss_reason ? {
@@ -107,7 +106,7 @@ router.patch('/tasks/:id/check',
   })
 )
 
-// confirm unlocks CONFIRM_UNLOCK_BEFORE_END seconds before the window ends,
+// confirm unlocks the account's confirmUnlockBeforeEnd seconds before the window ends,
 // and can only ever succeed once per day
 router.post('/confirm', validate(), (req, res) =>
   withDay(req, res, async (client, day) => {
@@ -119,10 +118,11 @@ router.post('/confirm', validate(), (req, res) =>
     if (penalty.active || state.penalty_shown) return conflict('A penalty is in progress')
 
     const remaining = day.windowSeconds - secondsSince(state.window_start)
-    if (remaining > CONFIRM_UNLOCK_BEFORE_END + TIMING_GRACE_SECONDS) {
+    const unlockBeforeEnd = day.timers.confirmUnlockBeforeEnd
+    if (remaining > unlockBeforeEnd + TIMING_GRACE_SECONDS) {
       return [403, {
         error: 'Confirm not yet unlocked',
-        unlocks_in: Math.ceil(remaining - CONFIRM_UNLOCK_BEFORE_END)
+        unlocks_in: Math.ceil(remaining - unlockBeforeEnd)
       }]
     }
 
@@ -136,7 +136,7 @@ router.post('/confirm', validate(), (req, res) =>
     await client.query('UPDATE daily_state SET confirmed = TRUE WHERE user_id = $1', [req.user.id])
 
     const newWindowSeconds = level > previousLevel
-      ? await windowAfterLevelUp(client, req.user.id, goal, day.windowSeconds)
+      ? await windowAfterLevelUp(client, req.user, goal, day.windowSeconds)
       : null
 
     return [200, { success: true, xp, level, xp_earned: xpEarned, new_window_seconds: newWindowSeconds }]
@@ -164,7 +164,7 @@ router.post('/penalty/trigger', validate(), (req, res) =>
   })
 )
 
-// confirm unlocks PENALTY_CONFIRM_UNLOCK_BEFORE_END seconds before the penalty ends;
+// confirm unlocks the account's penaltyConfirmUnlockBeforeEnd seconds before the penalty ends;
 // an expired penalty has already been failed by settleDay()
 router.post('/penalty/confirm', validate(), (req, res) =>
   withDay(req, res, async (client, day) => {
@@ -172,7 +172,7 @@ router.post('/penalty/confirm', validate(), (req, res) =>
     if (day.outcome === 'penalty_failed') return conflict('The penalty time ran out')
     if (!penalty.active) return [400, { error: 'No active penalty' }]
 
-    const unlockAt = penalty.task_timer_seconds - PENALTY_CONFIRM_UNLOCK_BEFORE_END
+    const unlockAt = penalty.task_timer_seconds - day.timers.penaltyConfirmUnlockBeforeEnd
     const elapsed = secondsSince(penalty.started_at)
     if (elapsed < unlockAt - TIMING_GRACE_SECONDS) {
       return [403, { error: 'Confirm not yet unlocked', unlocks_in: Math.ceil(unlockAt - elapsed) }]

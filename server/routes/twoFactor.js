@@ -7,7 +7,7 @@ const express = require('express')
 const bcrypt = require('bcrypt')
 const router = express.Router()
 const { withTransaction } = require('../db')
-const { requireAuth, requireVerified } = require('../middleware/requireAuth')
+const { requireAuth, requireVerified, forbidDemo } = require('../middleware/requireAuth')
 const limits = require('../middleware/rateLimits')
 const { validate, z, fields } = require('../lib/validate')
 const { setSessionCookie } = require('../lib/auth')
@@ -30,8 +30,9 @@ async function loadTotpUser(db, userId) {
   return rows[0]
 }
 
+// demo accounts can't use two-step sign-in (forbidDemo)
 router.post('/setup',
-  requireAuth, requireVerified, limits.twoFactorManage,
+  requireAuth, forbidDemo, requireVerified, limits.twoFactorManage,
   validate({ body: z.strictObject({ password: fields.password }) }),
   async (req, res) => {
     const result = await withTransaction(async client => {
@@ -52,7 +53,7 @@ router.post('/setup',
 )
 
 router.post('/enable',
-  requireAuth, requireVerified, limits.twoFactorManage,
+  requireAuth, forbidDemo, requireVerified, limits.twoFactorManage,
   validate({ body: z.strictObject({ code: codeField }) }),
   async (req, res) => {
     const result = await withTransaction(async client => {
@@ -78,7 +79,7 @@ router.post('/enable',
 )
 
 router.post('/disable',
-  requireAuth, limits.twoFactorManage,
+  requireAuth, forbidDemo, limits.twoFactorManage,
   validate({ body: z.strictObject({ password: fields.password, code: codeField }) }),
   async (req, res) => {
     const result = await withTransaction(async client => {

@@ -4,7 +4,7 @@
 // itself XP by calling the API directly.
 const { getRandomPenaltyTask } = require('../data/penaltyTasks')
 const {
-  PENALTY_XP, PENALTY_SECONDS, TIMING_GRACE_SECONDS,
+  PENALTY_XP, TIMING_GRACE_SECONDS, timersFor,
   getSecondsUntilMidnight, windowForTasks, deductXp, totalXp, daysBetween, isPathwayComplete
 } = require('./game')
 
@@ -33,12 +33,14 @@ async function loadDay(client, user) {
     : { rows: [] }
 
   const state = stateRows[0]
-  const tasksWindow = windowForTasks(tasks)
+  const tasksWindow = windowForTasks(tasks, user)
   return {
     state,
     penalty: penaltyRows[0],
     tasks,
     goal: goalRows[0] || null,
+    // this account's timers (demo accounts have fast ones)
+    timers: timersFor(user),
     // fixed at start; before starting it's what the window *would* be
     windowSeconds: state?.window_seconds || tasksWindow
   }
@@ -54,7 +56,8 @@ async function setGoalXp(client, user, goal, xp, level) {
 }
 
 async function startPenalty(client, user, day, startedAt) {
-  const task = getRandomPenaltyTask()
+  // the task comes from the list; how long it lasts depends on the account
+  const task = { ...getRandomPenaltyTask(), timer_seconds: timersFor(user).penaltySeconds }
   await client.query(
     `UPDATE penalty_state SET
        active = TRUE, task_title = $1, task_difficulty = $2,
@@ -118,7 +121,7 @@ async function failWithoutPenalty(client, user, day) {
 // The window was missed: starts a penalty from `startedAt`, unless it couldn't
 // finish before midnight. Returns the penalty task, or null if the XP went instead.
 async function penaliseMissedWindow(client, user, day, startedAt) {
-  const penaltyLeft = PENALTY_SECONDS - secondsSince(startedAt)
+  const penaltyLeft = timersFor(user).penaltySeconds - secondsSince(startedAt)
   if (penaltyLeft > getSecondsUntilMidnight(user.timezone)) {
     await failWithoutPenalty(client, user, day)
     return null

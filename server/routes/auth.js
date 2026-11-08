@@ -7,7 +7,7 @@ const express = require('express')
 const bcrypt = require('bcrypt')
 const router = express.Router()
 const { query, withTransaction } = require('../db')
-const { requireAuth } = require('../middleware/requireAuth')
+const { requireAuth, DEMO_RESTRICTED } = require('../middleware/requireAuth')
 const limits = require('../middleware/rateLimits')
 const { validate, z, fields } = require('../lib/validate')
 const { createFormToken, checkSignup } = require('../lib/botCheck')
@@ -20,6 +20,7 @@ const config = require('../config')
 const {
   sendVerificationEmail, sendPasswordResetEmail, sendAccountExistsEmail
 } = require('../lib/email')
+const { createDemoAccount, deleteExpiredDemos, countActiveDemos, DEMO_EMAIL_DOMAIN } = require('../lib/demo')
 
 const BCRYPT_ROUNDS = 12
 const VERIFY_TOKEN_TTL_MS = 24 * 60 * 60 * 1000
@@ -48,11 +49,13 @@ const signupBody = z.strictObject({
   website: z.string().max(200).optional()
 })
 const loginBody = z.strictObject({ email: fields.email, password: fields.password })
+const demoBody = z.strictObject({ timezone: z.string().max(64).optional() })
 const emailBody = z.strictObject({ email: fields.email })
 const tokenBody = z.strictObject({ token: fields.token })
 const resetBody = z.strictObject({ token: fields.token, password: fields.newPassword })
-// `code` (authenticator or backup code) is required when 2FA is on
-const deleteBody = z.strictObject({ password: fields.password, code: z.string().max(20).optional() })
+// `code` (authenticator or backup code) is required when 2FA is on. The
+// password is required too, except for demo accounts, which have none.
+const deleteBody = z.strictObject({ password: fields.password.optional(), code: z.string().max(20).optional() })
 
 // ---- helpers ----
 
@@ -84,7 +87,9 @@ function publicUser(user) {
     task_refresh: !!user.task_refresh,
     pause_progression: !!user.pause_progression,
     active_goal_id: user.active_goal_id,
-    two_factor_enabled: !!user.totp_enabled
+    two_factor_enabled: !!user.totp_enabled,
+    is_demo: !!user.is_demo,
+    demo_expires_at: user.is_demo ? user.expires_at : null
   }
 }
 
@@ -111,6 +116,27 @@ async function consumeToken(db, rawToken, type) {
   return token.user_id
 }
 
+// Demo addresses can never receive mail, so nothing is ever sent to one
+const isDemoEmail = email => email.endsWith(`@${DEMO_EMAIL_DOMAIN}`)
+const demoRestricted = res => res.status(403).json({ error: DEMO_RESTRICTED, code: 'DEMO_RESTRICTED' })
+
+// True if the request comes from a signed-in demo. Used on the routes that
+// send email, which anyone can call, so a demo can't send email for any address.
+async function fromDemoSession(req) {
+  const payload = readSessionToken(req.cookies?.[config.cookieName])
+  if (!payload) return false
+  const { rows } = await query('SELECT is_demo FROM users WHERE id = $1', [parseInt(payload.sub, 10)])
+  return !!rows[0]?.is_demo
+}
+
+// With public sign-up switched off (config.publicSignupEnabled), the sign-up
+// routes refuse every request and the demo is the only way in.
+const SIGNUP_CLOSED = 'Sign-up is closed at the moment. You can still try the demo.'
+function requireSignupOpen(req, res, next) {
+  if (!config.publicSignupEnabled) return res.status(403).json({ error: SIGNUP_CLOSED, code: 'SIGNUP_DISABLED' })
+  next()
+}
+
 // Email failures are logged but never change the response, otherwise the
 // response would differ between existing and non-existing accounts.
 async function safeSend(promiseFactory) {
@@ -123,12 +149,17 @@ async function safeSend(promiseFactory) {
 
 // ---- routes ----
 
+// What the frontend needs to know before anyone signs in.
+router.get('/config', (req, res) => {
+  res.json({ public_signup_enabled: config.publicSignupEnabled })
+})
+
 // Signed timestamp the signup form must send back (timing check).
-router.get('/signup-token', limits.signupToken, (req, res) => {
+router.get('/signup-token', requireSignupOpen, limits.signupToken, (req, res) => {
   res.json({ token: createFormToken() })
 })
 
-router.post('/signup', limits.signup, validate({ body: signupBody }), async (req, res) => {
+router.post('/signup', requireSignupOpen, limits.signup, validate({ body: signupBody }), async (req, res) => {
   const { username, email, password, form_token: formToken, website } = req.body
 
   const botReason = checkSignup({ formToken, honeypot: website })
@@ -189,14 +220,15 @@ router.post('/login',
   async (req, res) => {
     const { email, password } = req.body
     const { rows } = await query(
-      'SELECT id, password_hash, token_version, email_verified, totp_enabled FROM users WHERE email = $1',
+      'SELECT id, password_hash, token_version, email_verified, totp_enabled, is_demo FROM users WHERE email = $1',
       [email]
     )
     const user = rows[0]
 
-    // always run bcrypt, even for unknown emails, to keep timing identical
+    // always run bcrypt, even for unknown emails, to keep timing identical.
+    // Demo accounts can't be logged in to at all, only started fresh.
     const ok = await bcrypt.compare(password, user ? user.password_hash : DUMMY_HASH)
-    if (!user || !ok) return res.status(401).json({ error: GENERIC_LOGIN_ERROR })
+    if (!user || !ok || user.is_demo) return res.status(401).json({ error: GENERIC_LOGIN_ERROR })
 
     // Unverified accounts never get a session. Only reachable with the right
     // password, so it reveals nothing to someone guessing emails.
@@ -216,6 +248,27 @@ router.post('/login',
   }
 )
 
+// One-click demo: a fresh throwaway account per visitor, signed in with the
+// normal session cookie. No email or password. Expired demos are cleared out
+// first, then the number still live is checked against the cap. The advisory
+// lock makes that check and the insert happen one demo at a time.
+const DEMO_LOCK_ID = 727473
+const DEMO_BUSY = 'The demo is busy right now. Please try again shortly.'
+
+router.post('/demo', limits.demoCreate, validate({ body: demoBody }), async (req, res) => {
+  const now = new Date()
+  const user = await withTransaction(async client => {
+    await client.query('SELECT pg_advisory_xact_lock($1)', [DEMO_LOCK_ID])
+    await deleteExpiredDemos(client, now)
+    if (await countActiveDemos(client, now) >= config.demo.maxActive) return null
+    return createDemoAccount(client, { timezone: validTimezone(req.body.timezone), now })
+  })
+  if (!user) return res.status(503).json({ error: DEMO_BUSY })
+
+  setSessionCookie(res, user)
+  res.status(201).json({ user: publicUser(user) })
+})
+
 // Log out ends the session on the server as well as in the browser: bumping
 // token_version makes every session cookie issued so far invalid (on every
 // device), so a copied cookie stops working too. Signing in again issues a new
@@ -224,14 +277,21 @@ router.post('/login',
 // `this_browser_only` is for the app's own clean-up when a new visit starts
 // (see AuthContext): it only drops this browser's cookie, so opening Rhabit in
 // a new tab or on another device doesn't sign you out everywhere else.
+//
+// Logging out of a demo deletes it straight away, either way: its cookie only
+// ever lives in one browser, so once that's gone the demo can't be reached.
 const logoutBody = z.strictObject({ this_browser_only: z.boolean().optional() })
 
 router.post('/logout', validate({ body: logoutBody }), async (req, res) => {
   const payload = readSessionToken(req.cookies?.[config.cookieName])
-  if (payload && !req.body.this_browser_only) {
+  const userId = payload && parseInt(payload.sub, 10)
+  const ended = payload && await query(
+    'DELETE FROM users WHERE id = $1 AND token_version = $2 AND is_demo', [userId, payload.tv]
+  )
+  if (payload && !ended.rowCount && !req.body.this_browser_only) {
     await query(
       'UPDATE users SET token_version = token_version + 1 WHERE id = $1 AND token_version = $2',
-      [parseInt(payload.sub, 10), payload.tv]
+      [userId, payload.tv]
     )
   }
   clearSessionCookie(res)
@@ -261,6 +321,7 @@ router.post('/resend-verification',
   validate({ body: emailBody }),
   async (req, res) => {
     const { email } = req.body
+    if (isDemoEmail(email) || await fromDemoSession(req)) return demoRestricted(res)
     const { rows } = await query(
       'SELECT id, username, email_verified FROM users WHERE email = $1', [email]
     )
@@ -279,6 +340,7 @@ router.post('/forgot-password',
   validate({ body: emailBody }),
   async (req, res) => {
     const { email } = req.body
+    if (isDemoEmail(email) || await fromDemoSession(req)) return demoRestricted(res)
     const { rows } = await query('SELECT id FROM users WHERE email = $1', [email])
     if (rows[0]) {
       const raw = await issueToken({ query }, rows[0].id, 'reset_password', RESET_TOKEN_TTL_MS)
@@ -293,6 +355,9 @@ router.post('/reset-password', limits.resetPassword, validate({ body: resetBody 
 
   const userId = await consumeToken({ query }, req.body.token, 'reset_password')
   if (!userId) return res.status(400).json({ error: INVALID_RESET_TOKEN })
+  // demos are never sent a reset link, but refuse one regardless
+  const { rows: owner } = await query('SELECT is_demo FROM users WHERE id = $1', [userId])
+  if (owner[0]?.is_demo) return demoRestricted(res)
 
   // bumping token_version logs out every existing session; clicking the emailed
   // link also proves ownership of the address, so mark it verified
@@ -307,11 +372,19 @@ router.post('/reset-password', limits.resetPassword, validate({ body: resetBody 
 
 // Permanently deletes the account. Every table references users(id) with
 // ON DELETE CASCADE, so this one statement removes all of the user's data.
+// A demo has no password, so it's deleted straight away ("End demo").
 router.delete('/account',
   requireAuth,
   limits.deleteAccount,
   validate({ body: deleteBody, invalidBodyStatus: 401, invalidBodyMessage: 'Incorrect password' }),
   async (req, res) => {
+    if (req.user.is_demo) {
+      await query('DELETE FROM users WHERE id = $1 AND is_demo', [req.user.id])
+      clearSessionCookie(res)
+      return res.json({ success: true })
+    }
+    if (!req.body.password) return res.status(401).json({ error: 'Incorrect password' })
+
     const { rows } = await query(
       'SELECT id, password_hash, totp_enabled, totp_secret, totp_last_step FROM users WHERE id = $1',
       [req.user.id]

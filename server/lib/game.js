@@ -24,6 +24,14 @@ const PENALTY_SECONDS = config.testTimers ? TEST_TIMER_SECONDS : 60 * 60
 // allowance for network latency and clock drift between browser and server
 const TIMING_GRACE_SECONDS = 5
 
+// Demo accounts (lib/demo.js) get fast timers so a visitor can see a window run
+// out and a penalty start: a 3-minute window with confirm open after 1 minute,
+// and a 2-minute penalty with confirm open after 30 seconds.
+const DEMO_WINDOW_SECONDS = 3 * 60
+const DEMO_CONFIRM_AFTER = 60
+const DEMO_PENALTY_SECONDS = 2 * 60
+const DEMO_PENALTY_CONFIRM_AFTER = 30
+
 // harder task tiers get shorter windows
 function getWindowSeconds(level) {
   if (config.testTimers) return TEST_TIMER_SECONDS
@@ -31,6 +39,25 @@ function getWindowSeconds(level) {
   if (level <= 6) return 2 * 60 * 60
   if (level <= 9) return 90 * 60
   return 60 * 60
+}
+
+// Every timer that applies to `user`. Decided here on the server from the
+// account itself, never from anything the browser sends.
+function timersFor(user) {
+  if (user?.is_demo) {
+    return {
+      windowForLevel: () => DEMO_WINDOW_SECONDS,
+      confirmUnlockBeforeEnd: DEMO_WINDOW_SECONDS - DEMO_CONFIRM_AFTER,
+      penaltySeconds: DEMO_PENALTY_SECONDS,
+      penaltyConfirmUnlockBeforeEnd: DEMO_PENALTY_SECONDS - DEMO_PENALTY_CONFIRM_AFTER
+    }
+  }
+  return {
+    windowForLevel: getWindowSeconds,
+    confirmUnlockBeforeEnd: CONFIRM_UNLOCK_BEFORE_END,
+    penaltySeconds: PENALTY_SECONDS,
+    penaltyConfirmUnlockBeforeEnd: PENALTY_CONFIRM_UNLOCK_BEFORE_END
+  }
 }
 
 // each level up unlocks the matching task tier
@@ -94,9 +121,9 @@ function getSecondsUntilMidnight(timezone) {
 }
 
 // window length is driven by the highest level task rolled for today
-function windowForTasks(tasks) {
+function windowForTasks(tasks, user) {
   const taskLevel = tasks.length > 0 ? Math.max(...tasks.map(t => t.level)) : 1
-  return getWindowSeconds(taskLevel)
+  return timersFor(user).windowForLevel(taskLevel)
 }
 
 // Most XP a single action can add or remove: one level's worth. The largest
@@ -168,15 +195,15 @@ async function generateTasks(db, userId, goalId, minLevel, maxLevel) {
 // The first task rolled always comes from the top unlocked tier if that tier
 // has any tasks, and the hardest task rolled sets the window. An empty tier
 // leaves the window as it was until the player adds tasks to it.
-async function windowAfterLevelUp(db, userId, goal, currentSeconds) {
+async function windowAfterLevelUp(db, user, goal, currentSeconds) {
   const tier = getMaxTaskLevel(goal.level)
   const { rows } = await db.query(
     `SELECT 1 FROM goal_tasks
      WHERE goal_id = $1 AND user_id = $2 AND title != '' AND level = $3 LIMIT 1`,
-    [goal.id, userId, tier]
+    [goal.id, user.id, tier]
   )
   if (rows.length === 0) return null
-  const seconds = getWindowSeconds(tier)
+  const seconds = timersFor(user).windowForLevel(tier)
   return seconds === currentSeconds ? null : seconds
 }
 
@@ -219,6 +246,7 @@ module.exports = {
   getSecondsUntilMidnight,
   windowForTasks,
   getWindowSeconds,
+  timersFor,
   getMaxTaskLevel,
   getMinTaskLevel,
   getTodayInTimezone,

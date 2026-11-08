@@ -42,6 +42,18 @@ const config = {
     tasksPerLevel: 6
   },
 
+  // Public sign-up. Set PUBLIC_SIGNUP_ENABLED=false to close it without a code
+  // change: sign-up is then refused and the demo is the only way in.
+  publicSignupEnabled: process.env.PUBLIC_SIGNUP_ENABLED !== 'false',
+
+  // Demo accounts (lib/demo.js): how long each lasts, how many can be live at
+  // once across everyone, and how many one IP address can create per hour
+  demo: {
+    lifetimeHours: 24,
+    maxActive: parseInt(process.env.DEMO_MAX_ACTIVE, 10) || 200,
+    perIpPerHour: 5
+  },
+
   // Secret used to sign session JWTs. Must be long and random in production.
   jwtSecret: required('JWT_SECRET', 'dev-only-insecure-secret-change-me'),
   // sessions are per visit (the frontend logs out on a fresh tab) and the

@@ -9,6 +9,8 @@ import ModalFrame from './ModalFrame'
 function SettingsModal({ onClose, settings, onToggle }) {
   const { user, logout, setUser } = useAuth()
   const twoFactorOn = !!user?.two_factor_enabled
+  // demo accounts have no email or password, so no 2FA, and ending one deletes it
+  const isDemo = !!user?.is_demo
   // the 2FA setup/turn-off flow replaces the settings list while it's open
   const [showTwoFactor, setShowTwoFactor] = useState(false)
   const [confirmingDelete, setConfirmingDelete] = useState(false)
@@ -89,6 +91,9 @@ function SettingsModal({ onClose, settings, onToggle }) {
             Every missed day costs 45 XP. Pause Progression stops this, from the next day if you have already started your tasks.
           </p>
 
+          {isDemo ? (
+            <p className="setting-note">Two-step sign-in isn't available in the demo.</p>
+          ) : (
           <div className="setting-row">
             <span className="setting-label">
               Two-step sign-in
@@ -98,8 +103,16 @@ function SettingsModal({ onClose, settings, onToggle }) {
               {twoFactorOn ? 'Turn off' : 'Set up'}
             </button>
           </div>
+          )}
 
-          {confirmingDelete ? (
+          {isDemo ? (
+            <div className="settings-delete-confirm">
+              <p className="setting-note">Ending the demo deletes this account and everything in it.</p>
+              <div className="settings-account">
+                <button className="settings-account-btn danger" type="button" onClick={logout}>End demo</button>
+              </div>
+            </div>
+          ) : confirmingDelete ? (
             <form className="settings-delete-confirm" onSubmit={handleDelete}>
               <p className="settings-delete-warning">
                 This permanently deletes your account and all of your progress. Enter your password to confirm.

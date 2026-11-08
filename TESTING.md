@@ -6,17 +6,19 @@ Rhabit is tested at four levels, from fast checks of single functions up to a re
 
 | Level | Tool | Where | Tests | Time |
 |---|---|---|---|---|
-| Unit | Vitest | `server/tests/unit/` | 89 | seconds |
+| Unit | Vitest | `server/tests/unit/` | 103 | seconds |
 | Frontend component | Vitest, Testing Library | `src/components/*.test.jsx` | 17 | seconds |
 | Image sizes | Vitest | `src/assets/assets.test.js` | 32 | seconds |
-| API integration | Vitest, Supertest | `server/tests/api/` | 174 | about 30s |
-| End-to-end, phone sizes and accessibility | Playwright, axe | `e2e/` | 15 | about 4 minutes |
-| **Total** | | | **327** | |
+| API integration | Vitest, Supertest | `server/tests/api/` | 216 | about 45s |
+| End-to-end, phone sizes and accessibility | Playwright, axe | `e2e/` | 25 | about 7 minutes |
+| **Total** | | | **393** | |
+
+The 25 browser tests are 8 journeys (6 main, 2 demo), 1 accessibility scan, and 16 phone checks: 2 tests at each of 4 sizes, in Chromium and WebKit.
 
 | Coverage | Statements | Branches | Functions | Lines |
 |---|---|---|---|---|
-| Server (unit and API tests) | 87.50% | 68.22% | 90.09% | 90.08% |
-| Frontend (component tests only) | 23.42% | 24.26% | 19.11% | 24.19% |
+| Server (unit and API tests) | 87.68% | 67.85% | 90.49% | 90.10% |
+| Frontend (component tests only) | 22.79% | 23.32% | 18.95% | 23.50% |
 
 The frontend figure counts component tests only. The end-to-end journeys use most of the frontend, but they run in a real browser and aren't included in that number.
 
@@ -24,7 +26,7 @@ The frontend figure counts component tests only. The end-to-end journeys use mos
 
 The game's rules are enforced on the server, so most tests sit there. A rule such as "confirm needs every task ticked" is tested against the API, which holds whatever the browser does.
 
-- **Unit tests** cover the pure game logic in `lib/game.js`: XP, levels, tier unlocks and window lengths. Fake timers cover midnight, clock changes and time zones. Edge cases include zero, negative, huge and missing values. The safety tests described below are here too.
+- **Unit tests** cover the pure game logic in `lib/game.js`: XP, levels, tier unlocks and window lengths. They also cover demo accounts in `lib/demo.js`: the seed every demo starts with, when a demo expires, its address, and its fast timers. Fake timers cover midnight, clock changes and time zones. Edge cases include zero, negative, huge and missing values. The safety tests described below are here too.
 - **Component tests** cover the Home window timer and penalty pop-up with a fake clock. Timing bugs are hard to reach any other way, for example a page that loads just after a window ended.
 - **API tests** send real HTTP requests to the real app and a real Postgres database. The server's clock is fixed at the same morning time for every test, because the rules change late in the day:
 
@@ -36,6 +38,7 @@ The game's rules are enforced on the server, so most tests sit there. A rule suc
   | `two-factor` | 20 | setup, sign-in, replayed codes, backup codes, bypass attempts |
   | `authorisation` | 17 | one player against another's data always gets a 404 |
   | `game` | 49 | window, ticks, XP, level cap, finished pathways, penalties, rerolls, late-day rules, missed days, pausing, midnight reset by time zone |
+  | `demo` | 42 | starting a demo, seeded data, fast timers for demos only, demos kept apart (404), clean-up of expired demos with all their rows and never a real account, 429 per IP, the cap on live demos, every restricted action (403), ending a demo, and the public sign-up switch |
   | `rate-limits` | 6 | 429 on repeated logins, sign-ups, reset emails and overall traffic |
 
 - **End-to-end tests** drive Chromium through the main journeys, on a stack that uses 30-second windows so a full day fits in a test:
@@ -45,15 +48,17 @@ The game's rules are enforced on the server, so most tests sit there. A rule suc
   4. a started day left unfinished, and the XP loss shown on the next visit
   5. the longest confirm label fits inside its button
   6. add, rename and delete a goal
-- **Phone sizes:** every main page is opened at 320 by 568, 390 by 844, 844 by 390 and 768 by 1024 with touch on, in Chromium and in WebKit, the engine behind Safari. Nothing may run off the sides of the screen, Home and Goals must fit an upright screen without scrolling, and a long list of goals must scroll inside the Goals frame.
-- **Accessibility:** axe scans login, sign-up, setup, Home and Goals against WCAG 2.1 A and AA. Any violation fails the run.
+  7. try the demo, complete the day, then end the demo and check the account is gone
+  8. let a demo window run out and see the 2-minute penalty start
+- **Phone sizes:** every main page is opened at 320 by 568, 390 by 844, 844 by 390 and 768 by 1024 with touch on, in Chromium and in WebKit, the engine behind Safari. Nothing may run off the sides of the screen, Home and Goals must fit an upright screen without scrolling, and a long list of goals must scroll inside the Goals frame. A second test at each size starts the demo: the login button, Home, Settings and Goals must fit, and the demo banner must never cover the clock or the top buttons.
+- **Accessibility:** axe scans login (with the demo button), sign-up, setup, Home and Goals, plus demo mode's Home with its banner and Settings, against WCAG 2.1 A and AA. Any violation fails the run.
 - **Image sizes:** every image and icon must stay under 200 kB, so a heavy file can't quietly slow the first load again.
 
 ## Keeping tests away from real data
 
 - `NODE_ENV=test` stops the server reading `server/.env`, which points at the real database.
 - Tests only ever use `TEST_DATABASE_URL` or a local throwaway database. `DATABASE_URL` is ignored, and hosted database URLs such as Neon are refused before any test starts.
-- Test helpers only work when `NODE_ENV=test`: the email outbox, the fake mail-server lookup, the rate limit reset and the `/api/test` routes. Tests confirm those routes answer 404 in development and production, and that the hosted-database refusal stops a whole run.
+- Test helpers only work when `NODE_ENV=test`: the email outbox, the fake mail-server lookup, the rate limit reset and the `/api/test` routes, including the ones the demo journeys use to move a demo's window on and to check an account is gone. Tests confirm those routes answer 404 in development and production, and that the hosted-database refusal stops a whole run.
 - No test sends a real email or needs the network.
 
 ## Deliberately not tested
@@ -67,7 +72,7 @@ The game's rules are enforced on the server, so most tests sit there. A rule suc
 | Production hosting | Vercel rewrites, security headers set by Vercel, and the Render and Neon setup aren't covered. |
 | Load and performance | Not needed at this scale. |
 | The canvas background | It's decorative and has no game logic. |
-| Real window lengths in a browser | End-to-end tests use the 30-second timers. Unit and API tests use the real values. |
+| Real window lengths in a browser | End-to-end tests use the 30-second timers. Unit and API tests use the real values. The demo journeys move a demo's window on rather than wait for it. |
 
 ## Running the tests on Windows
 

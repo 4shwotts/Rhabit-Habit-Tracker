@@ -64,6 +64,12 @@ module.exports = {
   }),
 
   signupToken: limiter({ windowMs: HOUR, limit: 30 }),
+
+  // each demo is a new account, so creating them is limited per IP
+  demoCreate: limiter({
+    windowMs: HOUR, limit: config.demo.perIpPerHour,
+    message: 'Too many demos started from here. Please try again later.'
+  }),
   signup: limiter({ windowMs: HOUR, limit: 5, message: TOO_MANY_ATTEMPTS }),
 
   // forgot-password and resend-verification send email, so they're the
