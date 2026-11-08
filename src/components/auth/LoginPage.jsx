@@ -5,7 +5,7 @@ import { login, verifyTwoFactor } from '../../api'
 import { useAuth, stageOf, pathForStage } from '../../auth/AuthContext'
 
 function LoginPage() {
-  const { refresh, startDemo, publicSignup } = useAuth()
+  const { refresh, startDemo } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -164,7 +164,8 @@ function LoginPage() {
 
       <div className="auth-links">
         <Link className="auth-link" to="/forgot-password">Forgotten your password?</Link>
-        {publicSignup && <Link className="auth-link" to="/signup">New here? Create an account</Link>}
+        {/* always shown: when sign-up is closed, the page says so and offers the demo */}
+        <Link className="auth-link" to="/signup">New here? Create an account</Link>
       </div>
     </AuthLayout>
   )

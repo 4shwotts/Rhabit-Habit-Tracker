@@ -1,11 +1,11 @@
 // Demo accounts through the API: one click signs a visitor in to a seeded
 // account with fast timers, demos are kept apart from each other and from real
 // accounts, expired demos are deleted with all their data, and creation is
-// limited per IP and in total.
+// limited per IP and in total. The public sign-up switch has its own file.
 import { describe, it, expect, beforeEach, afterAll } from 'vitest'
 import { createRequire } from 'node:module'
 import {
-  query, config, request, resetDb, closeDb, createPlayer, createUser, as, setClock, PASSWORD, outbox, formToken
+  query, config, request, resetDb, closeDb, createPlayer, createUser, as, setClock, PASSWORD, outbox
 } from './helpers.mjs'
 
 const require = createRequire(import.meta.url)
@@ -348,45 +348,5 @@ describe('ending a demo', () => {
     await query('UPDATE users SET token_version = token_version + 1 WHERE id = $1', [user.id])
     await withCookie(cookie).post('/api/auth/logout').send({})
     expect(await exists(user.id)).toBe(true)
-  })
-})
-
-describe('the public sign-up switch', () => {
-  const signUp = () => request().post('/api/auth/signup').send({
-    username: 'New', email: 'new.player@example.com', password: 'correct-horse-battery',
-    form_token: formToken()
-  })
-
-  it('is on by default', async () => {
-    expect(config.publicSignupEnabled).toBe(true)
-    expect((await request().get('/api/auth/config')).body).toEqual({ public_signup_enabled: true })
-    expect((await request().get('/api/auth/signup-token')).status).toBe(200)
-  })
-
-  describe('when switched off', () => {
-    beforeEach(() => { config.publicSignupEnabled = false })
-    afterAll(() => { config.publicSignupEnabled = true })
-
-    it('tells the frontend', async () => {
-      expect((await request().get('/api/auth/config')).body).toEqual({ public_signup_enabled: false })
-    })
-
-    it('rejects sign-up and its form token, and creates nothing', async () => {
-      const token = await request().get('/api/auth/signup-token')
-      expect(token.status).toBe(403)
-      const res = await signUp()
-      expect(res.status).toBe(403)
-      expect(res.body.code).toBe('SIGNUP_DISABLED')
-      const { rows } = await query('SELECT count(*)::int AS n FROM users')
-      expect(rows[0].n).toBe(0)
-      expect(outbox()).toEqual([])
-    })
-
-    it('still lets visitors in through the demo, and real players log in', async () => {
-      expect((await startDemo()).res.status).toBe(201)
-      const real = await createUser()
-      const login = await request().post('/api/auth/login').send({ email: real.email, password: PASSWORD })
-      expect(login.status).toBe(200)
-    })
   })
 })

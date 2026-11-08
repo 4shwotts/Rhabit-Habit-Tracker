@@ -5035,3 +5035,34 @@ body {
     padding: 0 8px;
   }
 }
+
+/* ---- sign-up page when public sign-up is closed ---- */
+
+.auth-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-closed-note {
+  margin: 0;
+  padding: 10px 16px;
+  border: 1.5px solid var(--holo-edge-bright);
+  border-radius: 6px;
+  background: rgba(145, 111, 241, 0.14);
+  font-family: var(--font-body);
+  font-size: 18px;
+  line-height: 1.5;
+  letter-spacing: 0;
+  color: #FFFFFF;
+  text-align: center;
+}
+
+.auth-closed-note .auth-link {
+  white-space: nowrap;
+}
+
+@media (max-width: 1023px), (max-height: 500px) {
+  .auth-closed-note {
+    font-size: 14px;
+  }
+}

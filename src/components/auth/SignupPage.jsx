@@ -2,10 +2,16 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AuthLayout, { AuthField, AuthMessage } from './AuthLayout'
 import { signup, resendVerification, getSignupToken } from '../../api'
+import { useAuth } from '../../auth/AuthContext'
 
 const MIN_PASSWORD = 8
 
 function SignupPage() {
+  // with public sign-up closed (the server's PUBLIC_SIGNUP_ENABLED), the page
+  // keeps its design but the form is switched off and points to the demo. The
+  // server refuses sign-ups either way, so this is only for the visitor's sake.
+  const { publicSignup } = useAuth()
+  const closed = !publicSignup
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,12 +27,13 @@ function SignupPage() {
   const [honeypot, setHoneypot] = useState('')
 
   useEffect(() => {
+    if (closed) return
     getSignupToken().then(setFormToken).catch(() => setFormToken(null))
-  }, [])
+  }, [closed])
 
   async function handleSubmit(e) {
     e.preventDefault()
-    if (submitting) return
+    if (submitting || closed) return
     setError(null)
 
     if (!username.trim()) return setError('Enter a username')
@@ -72,22 +79,27 @@ function SignupPage() {
 
   return (
     <AuthLayout title="NEW PLAYER" subtitle="REGISTER WITH THE SYSTEM TO BEGIN YOUR PROGRESSION">
+      {closed && (
+        <p className="auth-closed-note" role="note">
+          Sign-up is closed on the live site. <Link className="auth-link" to="/demo">Try the demo instead</Link>
+        </p>
+      )}
       <form className="auth-form" onSubmit={handleSubmit} noValidate>
         <AuthField
           label="USERNAME" id="signup-username" type="text" autoComplete="nickname"
-          value={username} onChange={e => setUsername(e.target.value)} maxLength={20} required
+          value={username} onChange={e => setUsername(e.target.value)} maxLength={20} required disabled={closed}
         />
         <AuthField
           label="EMAIL" id="signup-email" type="email" autoComplete="email"
-          value={email} onChange={e => setEmail(e.target.value)} maxLength={254} required
+          value={email} onChange={e => setEmail(e.target.value)} maxLength={254} required disabled={closed}
         />
         <AuthField
           label="PASSWORD" id="signup-password" type="password" autoComplete="new-password"
-          value={password} onChange={e => setPassword(e.target.value)} maxLength={72} required
+          value={password} onChange={e => setPassword(e.target.value)} maxLength={72} required disabled={closed}
         />
         <AuthField
           label="CONFIRM PASSWORD" id="signup-confirm" type="password" autoComplete="new-password"
-          value={confirm} onChange={e => setConfirm(e.target.value)} maxLength={72} required
+          value={confirm} onChange={e => setConfirm(e.target.value)} maxLength={72} required disabled={closed}
         />
         <p className="auth-hint">At least {MIN_PASSWORD} characters.</p>
 
@@ -102,7 +114,7 @@ function SignupPage() {
 
         <AuthMessage error={error} />
 
-        <button className="auth-btn" type="submit" disabled={submitting || !username || !email || !password || !confirm}>
+        <button className="auth-btn" type="submit" disabled={closed || submitting || !username || !email || !password || !confirm}>
           {submitting ? 'Registering...' : 'Sign up'}
         </button>
       </form>

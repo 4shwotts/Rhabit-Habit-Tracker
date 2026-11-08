@@ -34,7 +34,9 @@ function apiEnv(databaseUrl) {
     APP_URL: `http://localhost:${PORTS.web}`,
     JWT_SECRET: process.env.E2E_JWT_SECRET || 'e2e-only-jwt-secret-not-used-anywhere-else',
     TOTP_ENCRYPTION_KEY: process.env.E2E_TOTP_KEY || 'e2e-only-totp-key-not-used-anywhere-else',
-    BREVO_API_KEY: ''
+    BREVO_API_KEY: '',
+    // open by default; E2E_PUBLIC_SIGNUP_ENABLED=false previews the live site's closed sign-up
+    PUBLIC_SIGNUP_ENABLED: process.env.E2E_PUBLIC_SIGNUP_ENABLED || 'true'
   }
 }
 

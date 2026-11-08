@@ -36,7 +36,7 @@ function BootScreen() {
 }
 
 function AppRoutes() {
-  const { user, checking, publicSignup } = useAuth()
+  const { user, checking } = useAuth()
 
   // wait for the session check so guards don't flash the login page
   if (checking) return <BootScreen />
@@ -49,10 +49,9 @@ function AppRoutes() {
 
       {/* logged-out only */}
       <Route path="/login" element={<RequireStage stage="guest"><LoginPage /></RequireStage>} />
-      {/* with public sign-up switched off, the demo is the only way in */}
-      <Route path="/signup" element={publicSignup
-        ? <RequireStage stage="guest"><SignupPage /></RequireStage>
-        : <Navigate to="/login" replace />} />
+      {/* stays on show when public sign-up is closed: the form is disabled
+          and points visitors to the demo (see SignupPage) */}
+      <Route path="/signup" element={<RequireStage stage="guest"><SignupPage /></RequireStage>} />
 
       {/* reachable from emailed links (and the login page) whatever the session state */}
       <Route path="/verify-email" element={<VerifyEmailPage />} />
