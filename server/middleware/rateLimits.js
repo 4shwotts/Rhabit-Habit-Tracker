@@ -65,6 +65,9 @@ module.exports = {
 
   signupToken: limiter({ windowMs: HOUR, limit: 30 }),
 
+  // the login page's wake-up call: cheap, but it does touch the database
+  wake: limiter({ windowMs: 15 * MINUTE, limit: 60 }),
+
   // each demo is a new account, so creating them is limited per IP
   demoCreate: limiter({
     windowMs: HOUR, limit: config.demo.perIpPerHour,

@@ -122,6 +122,11 @@ function SignupPage() {
       <div className="auth-links">
         <Link className="auth-link" to="/login">Already registered? Log in</Link>
       </div>
+      <p className="auth-legal-links">
+        <Link className="auth-link" to="/privacy">Privacy notice</Link>
+        <span className="auth-legal-sep" aria-hidden="true" />
+        <Link className="auth-link" to="/disclaimer">Disclaimer</Link>
+      </p>
     </AuthLayout>
   )
 }

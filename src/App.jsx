@@ -10,30 +10,13 @@ import VerifyEmailPage from './components/auth/VerifyEmailPage'
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage'
 import ResetPasswordPage from './components/auth/ResetPasswordPage'
 import DemoStartPage from './components/auth/DemoStartPage'
+import PrivacyPage from './components/legal/PrivacyPage'
+import DisclaimerPage from './components/legal/DisclaimerPage'
 import { AuthProvider, useAuth, stageOf, pathForStage } from './auth/AuthContext'
 import RequireStage from './auth/RequireStage'
 import TextureBackground from './components/TextureBackground'
 import DemoBanner from './components/DemoBanner'
-
-function BootScreen() {
-  return (
-    <div style={{
-      width: '100vw',
-      height: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      background: '#07070A',
-      color: '#916FF1',
-      fontFamily: 'var(--font-body)',
-      fontSize: '32px',
-      fontStyle: 'normal',
-      letterSpacing: '0'
-    }}>
-      BOOTING SYSTEM...
-    </div>
-  )
-}
+import BootScreen from './components/BootScreen'
 
 function AppRoutes() {
   const { user, checking } = useAuth()
@@ -58,6 +41,10 @@ function AppRoutes() {
       <Route path="/verify-pending" element={<VerifyPendingPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+      {/* readable by anyone, logged in or not */}
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/disclaimer" element={<DisclaimerPage />} />
 
       {/* a portfolio's "Live demo" link: starts a demo and goes straight to Home */}
       <Route path="/demo" element={<DemoStartPage />} />

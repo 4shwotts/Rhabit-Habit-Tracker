@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { deleteAccount } from '../api'
 import TwoFactorPanel from './TwoFactorPanel'
@@ -165,6 +166,11 @@ function SettingsModal({ onClose, settings, onToggle }) {
               </button>
             </div>
           )}
+          <p className="auth-legal-links settings-legal-links">
+            <Link className="auth-link" to="/privacy">Privacy notice</Link>
+            <span className="auth-legal-sep" aria-hidden="true" />
+            <Link className="auth-link" to="/disclaimer">Disclaimer</Link>
+          </p>
           </>
           )}
         </div>

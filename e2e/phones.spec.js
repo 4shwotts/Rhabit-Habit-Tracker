@@ -66,6 +66,12 @@ for (const { name, width, height } of SCREENS) {
       await expect(page.locator('#signup-email')).toBeVisible()
       await expectNothingOffScreen(page, 'sign-up')
 
+      for (const [path, heading] of [['/privacy', 'PRIVACY NOTICE'], ['/disclaimer', 'DISCLAIMER']]) {
+        await page.goto(path)
+        await expect(page.getByRole('heading', { level: 1, name: heading })).toBeVisible()
+        await expectNothingOffScreen(page, path)
+      }
+
       await signUpAndVerify(page, request)
       await expectNothingOffScreen(page, 'setup')
 

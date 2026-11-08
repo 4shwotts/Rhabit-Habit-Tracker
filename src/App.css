@@ -5066,3 +5066,219 @@ body {
     font-size: 14px;
   }
 }
+
+/* ---- privacy notice and disclaimer ---- */
+
+.auth-legal-links {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.auth-legal-links .auth-link {
+  font-size: inherit;
+}
+
+.auth-legal-sep {
+  display: inline-block;
+  width: 4px;
+  height: 4px;
+  margin: 0 10px;
+  border-radius: 50%;
+  background: var(--text-secondary);
+  vertical-align: middle;
+}
+
+.settings-legal-links {
+  margin-top: 4px;
+}
+
+/* long reading text: left-aligned, in a comfortable column */
+.legal {
+  width: min(760px, 100%);
+  box-sizing: border-box;
+  padding: 18px 26px;
+  border: 1.5px solid var(--holo-edge);
+  border-radius: 6px;
+  background: rgba(20, 14, 40, 0.88);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.6;
+  letter-spacing: 0;
+  color: #E4DCFF;
+  text-align: left;
+}
+
+.legal section + section {
+  margin-top: 18px;
+}
+
+.legal h2 {
+  margin: 0 0 6px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  letter-spacing: 1px;
+  color: #FFFFFF;
+}
+
+.legal h3 {
+  margin: 12px 0 4px;
+  font-size: 17px;
+  color: #C1AAFF;
+}
+
+.legal p,
+.legal ul {
+  margin: 0 0 8px;
+}
+
+.legal ul {
+  padding-left: 22px;
+}
+
+.legal li + li {
+  margin-top: 4px;
+}
+
+.legal code {
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 0.92em;
+  color: #C1AAFF;
+}
+
+.legal .auth-link {
+  font-size: inherit;
+  overflow-wrap: anywhere;
+}
+
+.legal-updated {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 1023px), (max-height: 500px) {
+  .legal {
+    padding: 14px 16px;
+    font-size: 14px;
+  }
+
+  .legal h2 {
+    font-size: 16px;
+  }
+
+  .legal h3 {
+    font-size: 14px;
+  }
+
+  .auth-legal-links {
+    font-size: 13px;
+  }
+}
+
+/* ---- waiting for a sleeping server (ServerStatus.jsx, BootScreen.jsx) ---- */
+
+.boot-screen {
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: 0 20px;
+  box-sizing: border-box;
+  background: #07070A;
+  color: #916FF1;
+  font-family: var(--font-body);
+  font-size: 32px;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.server-wait {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 10px 18px;
+  border: 1.5px solid var(--holo-edge);
+  border-radius: 6px;
+  background: rgba(20, 14, 40, 0.88);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  color: #E4DCFF;
+  text-align: left;
+}
+
+/* four bars filling in turn, like a HUD loading meter */
+.server-wait-bars {
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.server-wait-bars i {
+  width: 6px;
+  height: 18px;
+  border-radius: 1px;
+  background: #916FF1;
+  opacity: 0.25;
+  transform: skewX(-12deg);
+  animation: server-wait-bar 1.2s infinite ease-in-out;
+}
+
+.server-wait-bars i:nth-child(2) { animation-delay: 0.15s; }
+.server-wait-bars i:nth-child(3) { animation-delay: 0.3s; }
+.server-wait-bars i:nth-child(4) { animation-delay: 0.45s; }
+
+@keyframes server-wait-bar {
+  0%, 100% { opacity: 0.25; }
+  40% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .server-wait-bars i {
+    animation: none;
+    opacity: 0.7;
+  }
+}
+
+.server-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border: 1.5px solid rgba(255, 154, 170, 0.7);
+  border-radius: 6px;
+  background: rgba(40, 14, 24, 0.85);
+  font-family: var(--font-body);
+  font-size: 17px;
+  letter-spacing: 0;
+  color: #FFD1D8;
+  text-align: center;
+}
+
+.server-error p {
+  margin: 0;
+}
+
+.auth-page .server-retry-btn {
+  margin-top: 0;
+}
+
+@media (max-width: 1023px), (max-height: 500px) {
+  .boot-screen {
+    font-size: 24px;
+  }
+
+  .server-wait,
+  .server-error {
+    font-size: 14px;
+  }
+}

@@ -54,7 +54,10 @@ const setupRoutes = require('./routes/setup')
 // public: account routes (they apply requireAuth themselves where needed)
 app.use('/api/auth/2fa', require('./routes/twoFactor'))
 app.use('/api/auth', authRoutes)
+// health: no database query, so it stays cheap if the host polls it
 app.get('/api/health', (req, res) => res.json({ status: 'ok' }))
+// wake: one trivial database query, called by the login page (routes/wake.js)
+app.use('/api/wake', require('./routes/wake'))
 
 // everything else requires a logged-in, verified user; the daily reset then
 // runs for that user only

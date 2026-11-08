@@ -3,20 +3,37 @@
 // session cookie is first-party and sent automatically.
 const BASE = import.meta.env.VITE_API_URL || '/api'
 
+// The backend sleeps when idle (Render's free tier) and can take up to a minute
+// to wake, so requests made before it's known to be awake wait this long
+// before giving up.
+export const SERVER_TIMEOUT_MS = 75_000
+export const UNREACHABLE = "Couldn't reach the server, please try again."
+
 // Shared fetch wrapper. Always resolves to the parsed JSON body; failed
 // requests get an `error` string so callers can keep checking `result.error`.
-async function request(path, { method = 'GET', body } = {}) {
+// When the server couldn't be reached at all (no connection, a timeout, or the
+// proxy's own error page) the result also has `unreachable: true`, so the page
+// can offer a retry.
+async function request(path, { method = 'GET', body, timeoutMs } = {}) {
   const options = { method, credentials: 'include' }
   if (body !== undefined) {
     options.headers = { 'Content-Type': 'application/json' }
     options.body = JSON.stringify(body)
+  }
+  let timer
+  if (timeoutMs) {
+    const controller = new AbortController()
+    options.signal = controller.signal
+    timer = setTimeout(() => controller.abort(), timeoutMs)
   }
 
   let res
   try {
     res = await fetch(`${BASE}${path}`, options)
   } catch {
-    return { error: 'Cannot reach the Rhabit server. Check your connection and try again.' }
+    return { error: UNREACHABLE, unreachable: true }
+  } finally {
+    clearTimeout(timer)
   }
 
   let data
@@ -24,9 +41,7 @@ async function request(path, { method = 'GET', body } = {}) {
     data = await res.json()
   } catch {
     // a non-JSON 5xx comes from the proxy, not our API — the backend is down or asleep
-    if (res.status >= 500) {
-      return { error: 'Cannot reach the Rhabit server. Is the backend running?' }
-    }
+    if (res.status >= 500) return { error: UNREACHABLE, unreachable: true }
     data = {}
   }
 
@@ -40,9 +55,15 @@ async function request(path, { method = 'GET', body } = {}) {
   return data
 }
 
+// Starts a sleeping server (and its database) waking. The login page calls it
+// as it loads; nothing waits for the answer.
+export function wakeServer() {
+  return request('/wake', { timeoutMs: SERVER_TIMEOUT_MS })
+}
+
 // auth
 export async function getMe() {
-  const data = await request('/auth/me')
+  const data = await request('/auth/me', { timeoutMs: SERVER_TIMEOUT_MS })
   return data.user || null
 }
 
@@ -53,7 +74,7 @@ export function getAuthConfig() {
 
 // a fresh throwaway demo account, signed in straight away
 export function startDemo(timezone) {
-  return request('/auth/demo', { method: 'POST', body: timezone ? { timezone } : {} })
+  return request('/auth/demo', { method: 'POST', body: timezone ? { timezone } : {}, timeoutMs: SERVER_TIMEOUT_MS })
 }
 
 // signed timestamp the signup form sends back (server-side timing check)
@@ -67,13 +88,15 @@ export function signup(fields) {
 }
 
 export function login(email, password) {
-  return request('/auth/login', { method: 'POST', body: { email, password } })
+  return request('/auth/login', { method: 'POST', body: { email, password }, timeoutMs: SERVER_TIMEOUT_MS })
 }
 
 // Log out ends the session everywhere; `thisBrowserOnly` just drops this
 // browser's cookie (used when a new visit starts, see AuthContext)
 export function logout({ thisBrowserOnly = false } = {}) {
-  return request('/auth/logout', { method: 'POST', body: thisBrowserOnly ? { this_browser_only: true } : undefined })
+  return request('/auth/logout', {
+    method: 'POST', body: thisBrowserOnly ? { this_browser_only: true } : undefined, timeoutMs: SERVER_TIMEOUT_MS
+  })
 }
 
 export function verifyEmail(token) {

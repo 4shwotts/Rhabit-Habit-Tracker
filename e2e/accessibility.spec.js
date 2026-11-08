@@ -22,7 +22,7 @@ async function scan(page, name, testInfo) {
   await testInfo.attach(`axe-${name}`, { body: JSON.stringify(violations, null, 2), contentType: 'application/json' })
 }
 
-test('accessibility scan of login, sign-up, setup, Home, Goals and demo mode', async ({ page, request, browser }, testInfo) => {
+test('accessibility scan of login, sign-up, setup, Home, Goals, demo mode, privacy and disclaimer', async ({ page, request, browser }, testInfo) => {
   await resetRateLimits(request)
 
   // the login page includes the "Try the demo" button
@@ -30,6 +30,16 @@ test('accessibility scan of login, sign-up, setup, Home, Goals and demo mode', a
   await expect(page.locator('#login-email')).toBeVisible()
   await expect(page.getByRole('button', { name: 'Try the demo' })).toBeVisible()
   await scan(page, 'login', testInfo)
+
+  // the privacy notice and disclaimer, reached from the login page without logging in
+  await page.getByRole('link', { name: 'Privacy notice' }).click()
+  await page.waitForURL('**/privacy')
+  await expect(page.getByRole('heading', { level: 1, name: 'PRIVACY NOTICE' })).toBeVisible()
+  await scan(page, 'privacy', testInfo)
+  await page.getByRole('link', { name: 'Disclaimer' }).click()
+  await page.waitForURL('**/disclaimer')
+  await expect(page.getByRole('heading', { level: 1, name: 'DISCLAIMER' })).toBeVisible()
+  await scan(page, 'disclaimer', testInfo)
 
   await page.goto('/signup')
   await expect(page.locator('#signup-email')).toBeVisible()

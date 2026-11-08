@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import AuthLayout, { AuthField, AuthMessage } from './AuthLayout'
-import { login, verifyTwoFactor } from '../../api'
+import { login, verifyTwoFactor, wakeServer } from '../../api'
 import { useAuth, stageOf, pathForStage } from '../../auth/AuthContext'
+import { useSlowRequest, WakingNotice, UnreachableNotice } from '../ServerStatus'
 
 function LoginPage() {
   const { refresh, startDemo } = useAuth()
@@ -17,6 +18,25 @@ function LoginPage() {
   const [useBackupCode, setUseBackupCode] = useState(false)
   const [demoError, setDemoError] = useState(null)
   const [startingDemo, setStartingDemo] = useState(false)
+  // A request that's still waiting (a new number each time, null when none),
+  // and what to try again if the server couldn't be reached at all.
+  const [attempt, setAttempt] = useState(null)
+  const [retry, setRetry] = useState(null)
+  const attempts = useRef(0)
+  const slow = useSlowRequest(attempt)
+
+  // start a sleeping server waking before the visitor clicks anything
+  useEffect(() => { wakeServer() }, [])
+
+  // runs a request, tracking whether it's slow or the server is unreachable
+  async function track(send, again) {
+    setRetry(null)
+    setAttempt(++attempts.current)
+    const result = await send()
+    setAttempt(null)
+    if (result.unreachable) setRetry(() => again)
+    return result
+  }
 
   async function finishLogin() {
     const user = await refresh()
@@ -24,13 +44,14 @@ function LoginPage() {
   }
 
   async function handleSubmit(e) {
-    e.preventDefault()
+    e?.preventDefault()
     if (submitting) return
     setSubmitting(true)
     setError(null)
 
-    const result = await login(email.trim(), password)
+    const result = await track(() => login(email.trim(), password), () => handleSubmit())
     setSubmitting(false)
+    if (result.unreachable) return
 
     // right password but email not verified yet: show the verify page (no session)
     if (result.code === 'EMAIL_NOT_VERIFIED') {
@@ -53,10 +74,10 @@ function LoginPage() {
     if (startingDemo) return
     setStartingDemo(true)
     setDemoError(null)
-    const result = await startDemo()
+    const result = await track(startDemo, () => handleDemo())
     if (result.error) {
       setStartingDemo(false)
-      setDemoError(result.error)
+      if (!result.unreachable) setDemoError(result.error)
       return
     }
     navigate(pathForStage(stageOf(result.user)), { replace: true })
@@ -160,6 +181,13 @@ function LoginPage() {
         {startingDemo ? 'Starting...' : 'Try the demo'}
       </button>
       <p className="auth-demo-note">No sign-up needed. Demo data is deleted after 24 hours.</p>
+      {slow && <WakingNotice />}
+      {retry && <UnreachableNotice onRetry={retry} />}
+      <p className="auth-legal-links">
+        <Link className="auth-link" to="/privacy">Privacy notice</Link>
+        <span className="auth-legal-sep" aria-hidden="true" />
+        <Link className="auth-link" to="/disclaimer">Disclaimer</Link>
+      </p>
       <AuthMessage error={demoError} />
 
       <div className="auth-links">

@@ -1,50 +1,75 @@
 # Rhabit
 
+A gamified daily habit tracker: finish your tasks inside a daily window to earn XP and level up, or face a penalty.
+
+**[Try the live demo](https://rhabit-habit-tracker.vercel.app/demo)** · [Live site](https://rhabit-habit-tracker.vercel.app) · [Source code](https://github.com/4shwotts/Rhabit-Habit-Tracker)
+
 [![CI](https://github.com/4shwotts/Rhabit-Habit-Tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/4shwotts/Rhabit-Habit-Tracker/actions/workflows/ci.yml)
 ![Server coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/4shwotts/Rhabit-Habit-Tracker/badges/coverage.json)
-![Tests: 393](https://img.shields.io/badge/tests-393-brightgreen)
-
-A gamified daily habit tracker inspired by isekai game menus, including a penalty system modelled after Solo Levelling. Built as a portfolio project demonstrating full-stack development with React, Node.js, Express and PostgreSQL.
 
 ---
 
-## Overview
+## 1. What it is
 
-Rhabit turns your daily habits into a progression system. Complete tasks within a daily time window to earn XP and level up. Miss your tasks and face a penalty challenge. The further you progress, the harder your tasks become and the shorter your window gets.
+Rhabit turns daily habits into a game, styled like the menus in isekai anime, with a penalty system modelled on Solo Levelling. You set up goal pathways, such as Fitness or Study, with tasks for each level. Each day you get three tasks and a time window. Finish and confirm them in time to earn XP, or miss the window and face a penalty challenge. The higher you level, the harder the tasks and the shorter the window.
 
----
-
-## Features
-
-- **Goal Pathways** — Create multiple habit pathways (Fitness, Art, Study, etc.) each with independent XP and level progression
-- **Daily Task Windows** — Tasks must be completed within a time window that shrinks as you level up
-- **XP and Level System** — Earn XP per completed task and level up to unlock harder challenges
-- **Penalty System** — Miss your window and face a random penalty challenge. Complete it to avoid losing XP
-- **Smart Late Detection** — Opening the app too late automatically triggers the penalty system rather than letting you start a session you cannot finish
-- **Task Refresh** — Swap out tasks you do not want to do (costs XP, or free with the setting toggled on)
-- **Goal Memory** — Switch between goal pathways mid-day and your tasks are saved and restored when you switch back
-- **Real-time Clock** — Live clock display in your local timezone
-- **Works on phones** — Every page has its own small-screen layout, upright or sideways
-- **One-click demo** — Try the whole app without signing up (see below)
-- **Accounts** — Email verification, password reset and optional authenticator-app two-step sign-in
+It's a full-stack portfolio project: a React frontend, an Express API, a PostgreSQL database, and a test suite that runs on every push.
 
 ---
 
-## Try the demo
+## 2. Try the demo
 
-Press **Try the demo** on the login page to get a throwaway account straight away, with no email or password. Or go straight to **[/demo](https://rhabit-habit-tracker.vercel.app/demo)**, which starts one and opens Home without the login page, for a "Live demo" link.
+**[Open the live demo](https://rhabit-habit-tracker.vercel.app/demo)**, or press **Try the demo** on the login page. One click gives you a throwaway account, with no sign-up, email or password.
 
 - **It starts part-way through the game.** A Fitness pathway sits at level 4 with XP in its bar, next to Study and Art pathways at other levels. Today's tasks are already started, with one ticked.
-- **Its timers are fast,** so you can see everything in a few minutes. The daily window is 3 minutes, with Confirm opening after 1 minute. A missed window starts a 2-minute penalty. The server sets these from the account, and real accounts keep their normal timings.
-- **It's deleted after 24 hours,** or straight away when you log out or end the demo in Settings. Expired demos are cleared when the server starts, every hour, and whenever a new demo begins. A database rule means clean-up can never match a real account.
-- **Some things are switched off.** A demo can't set up two-step sign-in, ask for a password reset, or trigger any email.
-- **There are limits.** Each IP address can start 5 demos an hour, and at most 200 can be live at once. Past that, the button says the demo is busy.
+- **Its timers are fast,** so you can see everything in a few minutes. The daily window is 3 minutes, with Confirm opening after 1 minute. A missed window starts a 2-minute penalty. The server sets these from the account; full accounts keep their normal timings.
+- **It's deleted after 24 hours,** or straight away when you log out or choose End demo in Settings.
+- **The first visit can take up to a minute,** because the free server sleeps when idle. The app says it's waking the server, and offers a retry if it can't be reached.
 
-Setting `PUBLIC_SIGNUP_ENABLED=false` on the server closes public sign-up without a code change. The demo is then the only way in.
+Demo accounts can't set up two-step sign-in or trigger any email. Each IP address can start 5 demos an hour, and at most 200 can exist at once.
 
 ---
 
-## Architecture
+## 3. Features
+
+**The game**
+- **Goal pathways:** several habits (Fitness, Art, Study and so on), each with its own XP and level.
+- **Daily windows:** three tasks a day, inside a window set by the hardest task: 3 hours for levels 1–3, 2 hours for 4–6, 90 minutes for 7–9 and 1 hour for level 10. Confirm unlocks 30 minutes before the end.
+- **XP and levels:** 15 XP per task, 100 XP per level, up to level 10. Each level unlocks a harder tier of tasks. A full bar at level 10 completes the pathway.
+- **Penalties:** a window that ends without a confirm starts a 1-hour penalty challenge. Failing it costs 45 XP. Closing the site doesn't dodge it: unfinished days and days the app isn't opened are settled at the next reset.
+- **Rerolls, pausing and goal switching:** swap a task for 10 XP, pause progression for a break, and switch pathways mid-day with today's tasks remembered.
+- **Time zones:** each player's day resets at their own midnight.
+
+**Accounts**
+- Email verification, password reset and optional authenticator-app two-step sign-in with backup codes.
+- A one-click demo, as above.
+- A privacy notice and disclaimer, readable without logging in.
+
+**Phones**
+- Every page has its own small-screen layout, upright or sideways, checked in Chromium and in WebKit (the engine behind Safari).
+
+The full sign-up flow, recorded locally against the test setup (the email comes from the test outbox, and nothing here touches the live site):
+
+![The sign-up flow: sign up, the verification email, verify, set up, then turn on two-step sign-in](docs/media/signup-flow.webp)
+
+Public sign-up is closed on the live site, so the demo is the way in.
+
+---
+
+## 4. Tech stack
+
+| Area | Tools |
+|---|---|
+| Frontend | React 19, Vite, React Router 7, plain CSS (no UI or animation libraries) |
+| Backend | Node.js 24, Express 5, zod validation, helmet, express-rate-limit |
+| Database | PostgreSQL on Neon, via `pg`, with SQL migrations |
+| Accounts | JWT sessions in httpOnly cookies, bcrypt, TOTP two-step sign-in, Brevo for email |
+| Testing | Vitest, Testing Library, Supertest, Playwright (Chromium and WebKit), axe |
+| Hosting and CI | Vercel (frontend), Render (API), GitHub Actions |
+
+---
+
+## 5. Architecture and key design decisions
 
 ```
 Browser (React)
@@ -59,175 +84,99 @@ Render (Express API: validation, rate limits, game rules)
 Neon (PostgreSQL)      Brevo (email)
 ```
 
-- **The server decides everything that matters.** XP, levels and timers are worked out on the server from stored timestamps. The client only displays them, and strict request validation refuses any extra fields it sends.
-- **Each day is settled in a locked transaction.** Every daily route first brings the day up to date with the clock, so a closed tab can't dodge a missed window or a penalty.
-- **Resets follow the player's own time zone,** and run on that player's first request of the new day.
-- **Every row belongs to a user.** Queries filter by owner, so another player's ids look like ids that don't exist.
-
-### Tech Stack
-
-**Frontend**
-- React 19 + Vite
-- React Router v7
-- CSS animations (no animation libraries)
-- Custom Rhabit display and text fonts
-
-**Backend**
-- Node.js + Express 5
-- PostgreSQL (Neon) via `pg`, with SQL migrations
-- JWT sessions in httpOnly cookies, bcrypt password hashing, TOTP two-step sign-in
-- zod validation, helmet and express-rate-limit
-- Timezone-aware daily resets via the Intl API
-
-**Testing**
-- Vitest, Testing Library, Supertest, Playwright and axe
-- GitHub Actions
-
-### Project Structure
-
-```
-Rhabit/
-├── src/                  React frontend
-│   ├── components/       pages, pop-ups and component tests
-│   ├── auth/             session state and route guards
-│   └── api.js            all calls to the API
-├── server/
-│   ├── routes/           API routes
-│   ├── middleware/       auth, rate limits, daily reset
-│   ├── lib/              game rules, sessions, email, 2FA
-│   ├── db/               connection and SQL migrations
-│   ├── tests/            unit and API tests
-│   ├── app.js            builds the Express app
-│   └── index.js          starts it
-├── e2e/                  Playwright journeys and accessibility scan
-├── .github/workflows/    CI
-├── TESTING.md
-└── BUGS.md
-```
+- **The server decides everything that matters.** XP, levels and timers are worked out on the server from stored timestamps. The browser only displays them, and strict validation refuses any extra fields it sends.
+- **Each day is settled in a locked transaction.** Every daily route first brings the day up to date with the clock, so a closed tab can't dodge a missed window or a penalty, and a double-click can't confirm twice.
+- **Every row belongs to a user.** Queries filter by owner, so another player's data looks as if it doesn't exist.
+- **Demo accounts are safe by construction.** A database rule ties a demo to its expiry date and an address that can never receive mail, so the clean-up can't match a real account. Expired demos are cleared when the server starts, every hour, and whenever a new demo begins.
+- **Sign-up can be closed without a code change.** `PUBLIC_SIGNUP_ENABLED=false` makes the server refuse sign-ups, while existing accounts keep working.
+- **Tests can never reach real data.** They use their own throwaway database, ignore the real connection string, and refuse hosted database addresses before any test starts.
+- **A sleeping server isn't mistaken for a broken one.** The login page calls `/api/wake` as it loads, to wake the server and database early. Slow requests show a waking message, and failed ones offer a retry.
 
 ---
 
-## Testing
+## 6. Testing
 
-The project has 393 automated tests: unit, component, API integration and end-to-end, plus an accessibility scan. They run on every push and pull request, and server code is at 90% line coverage.
+**445 automated tests**, all run by GitHub Actions on every push and pull request:
 
+| Level | Tests | What they cover |
+|---|---|---|
+| Unit | 103 | Game rules, demo accounts, and proof the tests can't reach the real database |
+| Component | 49 | Home timers and penalty pop-up, sign-up page, privacy pages, server wake-up and retry |
+| Image size | 32 | Every image and icon stays under 200 kB |
+| API integration | 235 | Real HTTP requests against a real Postgres database: authentication, security, validation, two-factor, authorisation, game rules, rate limits, demo, sign-up switch, wake-up |
+| Browser journeys | 9 | The main player journeys and the demo, end to end in Chromium |
+| Accessibility | 1 | An axe scan of every main page against WCAG 2.1 A and AA, with 0 violations |
+| Phone checks | 16 | Every main page and the demo at four phone and tablet sizes, in Chromium and WebKit |
+
+Server coverage is 90.8% of lines. **[TESTING.md](TESTING.md)** has the strategy, the full breakdown, what's deliberately not tested, and how to run it all on Windows.
+
+Developed with AI-assisted tooling (Claude Code). Test strategy, review, manual exploratory testing and bug triage by me.
+
+---
+
+## 7. Bugs found and fixed
+
+**[BUGS.md](BUGS.md)** writes up 16 real bugs, each with steps to reproduce, root cause, fix and the test that now guards it. Some highlights:
+
+- **Logging out left a copied session cookie working,** found by reviewing the API tests. Logout now ends the session on the server.
+- **The midnight reset erased punishments,** so closing the site dodged an XP loss. Found in code review.
+- **A huge XP amount hung the server,** found by unit tests on the level maths.
+- **Safari lost a button's shape and the Goals list spilled out of its frame,** found by testing on a real iPhone after the automated Chromium checks had passed. This is why the phone checks now run in WebKit too.
+
+---
+
+## 8. How to run it locally on Windows
+
+You need Node.js 24 and npm. Run these in PowerShell.
+
+**Install:**
 ```powershell
-npm test              # component, unit and API tests
-npm run test:coverage # the same, with coverage reports
-npm run test:e2e      # end-to-end tests and accessibility scan
-```
-
-No Postgres install is needed; the tests start their own throwaway database and refuse to run against a hosted one.
-
-- [TESTING.md](TESTING.md) covers the strategy, what's deliberately not tested, how to run everything on Windows, and full test counts and coverage.
-- [BUGS.md](BUGS.md) writes up real bugs found along the way, with root causes, fixes and the tests that now guard them.
-
----
-
-## Known Limitations
-
-- **Rate limits are kept in memory.** They reset when the server restarts and wouldn't be shared across several server instances.
-- **Logging out signs you out on every device.** There's no per-device session list, so one logout ends them all.
-- **The first request can be slow,** because the hosted backend can go to sleep when idle.
-- **Countdowns use the device's clock,** so a badly wrong clock shows the wrong time left. The server stays in charge of what's allowed, with a 5-second allowance.
-- **Clock-change days are slightly off early in the day.** Time left until midnight assumes a 24-hour day, so it's an hour out before the clocks change. It's correct near midnight, when it matters.
-- **Frontend pages rely on end-to-end tests,** so component coverage is low. Automated tests use Chromium, plus WebKit for phone layouts. Real iPhones are checked by hand.
-
----
-
-## Getting Started
-
-### Prerequisites
-- Node.js 24
-- npm
-- A PostgreSQL database, such as a free Neon branch
-
-### Installation
-
-1. Clone the repository
-```bash
 git clone https://github.com/4shwotts/Rhabit-Habit-Tracker.git
 cd Rhabit-Habit-Tracker
-```
-
-2. Install frontend and backend dependencies
-```bash
 npm install
 npm install --prefix server
+npx playwright install chromium webkit
 ```
 
-3. Copy `server/.env.example` to `server/.env`, fill in `DATABASE_URL`, then create the tables
-```bash
-npm run migrate --prefix server
+**Try it without any setup.** This starts a throwaway database, the API and the website together:
+```powershell
+node e2e/stack.mjs
+```
+Open http://localhost:5181 and press Ctrl+C to stop; everything is deleted. Sign-ups here use 30-second test timers, and emails go to a test outbox instead of being sent.
+
+**Run the tests:**
+```powershell
+npm test              # unit, component, image and API tests
+npm run test:coverage # the same, with coverage reports
+npm run test:e2e      # browser journeys, accessibility and phone checks
 ```
 
-### Running the App
-
-**Windows** — double-click `start.bat` to launch everything automatically and open the browser.
-
-**Manual launch:**
-
-Terminal 1 — Backend:
-```bash
-cd server
-npm run dev
-```
-
-Terminal 2 — Frontend:
-```bash
-npm run dev
-```
-
-Then open [http://localhost:5173](http://localhost:5173)
-
-Without a Brevo key, emails such as verification links are printed in the backend terminal.
+**Run it against your own database:**
+1. Copy `server/.env.example` to `server/.env` and fill in `DATABASE_URL`. A free Neon branch works.
+2. Create the tables:
+   ```powershell
+   npm run migrate --prefix server
+   ```
+3. Double-click `start.bat`, or run `npm run dev --prefix server` and `npm run dev` in two windows.
+4. Open http://localhost:5173. Without a Brevo key, emails such as verification links are printed in the server window.
 
 ---
 
-## First Time Setup
+## 9. Known limitations
 
-After signing up and verifying your email you will be taken to the setup page, where you name your first goal pathway and add tasks. Levels 1–3 need at least 3 tasks each before you can start; levels 4–10 are optional and can be added later from Goals.
-
----
-
-## Game Design
-
-### XP System
-- 15 XP per completed task
-- 3 tasks per day = 45 XP maximum per day
-- 100 XP to level up
-- Level 10 is the top level, and its bar stops at 100/100 XP
-- A full bar at level 10 completes the pathway: its tasks and XP losses stop, and you can move on to another pathway
-- Rerolling a task costs 10 XP, unless free rerolls are turned on
-- Penalty deduction = 45 XP (capped so you cannot go below 0 on level 1)
-
-### Task Level Unlock System
-Tasks unlock progressively as you level up — every level up grants access to the next tier of harder tasks, with a mix of easier and harder tasks served to keep progression feeling earned rather than sudden.
-
-### Daily Window by Level
-
-The window is set by the hardest task rolled that day. The confirm button unlocks 30 minutes before it ends.
-
-| Hardest Task Level | Window Duration |
-|---|---|
-| 1–3 | 3 hours |
-| 4–6 | 2 hours |
-| 7–9 | 1.5 hours |
-| 10 | 1 hour |
-
-### Penalty System
-- Miss your window mid-session → penalty task assigned from a random pool
-- Every penalty lasts 1 hour, and the confirm button unlocks 10 minutes before the end
-- Fail the penalty → lose 45 XP
-- Open the app too late to complete the window → penalty auto-triggers
-- No time left for even a penalty → XP deducted immediately, with a message and the bar animating down
-- Ticking tasks isn't enough → a window that ends without a confirm counts as missed
-- Leave a day unfinished and close the site → the 45 XP still goes at the daily reset, and you're told on your next visit
-- Don't open the app at all → every missed day costs 45 XP
-- Pause Progression freezes progress and losses for a long break. It starts from the next day if you've already started your tasks
+- **The first request can be slow.** The free server sleeps when idle and can take up to a minute to wake. The app shows a waking message and a retry, but it can't make the wait shorter.
+- **Rate limits are kept in memory.** They reset when the server restarts and wouldn't be shared across several server instances.
+- **Logging out signs you out on every device.** There's no per-device session list.
+- **Countdowns use the device's clock,** so a badly wrong clock shows the wrong time left. The server stays in charge of what's allowed, with a 5-second allowance.
+- **Clock-change days are slightly off early in the day.** Time left until midnight assumes a 24-hour day, so it's an hour out before the clocks change. It's correct near midnight, when it matters.
+- **Testing has limits.** Browser tests run in Chromium, plus WebKit for the phone checks, not on real devices. Real iPhones are checked by hand. There's no load testing and no visual regression testing, and the security tests are my own, not an independent audit.
+- **Frontend unit coverage is modest,** at about a third of lines, because most pages are tested end to end in the browser, which doesn't count towards that figure.
 
 ---
 
-## License
+## 10. Privacy
 
-MIT
+The live site has a **[privacy notice](https://rhabit-habit-tracker.vercel.app/privacy)** and a **[disclaimer](https://rhabit-habit-tracker.vercel.app/disclaimer)**. In short:
+- demo accounts hold no real personal data, send no emails and are deleted after 24 hours
+- the only cookie keeps you logged in
+- there's no analytics or tracking
