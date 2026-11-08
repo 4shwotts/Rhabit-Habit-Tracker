@@ -4947,7 +4947,7 @@ body {
 .auth-demo-note {
   margin: -2px 0 0;
   font-family: var(--font-body);
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1.4;
   letter-spacing: 0;
   color: var(--text-secondary);
@@ -4970,7 +4970,7 @@ body {
   border-bottom: 1.5px solid var(--holo-edge-bright);
   background: rgba(20, 14, 40, 0.94);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.35;
   letter-spacing: 0;
   color: #E4DCFF;
@@ -5002,8 +5002,8 @@ body {
    covers the clock or the top buttons */
 @media (max-width: 1023px), (max-height: 500px) {
   .demo-banner {
-    padding: 4px 10px;
-    font-size: 11px;
+    padding: 5px 10px;
+    font-size: 13px;
   }
 
   .home-page {
@@ -5023,9 +5023,12 @@ body {
     padding-top: calc(12px + var(--demo-banner-height, 0px));
   }
 
-  .auth-divider,
-  .auth-demo-note {
+  .auth-divider {
     font-size: 13px;
+  }
+
+  .auth-demo-note {
+    font-size: 15px;
   }
 
   .auth-demo-note {
