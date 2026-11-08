@@ -19,6 +19,7 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 | 13 | [Goals spilled out of their frame on phones](#13-goals-spilled-out-of-their-frame-on-phones) | Real iPhone | Fixed |
 | 14 | [Pop-up corners were squashed on phones](#14-pop-up-corners-were-squashed-on-phones) | Real iPhone | Fixed |
 | 15 | [Corners and background moved while scrolling](#15-corners-and-background-moved-while-scrolling) | Real iPhone | Fixed |
+| 16 | [The demo banner blocked closing pop-ups on phones](#16-the-demo-banner-blocked-closing-pop-ups-on-phones) | Screenshot check | Fixed |
 
 ---
 
@@ -296,3 +297,22 @@ Real bugs found while adding automated tests to Rhabit. Each entry shows how it 
 **Fix:** the document no longer scrolls on small screens. Home and Goals fit the screen, and anything longer scrolls inside its own page or frame.
 
 **Preventing test:** `every main page fits` in `e2e/phones.spec.js` checks that Home and Goals don't scroll on an upright screen. The toolbars themselves can only be checked on a real iPhone.
+
+## 16. The demo banner blocked closing pop-ups on phones
+
+**Summary:** in demo mode on a phone, tapping the top of the screen didn't close a pop-up.
+
+**Steps to reproduce:**
+1. Start the demo on a phone.
+2. Open Settings.
+3. Tap the strip at the top of the screen, above the pop-up.
+
+**Expected:** the pop-up closes, as it does outside demo mode.
+
+**Actual:** nothing happened. The tap landed on the demo banner.
+
+**Root cause:** the banner sits above every page, including a pop-up's backdrop, and it covered the strip that's left free for closing pop-ups.
+
+**Fix:** on small screens, a pop-up's free strip now starts below the banner.
+
+**Preventing test:** none that would fail on the old code. The phone checks close pop-ups below the banner, and `the demo fits` checks the banner never covers the clock or the top buttons. Found while checking screenshots, before the feature was merged.

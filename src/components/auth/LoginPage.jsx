@@ -5,7 +5,7 @@ import { login, verifyTwoFactor } from '../../api'
 import { useAuth, stageOf, pathForStage } from '../../auth/AuthContext'
 
 function LoginPage() {
-  const { refresh } = useAuth()
+  const { refresh, startDemo, publicSignup } = useAuth()
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -15,6 +15,8 @@ function LoginPage() {
   const [needsCode, setNeedsCode] = useState(false)
   const [code, setCode] = useState('')
   const [useBackupCode, setUseBackupCode] = useState(false)
+  const [demoError, setDemoError] = useState(null)
+  const [startingDemo, setStartingDemo] = useState(false)
 
   async function finishLogin() {
     const user = await refresh()
@@ -45,6 +47,19 @@ function LoginPage() {
       return
     }
     await finishLogin()
+  }
+
+  async function handleDemo() {
+    if (startingDemo) return
+    setStartingDemo(true)
+    setDemoError(null)
+    const result = await startDemo()
+    if (result.error) {
+      setStartingDemo(false)
+      setDemoError(result.error)
+      return
+    }
+    navigate(pathForStage(stageOf(result.user)), { replace: true })
   }
 
   async function handleCode(e) {
@@ -137,9 +152,19 @@ function LoginPage() {
         </button>
       </form>
 
+      {/* one click in, for anyone who just wants to look around */}
+      <div className="auth-divider" role="separator" aria-label="or">
+        <span aria-hidden="true">or</span>
+      </div>
+      <button className="auth-btn auth-demo-btn" type="button" onClick={handleDemo} disabled={startingDemo}>
+        {startingDemo ? 'Starting...' : 'Try the demo'}
+      </button>
+      <p className="auth-demo-note">No sign-up needed. Demo data is deleted after 24 hours.</p>
+      <AuthMessage error={demoError} />
+
       <div className="auth-links">
         <Link className="auth-link" to="/forgot-password">Forgotten your password?</Link>
-        <Link className="auth-link" to="/signup">New here? Create an account</Link>
+        {publicSignup && <Link className="auth-link" to="/signup">New here? Create an account</Link>}
       </div>
     </AuthLayout>
   )

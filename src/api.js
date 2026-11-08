@@ -46,6 +46,16 @@ export async function getMe() {
   return data.user || null
 }
 
+// what the app needs to know before anyone signs in (e.g. whether sign-up is open)
+export function getAuthConfig() {
+  return request('/auth/config')
+}
+
+// a fresh throwaway demo account, signed in straight away
+export function startDemo(timezone) {
+  return request('/auth/demo', { method: 'POST', body: timezone ? { timezone } : {} })
+}
+
 // signed timestamp the signup form sends back (server-side timing check)
 export async function getSignupToken() {
   const data = await request('/auth/signup-token')
@@ -82,9 +92,11 @@ export function resetPassword(token, password) {
   return request('/auth/reset-password', { method: 'POST', body: { token, password } })
 }
 
-// `code` (authenticator or backup code) is only needed when 2FA is on
+// `code` (authenticator or backup code) is only needed when 2FA is on. A demo
+// account has no password, so it sends neither.
 export function deleteAccount(password, code) {
-  return request('/auth/account', { method: 'DELETE', body: code ? { password, code } : { password } })
+  const body = !password ? {} : code ? { password, code } : { password }
+  return request('/auth/account', { method: 'DELETE', body })
 }
 
 // two-step sign-in (authenticator app)

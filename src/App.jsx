@@ -12,6 +12,7 @@ import ResetPasswordPage from './components/auth/ResetPasswordPage'
 import { AuthProvider, useAuth, stageOf, pathForStage } from './auth/AuthContext'
 import RequireStage from './auth/RequireStage'
 import TextureBackground from './components/TextureBackground'
+import DemoBanner from './components/DemoBanner'
 
 function BootScreen() {
   return (
@@ -34,18 +35,23 @@ function BootScreen() {
 }
 
 function AppRoutes() {
-  const { user, checking } = useAuth()
+  const { user, checking, publicSignup } = useAuth()
 
   // wait for the session check so guards don't flash the login page
   if (checking) return <BootScreen />
 
   return (
+    <>
+    {user?.is_demo && <DemoBanner />}
     <Routes>
       <Route path="/" element={<Navigate to={pathForStage(stageOf(user))} replace />} />
 
       {/* logged-out only */}
       <Route path="/login" element={<RequireStage stage="guest"><LoginPage /></RequireStage>} />
-      <Route path="/signup" element={<RequireStage stage="guest"><SignupPage /></RequireStage>} />
+      {/* with public sign-up switched off, the demo is the only way in */}
+      <Route path="/signup" element={publicSignup
+        ? <RequireStage stage="guest"><SignupPage /></RequireStage>
+        : <Navigate to="/login" replace />} />
 
       {/* reachable from emailed links (and the login page) whatever the session state */}
       <Route path="/verify-email" element={<VerifyEmailPage />} />
@@ -60,6 +66,7 @@ function AppRoutes() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   )
 }
 

@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
-import { getMe, logout as apiLogout } from '../api'
+import { getMe, logout as apiLogout, getAuthConfig, startDemo as apiStartDemo } from '../api'
 
 // Holds the current session user (from GET /api/auth/me) for the whole app.
 // The server is the source of truth — this only decides which page to show.
@@ -26,6 +26,15 @@ function clearVisit() {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [checking, setChecking] = useState(true)
+  // whether public sign-up is open (the server's PUBLIC_SIGNUP_ENABLED); assumed
+  // open until the server says otherwise
+  const [publicSignup, setPublicSignup] = useState(true)
+
+  useEffect(() => {
+    getAuthConfig().then(config => {
+      if (typeof config.public_signup_enabled === 'boolean') setPublicSignup(config.public_signup_enabled)
+    })
+  }, [])
 
   // re-reads the session from the server, e.g. after login or verification
   const refresh = useCallback(async () => {
@@ -63,13 +72,27 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener('rhabit:session-expired', onExpired)
   }, [])
 
+  // logging out of a demo also deletes it (the server does that)
   const logout = useCallback(async () => {
     clearVisit()
     try { await apiLogout() } finally { setUser(null) }
   }, [])
 
+  // one click: a new demo account, signed in. Resolves to the result, which has
+  // an `error` if the demo couldn't start (busy, or too many from here).
+  const startDemo = useCallback(async () => {
+    let timezone
+    try { timezone = Intl.DateTimeFormat().resolvedOptions().timeZone } catch { /* server uses UTC */ }
+    const result = await apiStartDemo(timezone)
+    if (result.user) {
+      markVisitLoggedIn()
+      setUser(result.user)
+    }
+    return result
+  }, [])
+
   return (
-    <AuthContext.Provider value={{ user, checking, refresh, logout, setUser }}>
+    <AuthContext.Provider value={{ user, checking, refresh, logout, setUser, startDemo, publicSignup }}>
       {children}
     </AuthContext.Provider>
   )

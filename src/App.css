@@ -4919,3 +4919,116 @@ body {
     font-size: 14px;
   }
 }
+
+/* ---- demo mode ---- */
+
+/* the "or" between logging in and trying the demo, with a line either side */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 420px;
+  margin: 6px auto 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  letter-spacing: 1px;
+  color: var(--text-secondary);
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgba(193, 170, 255, 0.4);
+}
+
+.auth-demo-note {
+  margin: -2px 0 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.4;
+  letter-spacing: 0;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* a thin strip across the top of the app (DemoBanner.jsx) */
+.demo-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 90;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 2px 12px;
+  padding: 5px 14px;
+  border-bottom: 1.5px solid var(--holo-edge-bright);
+  background: rgba(20, 14, 40, 0.94);
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.35;
+  letter-spacing: 0;
+  color: #E4DCFF;
+  text-align: center;
+}
+
+.demo-banner-link {
+  padding: 2px 4px;
+  border: none;
+  background: none;
+  font: inherit;
+  color: #C1AAFF;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.demo-banner-link:hover,
+.demo-banner-link:focus-visible {
+  color: #FFFFFF;
+}
+
+.demo-banner-link:focus-visible {
+  outline: 2px solid var(--holo-edge-bright);
+  outline-offset: 2px;
+}
+
+/* small screens: the pages move down by the banner's height, so it never
+   covers the clock or the top buttons */
+@media (max-width: 1023px), (max-height: 500px) {
+  .demo-banner {
+    padding: 4px 10px;
+    font-size: 11px;
+  }
+
+  .home-page {
+    padding-top: calc(18px + var(--demo-banner-height, 0px));
+  }
+
+  .goals-page {
+    padding-top: calc(14px + var(--demo-banner-height, 0px));
+  }
+
+  .goals-home-btn {
+    top: calc(48px + var(--demo-banner-height, 0px));
+  }
+
+  /* the strip above a pop-up, which closes it when tapped, starts below the banner */
+  .modal-overlay {
+    padding-top: calc(12px + var(--demo-banner-height, 0px));
+  }
+
+  .auth-divider,
+  .auth-demo-note {
+    font-size: 13px;
+  }
+
+  .auth-demo-note {
+    padding: 0 8px;
+  }
+}

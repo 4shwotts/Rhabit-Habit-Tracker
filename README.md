@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/4shwotts/Rhabit-Habit-Tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/4shwotts/Rhabit-Habit-Tracker/actions/workflows/ci.yml)
 ![Server coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/4shwotts/Rhabit-Habit-Tracker/badges/coverage.json)
-![Tests: 327](https://img.shields.io/badge/tests-327-brightgreen)
+![Tests: 393](https://img.shields.io/badge/tests-393-brightgreen)
 
 A gamified daily habit tracker inspired by isekai game menus, including a penalty system modelled after Solo Levelling. Built as a portfolio project demonstrating full-stack development with React, Node.js, Express and PostgreSQL.
 
@@ -25,7 +25,22 @@ Rhabit turns your daily habits into a progression system. Complete tasks within 
 - **Goal Memory** — Switch between goal pathways mid-day and your tasks are saved and restored when you switch back
 - **Real-time Clock** — Live clock display in your local timezone
 - **Works on phones** — Every page has its own small-screen layout, upright or sideways
+- **One-click demo** — Try the whole app without signing up (see below)
 - **Accounts** — Email verification, password reset and optional authenticator-app two-step sign-in
+
+---
+
+## Try the demo
+
+Press **Try the demo** on the login page to get a throwaway account straight away, with no email or password.
+
+- **It starts part-way through the game.** A Fitness pathway sits at level 4 with XP in its bar, next to Study and Art pathways at other levels. Today's tasks are already started, with one ticked.
+- **Its timers are fast,** so you can see everything in a few minutes. The daily window is 3 minutes, with Confirm opening after 1 minute. A missed window starts a 2-minute penalty. The server sets these from the account, and real accounts keep their normal timings.
+- **It's deleted after 24 hours,** or straight away when you log out or end the demo in Settings. Expired demos are cleared when the server starts, every hour, and whenever a new demo begins. A database rule means clean-up can never match a real account.
+- **Some things are switched off.** A demo can't set up two-step sign-in, ask for a password reset, or trigger any email.
+- **There are limits.** Each IP address can start 5 demos an hour, and at most 200 can be live at once. Past that, the button says the demo is busy.
+
+Setting `PUBLIC_SIGNUP_ENABLED=false` on the server closes public sign-up without a code change. The demo is then the only way in.
 
 ---
 
@@ -94,7 +109,7 @@ Rhabit/
 
 ## Testing
 
-The project has 327 automated tests: unit, component, API integration and end-to-end, plus an accessibility scan. They run on every push and pull request, and server code is at 90% line coverage.
+The project has 393 automated tests: unit, component, API integration and end-to-end, plus an accessibility scan. They run on every push and pull request, and server code is at 90% line coverage.
 
 ```powershell
 npm test              # component, unit and API tests

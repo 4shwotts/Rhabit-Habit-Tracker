@@ -37,9 +37,18 @@ async function expectNoScrolling(page, selector) {
 }
 
 // pop-ups close with a tap outside them; there's always a strip of screen left
-// above a pop-up for that
+// above a pop-up for that, below the demo banner when there is one
 async function closePopUp(page) {
-  await page.locator('.modal-overlay').click({ position: { x: 4, y: 4 } })
+  const banner = page.locator('.demo-banner')
+  const top = await banner.count() ? (await banner.boundingBox()).height : 0
+  await page.locator('.modal-overlay').click({ position: { x: 4, y: top + 4 } })
+}
+
+// the demo banner sits above `selector`, never over it
+async function expectBelowBanner(page, selector) {
+  const banner = await page.locator('.demo-banner').boundingBox()
+  const element = await page.locator(selector).first().boundingBox()
+  expect(element.y, `${selector} is under the demo banner`).toBeGreaterThanOrEqual(banner.y + banner.height)
 }
 
 for (const { name, width, height } of SCREENS) {
@@ -101,6 +110,33 @@ for (const { name, width, height } of SCREENS) {
       await expectNothingOffScreen(page, 'goal tasks')
       await closePopUp(page)
       await expect(page.locator('.expanded-goal-box')).toHaveCount(0)
+    })
+
+    test(`the demo fits a ${width}x${height} screen`, async ({ page, request }) => {
+      await resetRateLimits(request)
+
+      await page.goto('/login')
+      await expect(page.getByRole('button', { name: 'Try the demo' })).toBeVisible()
+      await expectNothingOffScreen(page, 'login with the demo button')
+
+      await page.getByRole('button', { name: 'Try the demo' }).click()
+      await page.waitForURL('**/home')
+      await expect(page.locator('.home-task-row')).toHaveCount(3)
+      await expectNothingOffScreen(page, 'demo home')
+      await expectBelowBanner(page, '.home-clock')
+      await expectBelowBanner(page, '.home-icon-btn')
+
+      await page.locator('.home-icon-btn').first().click()
+      await expect(page.getByRole('button', { name: 'End demo' })).toBeVisible()
+      await expectNothingOffScreen(page, 'demo settings')
+      await closePopUp(page)
+      await expect(page.locator('.settings-box')).toHaveCount(0)
+
+      await page.locator('.home-icon-btn').nth(1).click()
+      await page.waitForURL('**/goals')
+      await expect(page.locator('.goal-name')).toHaveCount(3)
+      await expectNothingOffScreen(page, 'demo goals')
+      await expectBelowBanner(page, '.goals-home-btn')
     })
   })
 }
