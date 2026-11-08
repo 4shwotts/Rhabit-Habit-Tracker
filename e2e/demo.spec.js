@@ -69,6 +69,21 @@ test('try the demo, complete the day, then end the demo and it is gone', async (
   expect((await page.request.get('/api/auth/me')).status()).toBe(401)
 })
 
+test('the /demo link starts a demo and goes straight to Home', async ({ page }) => {
+  await page.goto('/demo')
+  await page.waitForURL('**/home')
+  await expect(page.getByRole('region', { name: 'Demo mode' })).toBeVisible()
+  await expect(page.locator('.home-task-row')).toHaveCount(3)
+  await expect(page.locator('.home-level-text')).toHaveText('Level: 4')
+
+  // a refresh carries on in the same demo rather than starting another
+  const before = (await (await page.request.get('/api/auth/me')).json()).user.id
+  await page.reload()
+  await expect(page.locator('.home-task-row')).toHaveCount(3)
+  const after = (await (await page.request.get('/api/auth/me')).json()).user.id
+  expect(after).toBe(before)
+})
+
 test('a demo window runs out in minutes and the penalty starts', async ({ page }) => {
   await startDemo(page)
   // 5 seconds of the 3-minute window left

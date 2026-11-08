@@ -32,7 +32,7 @@ Rhabit turns your daily habits into a progression system. Complete tasks within 
 
 ## Try the demo
 
-Press **Try the demo** on the login page to get a throwaway account straight away, with no email or password.
+Press **Try the demo** on the login page to get a throwaway account straight away, with no email or password. Or go straight to **[/demo](https://rhabit-habit-tracker.vercel.app/demo)**, which starts one and opens Home without the login page, for a "Live demo" link.
 
 - **It starts part-way through the game.** A Fitness pathway sits at level 4 with XP in its bar, next to Study and Art pathways at other levels. Today's tasks are already started, with one ticked.
 - **Its timers are fast,** so you can see everything in a few minutes. The daily window is 3 minutes, with Confirm opening after 1 minute. A missed window starts a 2-minute penalty. The server sets these from the account, and real accounts keep their normal timings.

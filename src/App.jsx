@@ -9,6 +9,7 @@ import VerifyPendingPage from './components/auth/VerifyPendingPage'
 import VerifyEmailPage from './components/auth/VerifyEmailPage'
 import ForgotPasswordPage from './components/auth/ForgotPasswordPage'
 import ResetPasswordPage from './components/auth/ResetPasswordPage'
+import DemoStartPage from './components/auth/DemoStartPage'
 import { AuthProvider, useAuth, stageOf, pathForStage } from './auth/AuthContext'
 import RequireStage from './auth/RequireStage'
 import TextureBackground from './components/TextureBackground'
@@ -58,6 +59,9 @@ function AppRoutes() {
       <Route path="/verify-pending" element={<VerifyPendingPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+      {/* a portfolio's "Live demo" link: starts a demo and goes straight to Home */}
+      <Route path="/demo" element={<DemoStartPage />} />
 
       {/* logged in */}
       <Route path="/setup" element={<RequireStage stage="setup"><SetupPage /></RequireStage>} />
