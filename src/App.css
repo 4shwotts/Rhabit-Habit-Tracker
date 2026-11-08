@@ -4152,30 +4152,32 @@ body {
   }
 
   /* ---- home: the desktop task card, smaller ---- */
+  /* a set gap under the header (rather than centring, which left too much),
+     and a little wider than the rest of the page */
   .home-task-list {
-    gap: 8px;
-    margin: auto 0;
-    padding: 28px 0 18px;
+    gap: 10px;
+    margin: clamp(28px, 7vh, 72px) -6px 18px;
+    padding: 0;
   }
 
   .home-page .home-task-row {
-    gap: 8px;
+    gap: 10px;
     height: auto;
-    min-height: 58px;
+    min-height: 70px;
     max-height: none;
-    padding: 8px 10px;
+    padding: 10px 12px;
   }
 
   .home-task-check {
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
     margin-left: 0;
     border-radius: 8px;
   }
 
   .home-task-check svg {
-    width: 22px;
-    height: 22px;
+    width: 26px;
+    height: 26px;
   }
 
   .home-task-info {
@@ -4183,14 +4185,14 @@ body {
   }
 
   .home-task-level {
-    font-size: 11px;
+    font-size: 12px;
     letter-spacing: 0;
   }
 
   /* wraps to a second line rather than losing the end of a long task */
   .home-task-title {
     display: -webkit-box;
-    font-size: 13px;
+    font-size: 15px;
     line-height: 1.25;
     white-space: normal;
     overflow-wrap: anywhere;
@@ -4200,32 +4202,32 @@ body {
   }
 
   .home-task-refresh-wrap {
-    width: 34px;
-    height: 34px;
+    width: 40px;
+    height: 40px;
     margin: 6px 0 0;
     border-radius: 8px;
   }
 
   .home-task-refresh-icon {
-    width: 20px;
-    height: 20px;
+    width: 24px;
+    height: 24px;
   }
 
   .home-task-refresh-wrap .refresh-badge {
-    top: -9px;
-    padding: 1px 3px;
-    font-size: 10px;
+    top: -10px;
+    padding: 1px 4px;
+    font-size: 11px;
     letter-spacing: 0;
   }
 
   .home-page .home-task-timer {
-    padding: 2px 6px;
-    font-size: 14px;
+    padding: 3px 8px;
+    font-size: 16px;
   }
 
   .home-action-area {
     height: auto;
-    margin-top: 0;
+    margin-top: auto;
   }
 
   .home-page .home-start-btn {
@@ -4894,5 +4896,26 @@ body {
 
   .expanded-goal-title {
     font-size: 12px;
+  }
+
+  /* the larger task cards leave too little room for the task here */
+  .home-page .home-task-row {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+
+  .home-task-check,
+  .home-task-refresh-wrap {
+    width: 34px;
+    height: 34px;
+  }
+
+  .home-task-title {
+    font-size: 13px;
+  }
+
+  .home-page .home-task-timer {
+    padding: 2px 6px;
+    font-size: 14px;
   }
 }
