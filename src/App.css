@@ -5124,7 +5124,6 @@ body {
 /* the summary at the top stands out, like a callout */
 .legal section:first-of-type {
   padding: 14px 18px;
-  border-left: 4px solid #916FF1;
   border-radius: 6px;
   background: rgba(145, 111, 241, 0.14);
 }
