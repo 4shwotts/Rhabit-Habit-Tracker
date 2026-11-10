@@ -5095,81 +5095,121 @@ body {
   margin-top: 4px;
 }
 
-/* long reading text: left-aligned, in a comfortable column */
+/* Long reading text (privacy notice and disclaimer). The page's title, logo
+   and corners stay in the HUD style, but the text itself uses a plain system
+   font at a comfortable size, because it has to be easy to read in full. */
 .legal {
+  --legal-font: system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   width: min(760px, 100%);
   box-sizing: border-box;
-  padding: 18px 26px;
+  padding: 26px 32px;
   border: 1.5px solid var(--holo-edge);
-  border-radius: 6px;
-  background: rgba(20, 14, 40, 0.88);
-  font-family: var(--font-body);
+  border-radius: 8px;
+  background: rgba(16, 11, 30, 0.97);
+  font-family: var(--legal-font);
   font-size: 17px;
-  line-height: 1.6;
+  font-weight: 400;
+  line-height: 1.65;
   letter-spacing: 0;
-  color: #E4DCFF;
+  word-spacing: normal;
+  text-transform: none;
+  color: #F1ECFF;
   text-align: left;
 }
 
 .legal section + section {
-  margin-top: 18px;
+  margin-top: 26px;
+}
+
+/* the summary at the top stands out, like a callout */
+.legal section:first-of-type {
+  padding: 14px 18px;
+  border-left: 4px solid #916FF1;
+  border-radius: 6px;
+  background: rgba(145, 111, 241, 0.14);
+}
+
+.legal h2,
+.legal h3 {
+  font-family: var(--legal-font);
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 .legal h2 {
-  margin: 0 0 6px;
-  font-family: var(--font-display);
-  font-size: 20px;
-  letter-spacing: 1px;
+  margin: 0 0 8px;
+  font-size: 21px;
+  font-weight: 700;
   color: #FFFFFF;
 }
 
 .legal h3 {
-  margin: 12px 0 4px;
+  margin: 16px 0 4px;
   font-size: 17px;
-  color: #C1AAFF;
+  font-weight: 700;
+  color: #D6C6FF;
 }
 
 .legal p,
 .legal ul {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
 }
 
 .legal ul {
-  padding-left: 22px;
+  padding-left: 24px;
 }
 
 .legal li + li {
-  margin-top: 4px;
+  margin-top: 6px;
+}
+
+.legal strong {
+  font-weight: 700;
+  color: #FFFFFF;
 }
 
 .legal code {
   font-family: 'Consolas', 'Courier New', monospace;
   font-size: 0.92em;
-  color: #C1AAFF;
+  color: #D6C6FF;
 }
 
-.legal .auth-link {
+.legal .auth-link,
+.legal a {
+  font-family: var(--legal-font);
   font-size: inherit;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #C9B6FF;
+  text-decoration: underline;
+  text-underline-offset: 3px;
   overflow-wrap: anywhere;
 }
 
 .legal-updated {
+  margin: 0 0 14px;
   font-size: 14px;
-  color: var(--text-secondary);
+  color: #BDB2D6;
 }
 
 @media (max-width: 1023px), (max-height: 500px) {
   .legal {
-    padding: 14px 16px;
-    font-size: 14px;
+    padding: 18px 16px;
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .legal section:first-of-type {
+    padding: 12px 14px;
   }
 
   .legal h2 {
-    font-size: 16px;
+    font-size: 19px;
   }
 
   .legal h3 {
-    font-size: 14px;
+    font-size: 16px;
   }
 
   .auth-legal-links {
